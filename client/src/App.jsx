@@ -14,7 +14,6 @@ export const App = () => {
   const [currentRoute, setCurrentRoute] = useState('home'); // 'home' | 'documents' | 'undertaking' | 'noc' | 'preview' | 'about'
   const [activeDocType, setActiveDocType] = useState('undertaking');
   const [previewData, setPreviewData] = useState(null);
-  const [userRole, setUserRole] = useState('Student'); // 'Student' | 'Dean'
 
   const handleNavigate = (route) => {
     setCurrentRoute(route);
@@ -52,17 +51,12 @@ export const App = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleToggleRole = () => {
-    setUserRole(prev => prev === 'Student' ? 'Dean' : 'Student');
-  };
-
   return (
     <div className="portal-layout">
       {/* Top Navigation Bar */}
       <Navbar 
         currentRoute={currentRoute} 
         onNavigate={handleNavigate} 
-        userRole={userRole}
       />
 
       {/* Main Body: Sidebar + Main Content Area */}
@@ -71,8 +65,6 @@ export const App = () => {
         <Sidebar 
           currentRoute={currentRoute} 
           onNavigate={handleNavigate} 
-          userRole={userRole}
-          onToggleRole={handleToggleRole}
         />
 
         {/* Content Area */}
@@ -81,7 +73,6 @@ export const App = () => {
             <HomePage 
               onNavigate={handleNavigate} 
               onSelectDocument={handleSelectDocument} 
-              userRole={userRole}
             />
           )}
 

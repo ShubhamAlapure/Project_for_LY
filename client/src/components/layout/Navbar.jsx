@@ -1,7 +1,7 @@
 import React from 'react';
-import { Bell, ChevronDown } from 'lucide-react';
+import { Sparkles, FileText, Layers } from 'lucide-react';
 
-export const Navbar = ({ currentRoute, onNavigate, userRole = "Student" }) => {
+export const Navbar = ({ currentRoute, onNavigate }) => {
   return (
     <header className="portal-topbar non-printable" style={{
       display: 'flex',
@@ -35,86 +35,33 @@ export const Navbar = ({ currentRoute, onNavigate, userRole = "Student" }) => {
         />
       </div>
 
-      {/* Right side: Notifications & User Persona Header (Matching Image 3) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        {/* Notification Bell */}
+      {/* Right side: Quick Action Buttons */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
         <button
+          onClick={() => onNavigate('documents')}
+          className="btn btn-sm"
           style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '50%',
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            border: 'none',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            position: 'relative'
+            color: '#ffffff',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: 'var(--radius-md)'
           }}
-          title="Notifications"
         >
-          <Bell size={18} />
-          <span style={{
-            position: 'absolute',
-            top: '8px',
-            right: '8px',
-            width: '8px',
-            height: '8px',
-            backgroundColor: '#a855f7',
-            borderRadius: '50%',
-            border: '1.5px solid #240d4f'
-          }} />
+          <Layers size={15} />
+          <span>All Templates</span>
         </button>
 
-        {/* User Persona Pill (from Image 3) */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          padding: '0.35rem 0.65rem 0.35rem 0.95rem',
-          borderRadius: 'var(--radius-full)',
-          backgroundColor: 'rgba(255, 255, 255, 0.08)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          cursor: 'pointer'
-        }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{
-              fontSize: '0.8rem',
-              fontWeight: 800,
-              color: 'white',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase'
-            }}>
-              {userRole === "Dean" ? "DR. RAJESH KUMAR" : "SHRAWAN MOKALE"}
-            </div>
-            <div style={{
-              fontSize: '0.675rem',
-              color: '#c4b5fd',
-              fontWeight: 500
-            }}>
-              {userRole === "Dean" ? "MIT-DEAN-2012-0056 • School Dean" : "ADT23SOCA1062 • AIA-3 Final Year"}
-            </div>
-          </div>
-
-          <div style={{
-            width: '34px',
-            height: '34px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            fontSize: '0.825rem',
-            color: 'white',
-            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
-          }}>
-            {userRole === "Dean" ? "DR" : "SM"}
-          </div>
-
-          <ChevronDown size={14} color="#c4b5fd" />
-        </div>
+        <button
+          onClick={() => onNavigate('undertaking')}
+          className="btn btn-sm btn-primary"
+          style={{
+            background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.35)'
+          }}
+        >
+          <Sparkles size={15} />
+          <span>Generate Document</span>
+        </button>
       </div>
     </header>
   );

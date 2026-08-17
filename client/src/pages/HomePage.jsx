@@ -12,24 +12,24 @@ import {
   Building
 } from 'lucide-react';
 
-export const HomePage = ({ onNavigate, onSelectDocument, userRole = "Student" }) => {
+export const HomePage = ({ onNavigate, onSelectDocument }) => {
   return (
     <div className="animate-fade-in">
-      {/* Portal Hero Banner (Matching Image 3) */}
+      {/* Portal Hero Banner */}
       <div className="portal-hero-banner">
         <div>
           <span className="portal-hero-tag">
-            {userRole === "Dean" ? "HOD & DEAN APPROVAL DESK" : "STUDENT INTERNSHIP DOCUMENTATION DESK"}
+            STUDENT INTERNSHIP DOCUMENTATION DESK
           </span>
           <h1 className="portal-hero-title">
-            {userRole === "Dean" ? "Dr. Rajesh Kumar" : "Internship Document Portal"}
+            Generate Internship Documents
           </h1>
           <p className="portal-hero-subtitle">
             MIT-ADT University • School of Computing (SOC) • Rajbaug Campus, Pune
           </p>
         </div>
 
-        {/* Right Stat Pills (from Image 3) */}
+        {/* Right Stat Pills */}
         <div className="portal-stat-pill-group">
           <div className="portal-stat-pill">
             <div className="portal-stat-pill-label">Active Templates</div>
@@ -44,7 +44,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, userRole = "Student" })
         </div>
       </div>
 
-      {/* 3 Main Action Cards (Matching Image 3 Layout) */}
+      {/* 3 Main Action Cards */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',

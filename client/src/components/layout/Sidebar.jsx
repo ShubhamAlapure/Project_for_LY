@@ -3,18 +3,12 @@ import {
   LayoutDashboard, 
   FileText, 
   FolderLock, 
-  GraduationCap, 
   FileCheck2, 
   Award, 
-  History, 
-  BarChart3, 
-  Lock, 
-  LogOut,
-  Sparkles,
   Layers
 } from 'lucide-react';
 
-export const Sidebar = ({ currentRoute, onNavigate, userRole, onToggleRole }) => {
+export const Sidebar = ({ currentRoute, onNavigate }) => {
   const menuItems = [
     {
       id: 'home',
@@ -59,6 +53,17 @@ export const Sidebar = ({ currentRoute, onNavigate, userRole, onToggleRole }) =>
   return (
     <aside className="portal-sidebar non-printable">
       <div>
+        <div style={{
+          padding: '0.5rem 0.95rem 1rem 0.95rem',
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          color: 'var(--slate-400)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em'
+        }}>
+          Navigation Menu
+        </div>
+
         <ul className="sidebar-nav-list">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -100,50 +105,6 @@ export const Sidebar = ({ currentRoute, onNavigate, userRole, onToggleRole }) =>
             );
           })}
         </ul>
-      </div>
-
-      {/* Bottom Section: Role-Based Access Callout & Persona Switcher (from Image 3) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
-        {/* Role Access Box */}
-        <div style={{
-          backgroundColor: 'var(--amber-50)',
-          border: '1px solid var(--amber-200)',
-          borderRadius: 'var(--radius-md)',
-          padding: '0.85rem 1rem',
-          fontSize: '0.775rem'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            fontWeight: 800,
-            color: 'var(--amber-800)',
-            marginBottom: '0.25rem'
-          }}>
-            <Lock size={13} />
-            Role-Based Access
-          </div>
-          <p style={{ color: '#78350f', lineHeight: 1.4, margin: 0 }}>
-            {userRole === "Dean" 
-              ? "Dean / HOD approval & endorsement active."
-              : "Student self-service document generation active."}
-          </p>
-        </div>
-
-        {/* Change Persona Button (from Image 3) */}
-        <button
-          onClick={onToggleRole}
-          className="btn btn-persona"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem'
-          }}
-        >
-          <LogOut size={15} />
-          <span>Switch Persona ({userRole === "Dean" ? "Dean" : "Student"})</span>
-        </button>
       </div>
     </aside>
   );
