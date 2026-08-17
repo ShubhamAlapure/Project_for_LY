@@ -1,0 +1,97 @@
+/* ==========================================================================
+   INTERNDOCS - STRICT DEDICATED PRINT STYLES
+   Optimized for High-Resolution Institutional A4 Printing
+   ========================================================================== */
+
+@page {
+  size: A4 portrait;
+  margin: 12mm 15mm 12mm 15mm;
+}
+
+@media print {
+  /* Hide all app chrome */
+  nav,
+  header,
+  footer,
+  .app-navbar,
+  .app-footer,
+  .preview-control-panel,
+  .preview-toolbar,
+  .non-printable,
+  .toast-container,
+  .btn,
+  .step-indicator-wrapper {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Reset body and wrapper for pure paper print */
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .app-container,
+  .main-content,
+  .preview-stage-wrapper,
+  .preview-split-layout {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+
+  /* A4 Document Paper Reset for Print */
+  .a4-document-paper {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    transform: none !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Preserve underline on dynamic variables */
+  .doc-dynamic-text {
+    font-weight: 700 !important;
+    color: #000000 !important;
+    text-decoration: underline !important;
+  }
+
+  /* Force borders to print crisply */
+  .doc-header-block {
+    border-bottom: 2px solid #000000 !important;
+  }
+
+  .doc-main-title {
+    border-bottom: 1.5px solid #000000 !important;
+  }
+
+  .doc-signature-line {
+    border-top: 1px dashed #000000 !important;
+  }
+
+  .doc-stamp-box {
+    border: 1px dashed #666666 !important;
+  }
+
+  .doc-footer-block {
+    border-top: 1px solid #999999 !important;
+  }
+}
