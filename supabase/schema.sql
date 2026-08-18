@@ -111,7 +111,7 @@ CREATE POLICY "Allow public delete in student-documents"
     USING (bucket_id = 'student-documents');
 
 -- ==============================================================================
--- 6. USER LOGINS TABLE (Role-Based Authentication: Username & Password)
+-- 6. USER LOGINS TABLE (Strict Username & Password Authentication)
 -- Roles: Student, Faculty/Coordinator, Central T&P, HOD, Admin
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.user_logins (
@@ -129,6 +129,9 @@ CREATE TABLE IF NOT EXISTS public.user_logins (
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
     last_login TIMESTAMPTZ
 );
+
+-- Remove old unique constraint on email if it exists from previous runs
+ALTER TABLE public.user_logins DROP CONSTRAINT IF EXISTS user_logins_email_key;
 
 -- Index for authentication lookup
 CREATE INDEX IF NOT EXISTS idx_user_logins_username ON public.user_logins (username);
@@ -153,7 +156,7 @@ DROP POLICY IF EXISTS "Allow public delete from user_logins" ON public.user_logi
 CREATE POLICY "Allow public delete from user_logins"
     ON public.user_logins FOR DELETE USING (true);
 
--- Insert Default Seed Accounts (Admin, Student, Faculty, T&P, HOD)
+-- Insert / Update Default Seed Accounts (Admin, Student, Faculty, T&P, HOD)
 INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
 VALUES 
     -- 1. Admin Login (Shubham Alapure)
@@ -166,7 +169,6 @@ VALUES
     -- 3. Faculty / Coordinator Login (Prof. Vaibhav Sawalkar)
     ('vaibhav.sawalkar@mituniversity.edu.in', 'vaibhav.sawalkar@mituniversity.edu.in', '9665368452', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'),
     ('faculty', 'faculty@mitadt.edu.in', 'faculty123', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'),
-    ('vaibhav.sawalkar', 'vaibhav.sawalkar@mituniversity.edu.in', '9665368452', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'),
     
     -- 4. Central T&P Login (Prof. Dr. Swati More)
     ('tp', 'tp@mitadt.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'),
