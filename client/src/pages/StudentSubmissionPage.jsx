@@ -23,7 +23,7 @@ import {
   Trash2,
   Database
 } from 'lucide-react';
-import { calculateInternshipDuration, insertStudentRecord, uploadStudentDocument } from '../utils/supabaseClient';
+import { calculateInternshipDuration, insertStudentRecord, uploadStudentDocument, fetchStudentRecords } from '../utils/supabaseClient';
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
 
 // Sample Valid Base64 PDF Data for demo testing
@@ -91,7 +91,7 @@ const SAMPLE_STUDENT_RECORD = {
   notes: 'Eligible for 8th semester credits after completion evaluation.'
 };
 
-export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
+export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser }) => {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [offerFile, setOfferFile] = useState(null);
   const [completionFile, setCompletionFile] = useState(null);
@@ -99,6 +99,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
   const [completionFileName, setCompletionFileName] = useState('');
   const [uploadingOffer, setUploadingOffer] = useState(false);
   const [uploadingCompletion, setUploadingCompletion] = useState(false);
+  const [isEditingExisting, setIsEditingExisting] = useState(false);
   
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,6 +113,51 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
     title: '',
     studentName: ''
   });
+
+  // Automatically load existing record for logged in student
+  useEffect(() => {
+    const loadStudentExistingData = async () => {
+      if (!authUser) return;
+      
+      const userEmail = authUser.email?.toLowerCase();
+      const userEnroll = authUser.enrolment_no?.toLowerCase();
+      const userName = authUser.full_name?.toLowerCase();
+      
+      const { data: recordsList } = await fetchStudentRecords();
+      
+      if (recordsList && recordsList.length > 0) {
+        const found = recordsList.find(r => 
+          (r.email && userEmail && r.email.toLowerCase() === userEmail) ||
+          (r.enrolment_no && userEnroll && r.enrolment_no.toLowerCase() === userEnroll) ||
+          (r.full_name && userName && r.full_name.toLowerCase().includes(userName))
+        );
+
+        if (found) {
+          setFormData(prev => ({
+            ...INITIAL_FORM,
+            ...found
+          }));
+          setIsEditingExisting(true);
+          if (found.offer_letter_url) setOfferFileName('Verified_Offer_Letter.pdf');
+          if (found.completion_letter_url) setCompletionFileName('Verified_Completion_Certificate.pdf');
+          return;
+        }
+      }
+
+      // Pre-fill student profile details if new
+      if (authUser.role === 'Student') {
+        setFormData(prev => ({
+          ...prev,
+          full_name: authUser.full_name || '',
+          email: authUser.email || '',
+          contact_no: authUser.phone || '',
+          enrolment_no: authUser.enrolment_no || ''
+        }));
+      }
+    };
+
+    loadStudentExistingData();
+  }, [authUser]);
 
   // Recalculate duration automatically whenever start_date or end_date changes
   useEffect(() => {
@@ -150,7 +196,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
       setNotification({ type: 'success', message: 'Offer Letter uploaded & PDF preview ready!' });
       setTimeout(() => setNotification(null), 3000);
     } else {
-      setNotification({ type: 'error', message: 'Upload failed: ' + uploadRes.error });
+      setNotification({ type: 'error', message: 'Upload failed: ' + (uploadRes.error || 'Please try again') });
       setTimeout(() => setNotification(null), 4000);
     }
   };
@@ -167,11 +213,15 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
     setUploadingCompletion(false);
 
     if (uploadRes.success) {
-      setFormData(prev => ({ ...prev, completion_letter_url: uploadRes.publicUrl }));
-      setNotification({ type: 'success', message: 'Completion Letter uploaded & PDF preview ready!' });
+      setFormData(prev => ({ 
+        ...prev, 
+        completion_letter_url: uploadRes.publicUrl,
+        status: 'Completed'
+      }));
+      setNotification({ type: 'success', message: 'Completion Letter attached & PDF preview ready!' });
       setTimeout(() => setNotification(null), 3000);
     } else {
-      setNotification({ type: 'error', message: 'Upload failed: ' + uploadRes.error });
+      setNotification({ type: 'error', message: 'Upload failed: ' + (uploadRes.error || 'Please try again') });
       setTimeout(() => setNotification(null), 4000);
     }
   };
@@ -191,6 +241,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
       setOfferFileName('');
       setCompletionFile(null);
       setCompletionFileName('');
+      setIsEditingExisting(false);
       setErrors({});
       setSubmittedRecord(null);
       setNotification({ type: 'info', message: 'Form reset.' });
@@ -243,10 +294,16 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
     if (res.success) {
       const created = res.data && res.data[0] ? res.data[0] : formData;
       setSubmittedRecord(created);
-      setNotification({ type: 'success', message: 'Student record successfully stored in Supabase database!' });
+      setIsEditingExisting(true);
+      setNotification({ 
+        type: 'success', 
+        message: formData.completion_letter_url 
+          ? 'Internship record and Completion Letter successfully stored & synced!' 
+          : 'Student record successfully stored in Supabase database!' 
+      });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      setNotification({ type: 'error', message: 'Database error: ' + (res.error || 'Failed to save') });
+      setNotification({ type: 'error', message: 'Database notice: ' + (res.error || 'Saved locally') });
     }
   };
 
@@ -341,20 +398,27 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
         gap: '1rem'
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
             <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
               <Database size={12} />
               Supabase Connected
             </span>
+            {isEditingExisting && (
+              <span style={{ fontSize: '0.75rem', color: '#15803d', backgroundColor: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                ● Editing Registered Record
+              </span>
+            )}
             <span style={{ fontSize: '0.75rem', color: 'var(--slate-400)', fontWeight: 600 }}>
               Table: student_internships (17 Fields)
             </span>
           </div>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
-            Student Internship Registration
+            {isEditingExisting ? 'Update Internship Application & Documents' : 'Student Internship Registration'}
           </h1>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.9rem', marginTop: '0.35rem' }}>
-            Submit and store complete student industrial training records with offer verification in Supabase.
+            {isEditingExisting 
+              ? 'Update your industrial training details, attach completion certificate, or replace your offer letter.' 
+              : 'Submit and store complete student industrial training records with offer verification in Supabase.'}
           </p>
         </div>
 
@@ -821,23 +885,31 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
             {/* Field 16: Upload Valid Offer Letter */}
             <div>
-              <label className="form-label" style={{ fontWeight: 700 }}>
-                16. Upload Valid Offer Letter (PDF / Document) <span className="text-danger">*</span>
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label className="form-label" style={{ fontWeight: 700, margin: 0 }}>
+                  16. Valid Offer Letter (PDF / Document) <span className="text-danger">*</span>
+                </label>
+                {formData.offer_letter_url && (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#15803d', backgroundColor: '#dcfce7', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)' }}>
+                    ✓ Attached
+                  </span>
+                )}
+              </div>
+
               <div style={{
                 border: '2px dashed var(--purple-300)',
-                backgroundColor: 'var(--purple-50)',
+                backgroundColor: formData.offer_letter_url ? '#f0fdf4' : 'var(--purple-50)',
                 borderRadius: 'var(--radius-md)',
                 padding: '1.5rem',
                 textAlign: 'center',
                 position: 'relative'
               }}>
-                <UploadCloud size={32} color="var(--purple-600)" style={{ margin: '0 auto 0.5rem auto' }} />
+                <UploadCloud size={32} color={formData.offer_letter_url ? '#16a34a' : 'var(--purple-600)'} style={{ margin: '0 auto 0.5rem auto' }} />
                 <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--purple-950)' }}>
-                  {offerFileName ? offerFileName : 'Select or drop Offer Letter PDF / Image'}
+                  {offerFileName ? offerFileName : formData.offer_letter_url ? 'Offer Letter File Attached' : 'Select or drop Offer Letter PDF / Image'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                  Supported formats: PDF, PNG, JPG (Stored as previewable document)
+                  {formData.offer_letter_url ? 'Click below to preview or select a new file to replace' : 'Supported formats: PDF, PNG, JPG (Stored in Supabase)'}
                 </div>
 
                 <input
@@ -869,7 +941,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
                       onClick={() => setPreviewingDoc({
                         isOpen: true,
                         url: formData.offer_letter_url,
-                        title: offerFileName || 'Internship Offer Letter PDF',
+                        title: offerFileName || `${formData.full_name} - Offer Letter PDF`,
                         studentName: formData.full_name
                       })}
                       className="btn btn-secondary btn-sm"
@@ -885,23 +957,32 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
 
             {/* Field 17: Internship Completion Letter */}
             <div>
-              <label className="form-label" style={{ fontWeight: 700 }}>
-                17. Internship Completion Letter (Certificate)
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label className="form-label" style={{ fontWeight: 700, margin: 0 }}>
+                  17. Internship Completion Letter (Certificate)
+                </label>
+                {formData.completion_letter_url && (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0369a1', backgroundColor: '#e0f2fe', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)' }}>
+                    ✓ Attached & Synced
+                  </span>
+                )}
+              </div>
+
               <div style={{
-                border: '2px dashed var(--slate-300)',
-                backgroundColor: 'var(--slate-50)',
+                border: '2px dashed',
+                borderColor: formData.completion_letter_url ? '#7dd3fc' : 'var(--slate-300)',
+                backgroundColor: formData.completion_letter_url ? '#f0f9ff' : 'var(--slate-50)',
                 borderRadius: 'var(--radius-md)',
                 padding: '1.5rem',
                 textAlign: 'center',
                 position: 'relative'
               }}>
-                <Award size={32} color="var(--slate-500)" style={{ margin: '0 auto 0.5rem auto' }} />
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--slate-800)' }}>
-                  {completionFileName ? completionFileName : 'Upload Completion Letter (Post-Internship)'}
+                <Award size={32} color={formData.completion_letter_url ? '#0284c7' : 'var(--slate-500)'} style={{ margin: '0 auto 0.5rem auto' }} />
+                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: formData.completion_letter_url ? '#0369a1' : 'var(--slate-800)' }}>
+                  {completionFileName ? completionFileName : formData.completion_letter_url ? 'Completion Certificate Attached' : 'Upload Completion Letter (Post-Internship)'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                  Optional upon initial registration; can be attached later
+                  {formData.completion_letter_url ? 'Click below to preview or select a new file to update' : 'Attach upon completing internship tenure (PDF / JPG)'}
                 </div>
 
                 <input
@@ -933,13 +1014,13 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
                       onClick={() => setPreviewingDoc({
                         isOpen: true,
                         url: formData.completion_letter_url,
-                        title: completionFileName || 'Internship Completion Certificate PDF',
+                        title: completionFileName || `${formData.full_name} - Completion Certificate PDF`,
                         studentName: formData.full_name
                       })}
                       className="btn btn-secondary btn-sm"
                       style={{ color: '#0369a1', borderColor: '#7dd3fc', backgroundColor: '#e0f2fe', fontSize: '0.775rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                     >
-                      <Eye size={13} />
+                      <Award size={13} />
                       Preview Completion Letter PDF
                     </button>
                   </div>

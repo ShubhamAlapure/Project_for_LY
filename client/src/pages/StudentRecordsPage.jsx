@@ -92,20 +92,35 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
     const uploadRes = await uploadStudentDocument(completionFile, 'completion-letters');
     
     if (uploadRes.success) {
-      const updateRes = await updateStudentRecord(editingCompletionRecord.id, {
-        completion_letter_url: uploadRes.publicUrl,
-        status: 'Completed'
-      });
+      const publicUrl = uploadRes.publicUrl;
+      const updateFields = {
+        completion_letter_url: publicUrl,
+        status: 'Completed',
+        updated_at: new Date().toISOString()
+      };
+
+      // 1. Immediately update React state so UI updates instantaneously
+      setRecords(prevRecords => prevRecords.map(r => {
+        if (r.id === editingCompletionRecord.id ||
+            (editingCompletionRecord.enrolment_no && r.enrolment_no && r.enrolment_no.toLowerCase() === editingCompletionRecord.enrolment_no.toLowerCase()) ||
+            (editingCompletionRecord.email && r.email && r.email.toLowerCase() === editingCompletionRecord.email.toLowerCase())) {
+          return { ...r, ...updateFields };
+        }
+        return r;
+      }));
+
+      // 2. Persist to Supabase and cache
+      await updateStudentRecord(editingCompletionRecord.id, updateFields);
+      
       setUploadingCompletion(false);
       setEditingCompletionRecord(null);
       setCompletionFile(null);
-      loadRecords();
-      setNotification({ type: 'success', message: 'Completion Letter attached & status updated to Completed!' });
+      setNotification({ type: 'success', message: 'Completion Letter attached successfully & status updated to Completed!' });
       setTimeout(() => setNotification(null), 3500);
     } else {
       setUploadingCompletion(false);
-      setNotification({ type: 'error', message: 'Failed to upload completion letter.' });
-      setTimeout(() => setNotification(null), 3500);
+      setNotification({ type: 'error', message: 'Failed to upload completion letter: ' + (uploadRes.error || 'Unknown error') });
+      setTimeout(() => setNotification(null), 4000);
     }
   };
 
@@ -543,24 +558,71 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
               <span>OFFER LETTER</span>
               <FileCheck2 size={16} color="#2563eb" />
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#1e40af', marginTop: '0.35rem' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#1e40af', marginTop: '0.35rem' }}>
               {filteredRecords.length > 0 && filteredRecords[0].offer_letter_url ? 'Attached (PDF)' : 'Not Uploaded'}
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
-              Verification Ready
+            <div style={{ marginTop: '0.4rem' }}>
+              {filteredRecords.length > 0 && filteredRecords[0].offer_letter_url ? (
+                <button
+                  type="button"
+                  onClick={() => openDocumentPreview(filteredRecords[0].offer_letter_url, `${filteredRecords[0].full_name} - Offer Letter`, filteredRecords[0].full_name)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem', color: '#15803d', borderColor: '#86efac', backgroundColor: '#f0fdf4', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                >
+                  <Eye size={12} />
+                  Preview Offer Letter
+                </button>
+              ) : (
+                <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600 }}>
+                  Verification Ready
+                </span>
+              )}
             </div>
           </div>
 
-          <div className="card" style={{ padding: '1.25rem' }}>
+          <div className="card" style={{ padding: '1.25rem', borderLeft: filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? '3px solid #16a34a' : '3px solid #f59e0b' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
               <span>COMPLETION LETTER</span>
-              <Award size={16} color="#d97706" />
+              <Award size={16} color={filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? '#16a34a' : '#d97706'} />
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#b45309', marginTop: '0.35rem' }}>
-              {filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? 'Attached' : 'Pending'}
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? '#15803d' : '#b45309', marginTop: '0.35rem' }}>
+              {filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? 'Attached (PDF)' : 'Pending'}
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
-              Attach upon finishing tenure
+            <div style={{ marginTop: '0.4rem' }}>
+              {filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? (
+                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => openDocumentPreview(filteredRecords[0].completion_letter_url, `${filteredRecords[0].full_name} - Completion Certificate`, filteredRecords[0].full_name)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem', color: '#0369a1', borderColor: '#7dd3fc', backgroundColor: '#f0f9ff', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                  >
+                    <Award size={12} />
+                    Preview Certificate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingCompletionRecord(filteredRecords[0])}
+                    style={{ border: 'none', background: 'none', color: 'var(--purple-600)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                  >
+                    Replace
+                  </button>
+                </div>
+              ) : filteredRecords.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setEditingCompletionRecord(filteredRecords[0])}
+                  className="btn btn-primary btn-sm"
+                  style={{ fontSize: '0.725rem', padding: '0.2rem 0.55rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                >
+                  <Plus size={12} />
+                  Upload Letter Now
+                </button>
+              ) : (
+                <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600 }}>
+                  Attach upon tenure
+                </span>
+              )}
             </div>
           </div>
 
@@ -849,11 +911,11 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
 
                     {/* Uploaded Document Badges with Integrated Preview Modal */}
                     <td style={{ padding: '1rem 1.25rem' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                         {r.offer_letter_url ? (
                           <button
                             type="button"
-                            onClick={() => openDocumentPreview(r.offer_letter_url, `${r.full_name} - Offer Letter`, r.full_name)}
+                            onClick={() => openDocumentPreview(r.offer_letter_url, `${r.full_name} - Offer Letter PDF`, r.full_name)}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -868,6 +930,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                               cursor: 'pointer',
                               textAlign: 'left'
                             }}
+                            title="Click to preview Offer Letter PDF"
                           >
                             <Eye size={13} />
                             Preview Offer Letter PDF
@@ -879,42 +942,68 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                         )}
 
                         {r.completion_letter_url ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => openDocumentPreview(r.completion_letter_url, `${r.full_name} - Completion Certificate PDF`, r.full_name)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                fontSize: '0.75rem',
+                                color: '#0369a1',
+                                fontWeight: 700,
+                                backgroundColor: '#e0f2fe',
+                                padding: '0.25rem 0.55rem',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid #7dd3fc',
+                                cursor: 'pointer',
+                                textAlign: 'left'
+                              }}
+                              title="Click to preview Completion Certificate PDF"
+                            >
+                              <Award size={13} />
+                              Preview Completion PDF
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCompletionRecord(r)}
+                              style={{
+                                border: 'none',
+                                background: 'none',
+                                color: 'var(--purple-600)',
+                                fontSize: '0.675rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                padding: '0 0.2rem',
+                                textAlign: 'left'
+                              }}
+                            >
+                              Replace / Update Certificate
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             type="button"
-                            onClick={() => openDocumentPreview(r.completion_letter_url, `${r.full_name} - Completion Certificate`, r.full_name)}
+                            onClick={() => setEditingCompletionRecord(r)}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '0.35rem',
-                              fontSize: '0.75rem',
-                              color: '#0369a1',
+                              fontSize: '0.725rem',
+                              color: 'var(--purple-700)',
                               fontWeight: 700,
-                              backgroundColor: '#e0f2fe',
+                              backgroundColor: 'var(--purple-50)',
                               padding: '0.25rem 0.55rem',
                               borderRadius: 'var(--radius-sm)',
-                              border: '1px solid #7dd3fc',
+                              border: '1px solid var(--purple-200)',
                               cursor: 'pointer',
                               textAlign: 'left'
                             }}
+                            title="Attach Internship Completion Letter"
                           >
-                            <Award size={13} />
-                            Preview Completion PDF
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setEditingCompletionRecord(r)}
-                            style={{
-                              border: 'none',
-                              background: 'none',
-                              color: 'var(--purple-600)',
-                              fontSize: '0.725rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              padding: 0,
-                              textAlign: 'left'
-                            }}
-                          >
-                            + Attach Completion
+                            <Plus size={12} />
+                            Attach Completion
                           </button>
                         )}
                       </div>
@@ -1090,13 +1179,13 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
               <div style={{ fontWeight: 700, color: 'var(--purple-950)', marginBottom: '0.75rem' }}>
                 Uploaded Documents (Fields 16 & 17):
               </div>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                 {selectedRecord.offer_letter_url ? (
                   <button
                     type="button"
                     onClick={() => openDocumentPreview(selectedRecord.offer_letter_url, `${selectedRecord.full_name} - Offer Letter PDF`, selectedRecord.full_name)}
                     className="btn btn-secondary btn-sm"
-                    style={{ color: '#16a34a', borderColor: '#86efac', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    style={{ color: '#16a34a', borderColor: '#86efac', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                   >
                     <CheckCircle2 size={14} />
                     16. Preview Offer Letter PDF
@@ -1106,17 +1195,43 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                 )}
 
                 {selectedRecord.completion_letter_url ? (
+                  <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => openDocumentPreview(selectedRecord.completion_letter_url, `${selectedRecord.full_name} - Completion Letter PDF`, selectedRecord.full_name)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ color: '#0284c7', borderColor: '#7dd3fc', backgroundColor: '#f0f9ff', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <Award size={14} />
+                      17. Preview Completion Letter PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = selectedRecord;
+                        setSelectedRecord(null);
+                        setEditingCompletionRecord(target);
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
+                    >
+                      Replace Certificate
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => openDocumentPreview(selectedRecord.completion_letter_url, `${selectedRecord.full_name} - Completion Letter PDF`, selectedRecord.full_name)}
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: '#0284c7', borderColor: '#7dd3fc', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    onClick={() => {
+                      const target = selectedRecord;
+                      setSelectedRecord(null);
+                      setEditingCompletionRecord(target);
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}
                   >
-                    <Award size={14} />
-                    17. Preview Completion Letter PDF
+                    <Plus size={13} />
+                    17. Attach Completion Letter
                   </button>
-                ) : (
-                  <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)' }}>17. No Completion Letter</span>
                 )}
               </div>
             </div>
@@ -1141,38 +1256,76 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
           left: 0,
           width: '100%',
           height: '100%',
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
+          backgroundColor: 'rgba(15, 23, 42, 0.72)',
+          backdropFilter: 'blur(6px)',
           zIndex: 9999,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '1rem'
         }}>
-          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '500px', padding: '2rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.5rem' }}>
-              Attach Internship Completion Letter
+          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '520px', padding: '2rem', border: '1px solid var(--purple-300)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+              <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Award size={13} />
+                Field 17: Post-Internship
+              </span>
+            </div>
+
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.35rem' }}>
+              {editingCompletionRecord.completion_letter_url ? 'Replace / Update Completion Letter' : 'Attach Internship Completion Letter'}
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--slate-600)', marginBottom: '1.25rem' }}>
               Student: <strong>{editingCompletionRecord.full_name}</strong> ({editingCompletionRecord.enrolment_no})
             </p>
 
+            {editingCompletionRecord.completion_letter_url && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.65rem 0.85rem',
+                backgroundColor: '#f0f9ff',
+                border: '1px solid #bae6fd',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1.25rem',
+                fontSize: '0.8rem'
+              }}>
+                <span style={{ color: '#0369a1', fontWeight: 600 }}>Currently attached certificate:</span>
+                <button
+                  type="button"
+                  onClick={() => openDocumentPreview(editingCompletionRecord.completion_letter_url, `${editingCompletionRecord.full_name} - Current Completion Certificate`, editingCompletionRecord.full_name)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem' }}
+                >
+                  <Eye size={12} />
+                  Preview Existing
+                </button>
+              </div>
+            )}
+
             <form onSubmit={handleUploadCompletionSubmit}>
               <div style={{
-                border: '2px dashed var(--purple-300)',
+                border: '2px dashed var(--purple-400)',
                 backgroundColor: 'var(--purple-50)',
-                borderRadius: 'var(--radius-md)',
-                padding: '1.5rem',
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.75rem 1.25rem',
                 textAlign: 'center',
                 marginBottom: '1.25rem',
-                position: 'relative'
+                position: 'relative',
+                cursor: 'pointer'
               }}>
-                <Award size={32} color="var(--purple-600)" style={{ margin: '0 auto 0.5rem auto' }} />
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--purple-950)' }}>
-                  {completionFile ? completionFile.name : 'Select Completion Certificate (PDF / Image)'}
+                <Award size={36} color="var(--purple-600)" style={{ margin: '0 auto 0.5rem auto' }} />
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--purple-950)' }}>
+                  {completionFile ? completionFile.name : 'Select or Drop Completion Certificate'}
                 </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.35rem' }}>
+                  {completionFile ? `${(completionFile.size / 1024).toFixed(1)} KB • Ready to save` : 'Supported formats: PDF, JPG, PNG (Max 15MB)'}
+                </div>
+
                 <input
                   type="file"
+                  id="completion_file_input"
                   accept=".pdf,image/*"
                   onChange={(e) => setCompletionFile(e.target.files[0])}
                   required
@@ -1203,8 +1356,9 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                   type="submit"
                   disabled={uploadingCompletion || !completionFile}
                   className="btn btn-primary"
+                  style={{ minWidth: '180px', justifyContent: 'center' }}
                 >
-                  {uploadingCompletion ? 'Uploading to Supabase...' : 'Save & Attach Letter'}
+                  {uploadingCompletion ? 'Saving & Attaching...' : 'Save & Attach Letter'}
                 </button>
               </div>
             </form>
