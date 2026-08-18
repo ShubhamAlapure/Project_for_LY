@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- MIT-ADT University Pune - School of Computing
 -- Internship & Final Year Industrial Training Management System
--- Database Schema, Storage, and Seed Records (100% Error-Free)
+-- Schema with STRICT Email & Password Authentication (Username Column Dropped)
 -- ==============================================================================
 
 -- 1. Enable UUID Extension
@@ -95,12 +95,11 @@ CREATE POLICY "Allow public delete in student-documents"
     ON storage.objects FOR DELETE USING (bucket_id = 'student-documents');
 
 -- ==============================================================================
--- 6. USER LOGINS TABLE (Role-Based Authentication by Email & Password)
+-- 6. USER LOGINS TABLE (Strictly Email & Password Only)
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.user_logins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username TEXT,
-    email TEXT,
+    email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('Student', 'Faculty/Coordinator', 'Central T&P', 'HOD', 'Admin')),
@@ -113,24 +112,12 @@ CREATE TABLE IF NOT EXISTS public.user_logins (
     last_login TIMESTAMPTZ
 );
 
--- Safely remove old NOT NULL or uniqueness constraints if the table already existed
-DO $$
-BEGIN
-    ALTER TABLE public.user_logins ALTER COLUMN username DROP NOT NULL;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+-- Delete the username column completely from user_logins
+ALTER TABLE public.user_logins DROP COLUMN IF EXISTS username;
 
-DO $$
-BEGIN
-    ALTER TABLE public.user_logins DROP CONSTRAINT IF EXISTS user_logins_username_key;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
-
-DO $$
-BEGIN
-    ALTER TABLE public.user_logins DROP CONSTRAINT IF EXISTS user_logins_email_key;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+-- Ensure email unique index exists
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_logins_email_unique ON public.user_logins (email);
+CREATE INDEX IF NOT EXISTS idx_user_logins_role ON public.user_logins (role);
 
 -- Enable RLS for user_logins
 ALTER TABLE public.user_logins ENABLE ROW LEVEL SECURITY;
@@ -151,52 +138,52 @@ DROP POLICY IF EXISTS "Allow public delete from user_logins" ON public.user_logi
 CREATE POLICY "Allow public delete from user_logins"
     ON public.user_logins FOR DELETE USING (true);
 
--- Insert / Update User Accounts (Provides both username & email safely)
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'admin@mitadt.edu.in', 'admin@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'
+-- Insert User Accounts (Strictly Email & Password)
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'admin@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'admin@mitadt.edu.in');
 
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'shubham.alapure@mitadt.edu.in', 'shubham.alapure@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'shubham.alapure@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'shubham.alapure@mitadt.edu.in');
 
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'vaibhav.sawalkar@mituniversity.edu.in', 'vaibhav.sawalkar@mituniversity.edu.in', '9665368452', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'vaibhav.sawalkar@mituniversity.edu.in', '9665368452', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'vaibhav.sawalkar@mituniversity.edu.in');
 
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'faculty@mitadt.edu.in', 'faculty@mitadt.edu.in', 'faculty123', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'faculty@mitadt.edu.in', 'faculty123', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'faculty@mitadt.edu.in');
 
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'swati.more@mituniversity.edu.in', 'swati.more@mituniversity.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'swati.more@mituniversity.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'swati.more@mituniversity.edu.in');
 
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'tp@mitadt.edu.in', 'tp@mitadt.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'tp@mitadt.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'tp@mitadt.edu.in');
 
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'jayashree.prasad@mituniversity.edu.in', 'jayashree.prasad@mituniversity.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'jayashree.prasad@mituniversity.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'jayashree.prasad@mituniversity.edu.in');
 
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'hod@mitadt.edu.in', 'hod@mitadt.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'hod@mitadt.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'hod@mitadt.edu.in');
 
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'aaryan99@gmail.com', 'aaryan99@gmail.com', 'student123', 'Aryan Patil', 'Student', 'Computer Science & Engineering', 'B.Tech Student (Final Year)', '9876543210'
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'aaryan99@gmail.com', 'student123', 'Aryan Patil', 'Student', 'Computer Science & Engineering', 'B.Tech Student (Final Year)', '9876543210'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'aaryan99@gmail.com');
 
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'pooja.sharma@mituniversity.edu.in', 'pooja.sharma@mituniversity.edu.in', 'student123', 'Pooja Sharma', 'Student', 'Artificial Intelligence & Data Science', 'Final Year B.Tech (AI & DS)', '9822334455'
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'pooja.sharma@mituniversity.edu.in', 'student123', 'Pooja Sharma', 'Student', 'Artificial Intelligence & Data Science', 'Final Year B.Tech (AI & DS)', '9822334455'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'pooja.sharma@mituniversity.edu.in');
 
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
-SELECT 'student@mitadt.edu.in', 'student@mitadt.edu.in', 'student123', 'Shubham Santosh Alapure', 'Student', 'Computer Science & Engineering', 'B.Tech Final Year Student', '9876543210'
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'student@mitadt.edu.in', 'student123', 'Shubham Santosh Alapure', 'Student', 'Computer Science & Engineering', 'B.Tech Final Year Student', '9876543210'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'student@mitadt.edu.in');
 
--- Always update passwords
+-- Always update passwords to latest values
 UPDATE public.user_logins SET password = 'admin123' WHERE email IN ('admin@mitadt.edu.in', 'shubham.alapure@mitadt.edu.in');
 UPDATE public.user_logins SET password = '9665368452' WHERE email = 'vaibhav.sawalkar@mituniversity.edu.in';
 UPDATE public.user_logins SET password = 'faculty123' WHERE email = 'faculty@mitadt.edu.in';

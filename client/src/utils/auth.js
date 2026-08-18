@@ -51,7 +51,6 @@ export const DEFAULT_USERS = [
   {
     id: 'usr_admin_01',
     email: 'admin@mitadt.edu.in',
-    username: 'admin',
     password: 'admin123',
     full_name: 'Shubham Alapure',
     role: ROLES.ADMIN,
@@ -63,7 +62,6 @@ export const DEFAULT_USERS = [
   {
     id: 'usr_admin_02',
     email: 'shubham.alapure@mitadt.edu.in',
-    username: 'shubhamalapure',
     password: 'admin123',
     full_name: 'Shubham Alapure',
     role: ROLES.ADMIN,
@@ -77,7 +75,6 @@ export const DEFAULT_USERS = [
   {
     id: 'usr_student_01',
     email: 'aaryan99@gmail.com',
-    username: 'aaryan99@gmail.com',
     password: 'student123',
     full_name: 'Aryan Patil',
     role: ROLES.STUDENT,
@@ -89,21 +86,7 @@ export const DEFAULT_USERS = [
   },
   {
     id: 'usr_student_02',
-    email: 'student@mitadt.edu.in',
-    username: 'student',
-    password: 'student123',
-    full_name: 'Shubham Santosh Alapure',
-    role: ROLES.STUDENT,
-    department: 'Department of Computer Science & Engineering',
-    enrolment_no: 'MITADT2022CS084',
-    designation: 'Final Year B.Tech Student',
-    phone: '9876543210',
-    status: 'Active'
-  },
-  {
-    id: 'usr_student_03',
     email: 'pooja.sharma@mituniversity.edu.in',
-    username: 'pooja.sharma@mituniversity.edu.in',
     password: 'student123',
     full_name: 'Pooja Sharma',
     role: ROLES.STUDENT,
@@ -113,12 +96,23 @@ export const DEFAULT_USERS = [
     phone: '9822334455',
     status: 'Active'
   },
+  {
+    id: 'usr_student_03',
+    email: 'student@mitadt.edu.in',
+    password: 'student123',
+    full_name: 'Shubham Santosh Alapure',
+    role: ROLES.STUDENT,
+    department: 'Department of Computer Science & Engineering',
+    enrolment_no: 'MITADT2022CS084',
+    designation: 'Final Year B.Tech Student',
+    phone: '9876543210',
+    status: 'Active'
+  },
 
   // 3. Faculty / Coordinator Accounts
   {
     id: 'usr_faculty_01',
     email: 'vaibhav.sawalkar@mituniversity.edu.in',
-    username: 'vaibhav.sawalkar@mituniversity.edu.in',
     password: '9665368452',
     full_name: 'Prof. Vaibhav Sawalkar',
     role: ROLES.FACULTY,
@@ -130,7 +124,6 @@ export const DEFAULT_USERS = [
   {
     id: 'usr_faculty_02',
     email: 'faculty@mitadt.edu.in',
-    username: 'faculty',
     password: 'faculty123',
     full_name: 'Prof. Vaibhav Sawalkar',
     role: ROLES.FACULTY,
@@ -144,7 +137,6 @@ export const DEFAULT_USERS = [
   {
     id: 'usr_tp_01',
     email: 'swati.more@mituniversity.edu.in',
-    username: 'swati.more',
     password: 'tp123',
     full_name: 'Prof. Dr. Swati More',
     role: ROLES.CENTRAL_TP,
@@ -156,7 +148,6 @@ export const DEFAULT_USERS = [
   {
     id: 'usr_tp_02',
     email: 'tp@mitadt.edu.in',
-    username: 'tp',
     password: 'tp123',
     full_name: 'Prof. Dr. Swati More',
     role: ROLES.CENTRAL_TP,
@@ -170,7 +161,6 @@ export const DEFAULT_USERS = [
   {
     id: 'usr_hod_01',
     email: 'jayashree.prasad@mituniversity.edu.in',
-    username: 'jayashree.prasad',
     password: 'hod123',
     full_name: 'Prof. Dr. Jayashree Prasad',
     role: ROLES.HOD,
@@ -182,7 +172,6 @@ export const DEFAULT_USERS = [
   {
     id: 'usr_hod_02',
     email: 'hod@mitadt.edu.in',
-    username: 'hod',
     password: 'hod123',
     full_name: 'Prof. Dr. Jayashree Prasad',
     role: ROLES.HOD,
@@ -254,7 +243,7 @@ const rolesMatch = (roleA, roleB) => {
 };
 
 /**
- * Authenticate user strictly by Email and Password
+ * Authenticate user strictly by Email and Password (No other fields permitted)
  */
 export const loginUser = async (emailInput, passwordInput, requestedRole = null) => {
   const cleanEmail = (emailInput || '').trim().toLowerCase();
@@ -264,7 +253,7 @@ export const loginUser = async (emailInput, passwordInput, requestedRole = null)
     return { success: false, error: 'Please enter both Email and Password.' };
   }
 
-  // 1. Query Supabase cloud database by Email
+  // 1. Query Supabase cloud database strictly by Email
   try {
     const { data, error } = await supabase
       .from('user_logins')
@@ -291,13 +280,10 @@ export const loginUser = async (emailInput, passwordInput, requestedRole = null)
     console.warn('Supabase query note, falling back to local credentials:', err);
   }
 
-  // 2. Fallback to cached / default seed user database (Strictly by Email or username alias)
+  // 2. Fallback to cached / default seed user database strictly by Email
   const users = getCachedUsers();
   const matchedUser = users.find(
-    u => (
-      (u.email && u.email.toLowerCase() === cleanEmail) ||
-      (u.username && u.username.toLowerCase() === cleanEmail)
-    ) && u.password === cleanPass
+    u => u.email && u.email.toLowerCase() === cleanEmail && u.password === cleanPass
   );
 
   if (matchedUser) {
