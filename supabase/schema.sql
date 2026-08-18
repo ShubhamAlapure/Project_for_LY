@@ -140,11 +140,15 @@ CREATE POLICY "Allow public delete from user_logins"
 
 -- Insert User Accounts (Strictly Email & Password)
 INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'admin@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'
+SELECT 'harshit.sagar@mitadt.edu.in', 'admin123', 'Harshit Sagar', 'Admin', 'School of Computing', 'Institutional Administrator', '9876543210'
+WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'harshit.sagar@mitadt.edu.in');
+
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
+SELECT 'admin@mitadt.edu.in', 'admin123', 'Harshit Sagar', 'Admin', 'School of Computing', 'Institutional Administrator', '9876543210'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'admin@mitadt.edu.in');
 
 INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'shubham.alapure@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'
+SELECT 'shubham.alapure@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9322610932'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'shubham.alapure@mitadt.edu.in');
 
 INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
@@ -183,8 +187,9 @@ INSERT INTO public.user_logins (email, password, full_name, role, department, de
 SELECT 'student@mitadt.edu.in', 'student123', 'Shubham Santosh Alapure', 'Student', 'Computer Science & Engineering', 'B.Tech Final Year Student', '9876543210'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'student@mitadt.edu.in');
 
--- Always update passwords to latest values
-UPDATE public.user_logins SET password = 'admin123' WHERE email IN ('admin@mitadt.edu.in', 'shubham.alapure@mitadt.edu.in');
+-- Always update names & passwords to ensure latest values are active
+UPDATE public.user_logins SET full_name = 'Harshit Sagar', designation = 'Institutional Administrator', password = 'admin123' WHERE email IN ('admin@mitadt.edu.in', 'harshit.sagar@mitadt.edu.in');
+UPDATE public.user_logins SET full_name = 'Shubham Alapure', designation = 'Lead System Administrator', password = 'admin123', phone = '9322610932' WHERE email = 'shubham.alapure@mitadt.edu.in';
 UPDATE public.user_logins SET password = '9665368452' WHERE email = 'vaibhav.sawalkar@mituniversity.edu.in';
 UPDATE public.user_logins SET password = 'faculty123' WHERE email = 'faculty@mitadt.edu.in';
 UPDATE public.user_logins SET password = 'tp123' WHERE email IN ('swati.more@mituniversity.edu.in', 'tp@mitadt.edu.in');

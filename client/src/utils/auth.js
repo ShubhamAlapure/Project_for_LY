@@ -47,15 +47,15 @@ export const ROLE_CONFIG = {
 };
 
 export const DEFAULT_USERS = [
-  // 1. Lead Admin Accounts
+  // 1. Admin Accounts
   {
     id: 'usr_admin_01',
-    email: 'admin@mitadt.edu.in',
+    email: 'harshit.sagar@mitadt.edu.in',
     password: 'admin123',
-    full_name: 'Shubham Alapure',
+    full_name: 'Harshit Sagar',
     role: ROLES.ADMIN,
     department: 'School of Computing',
-    designation: 'Lead System Administrator',
+    designation: 'Institutional Administrator',
     phone: '9876543210',
     status: 'Active'
   },
@@ -67,6 +67,17 @@ export const DEFAULT_USERS = [
     role: ROLES.ADMIN,
     department: 'School of Computing',
     designation: 'Lead System Administrator',
+    phone: '9322610932',
+    status: 'Active'
+  },
+  {
+    id: 'usr_admin_03',
+    email: 'admin@mitadt.edu.in',
+    password: 'admin123',
+    full_name: 'Harshit Sagar',
+    role: ROLES.ADMIN,
+    department: 'School of Computing',
+    designation: 'Institutional Administrator',
     phone: '9876543210',
     status: 'Active'
   },

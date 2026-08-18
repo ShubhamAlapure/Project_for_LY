@@ -984,38 +984,42 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
 
             {/* Column 5: EliteVibeCoders & CodeCrush Credits */}
             <div style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.12)',
+              backgroundColor: 'rgba(0, 0, 0, 0.16)',
               borderRadius: '16px',
-              padding: '1.5rem',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(6px)',
-              minWidth: '240px'
+              padding: '1.25rem 1.5rem',
+              border: '1px solid rgba(255, 255, 255, 0.18)',
+              backdropFilter: 'blur(8px)',
+              minWidth: '260px',
+              width: '100%',
+              maxWidth: '310px',
+              boxSizing: 'border-box'
             }}>
               {/* Brand Graphic & Title */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <span style={{ fontSize: '1.85rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>
+                <span style={{ fontSize: '1.6rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>
                   👒
                 </span>
                 <span style={{
-                  fontSize: '1.55rem',
+                  fontSize: '1.25rem',
                   fontWeight: 900,
                   color: '#ffffff',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.1
+                  letterSpacing: '-0.01em',
+                  lineHeight: 1.1,
+                  whiteSpace: 'nowrap'
                 }}>
                   EliteVibeCoders
                 </span>
               </div>
 
               {/* Team Credits */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.825rem' }}>
-                <div style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.85rem' }}>
+                <div style={{ color: 'rgba(255, 255, 255, 0.9)', whiteSpace: 'nowrap' }}>
                   Development Team: <strong style={{ color: '#fef08a', fontWeight: 800 }}>CodeCrush</strong>
                 </div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+                <div style={{ color: 'rgba(255, 255, 255, 0.9)', whiteSpace: 'nowrap' }}>
                   Lead Developer: <strong style={{ color: '#ffffff', fontWeight: 800 }}>Shubham Alapure</strong>
                 </div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+                <div style={{ color: 'rgba(255, 255, 255, 0.9)', whiteSpace: 'nowrap' }}>
                   Contact: <a href="tel:9322610932" style={{ color: '#ffffff', fontWeight: 800, textDecoration: 'none' }}>9322610932</a>
                 </div>
               </div>
