@@ -93,6 +93,82 @@ const DEFAULT_INITIAL_RECORDS = [
 
 // Local storage key for offline caching & fallback
 const LOCAL_STORAGE_RECORDS_KEY = 'interndocs_supabase_cached_records';
+const DB_NAME = 'InternDocsDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'student_documents';
+
+// Helper for IndexedDB to store heavy base64 PDFs without exceeding localStorage 5MB quota
+const getIDB = () => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !window.indexedDB) return resolve(null);
+    try {
+      const req = window.indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch (err) {
+      resolve(null);
+    }
+  });
+};
+
+export const persistDocumentOffline = async (key, dataUrl) => {
+  try {
+    const db = await getIDB();
+    if (!db) return;
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.put({ key, data: dataUrl, timestamp: Date.now() });
+  } catch (err) {
+    console.warn('IndexedDB write warning:', err);
+  }
+};
+
+export const getDocumentOffline = async (key) => {
+  try {
+    const db = await getIDB();
+    if (!db) return null;
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result ? req.result.data : null);
+      req.onerror = () => resolve(null);
+    });
+  } catch (err) {
+    return null;
+  }
+};
+
+const hydrateWithIndexedDB = async (recordsList) => {
+  if (!recordsList || !Array.isArray(recordsList)) return recordsList || [];
+  const hydrated = await Promise.all(recordsList.map(async (r) => {
+    let completionUrl = r.completion_letter_url;
+    let offerUrl = r.offer_letter_url;
+
+    if (!completionUrl && r.enrolment_no) {
+      const savedDoc = await getDocumentOffline(`completion_${r.enrolment_no.toLowerCase()}`);
+      if (savedDoc) completionUrl = savedDoc;
+    }
+    if (!offerUrl && r.enrolment_no) {
+      const savedDoc = await getDocumentOffline(`offer_${r.enrolment_no.toLowerCase()}`);
+      if (savedDoc) offerUrl = savedDoc;
+    }
+
+    return {
+      ...r,
+      completion_letter_url: completionUrl || null,
+      offer_letter_url: offerUrl || r.offer_letter_url,
+      status: completionUrl ? 'Completed' : (r.status || 'Submitted')
+    };
+  }));
+  return hydrated;
+};
 
 const isValidUUID = (str) => {
   if (!str || typeof str !== 'string') return false;
@@ -108,16 +184,26 @@ export const getCachedRecords = () => {
     }
     return DEFAULT_INITIAL_RECORDS;
   } catch (err) {
-    console.error('Error reading cached student records:', err);
     return DEFAULT_INITIAL_RECORDS;
   }
 };
 
 export const saveCachedRecords = (records) => {
   try {
-    localStorage.setItem(LOCAL_STORAGE_RECORDS_KEY, JSON.stringify(records));
+    // Trim massive data URLs for localStorage if needed to prevent QuotaExceededError
+    const safeRecords = records.map(r => ({
+      ...r,
+      // If it's a huge base64 string, keep it in memory & IndexedDB
+      completion_letter_url: r.completion_letter_url && r.completion_letter_url.length > 200000 
+        ? r.completion_letter_url.slice(0, 200) + '...[STORED_IN_IDB]' 
+        : r.completion_letter_url,
+      offer_letter_url: r.offer_letter_url && r.offer_letter_url.length > 200000
+        ? r.offer_letter_url.slice(0, 200) + '...[STORED_IN_IDB]'
+        : r.offer_letter_url
+    }));
+    localStorage.setItem(LOCAL_STORAGE_RECORDS_KEY, JSON.stringify(safeRecords));
   } catch (err) {
-    console.error('Error saving cached student records:', err);
+    console.warn('localStorage save warning (Handled via IndexedDB):', err);
   }
 };
 
@@ -141,11 +227,14 @@ const mergeRecords = (supabaseData, cachedData) => {
 
     if (matchIndex !== -1) {
       // If cached item has a completion_letter_url or offer_letter_url and DB doesn't, preserve it
+      const hasCachedCompletion = cachedItem.completion_letter_url && !cachedItem.completion_letter_url.includes('[STORED_IN_IDB]');
+      const hasDbCompletion = merged[matchIndex].completion_letter_url;
+
       merged[matchIndex] = {
         ...merged[matchIndex],
-        completion_letter_url: cachedItem.completion_letter_url || merged[matchIndex].completion_letter_url,
-        offer_letter_url: cachedItem.offer_letter_url || merged[matchIndex].offer_letter_url,
-        status: cachedItem.completion_letter_url ? (cachedItem.status || 'Completed') : (merged[matchIndex].status || cachedItem.status),
+        completion_letter_url: hasDbCompletion || (hasCachedCompletion ? cachedItem.completion_letter_url : merged[matchIndex].completion_letter_url),
+        offer_letter_url: merged[matchIndex].offer_letter_url || cachedItem.offer_letter_url,
+        status: (hasDbCompletion || hasCachedCompletion) ? 'Completed' : (merged[matchIndex].status || cachedItem.status),
         notes: cachedItem.notes || merged[matchIndex].notes
       };
     } else if (String(cachedItem.id).startsWith('local_')) {
@@ -169,19 +258,22 @@ export const fetchStudentRecords = async () => {
 
     const cached = getCachedRecords();
 
-    if (error) {
-      console.warn('Supabase fetch error, using local fallback:', error.message);
-      return { success: true, data: cached, isFallback: true, error: error.message };
+    if (error || !data) {
+      console.warn('Supabase fetch notice, hydrating with cache & IndexedDB:', error?.message);
+      const hydrated = await hydrateWithIndexedDB(cached);
+      return { success: true, data: hydrated, isFallback: true, error: error?.message };
     }
 
-    // Merge Supabase records with any locally updated documents
-    const merged = mergeRecords(data || [], cached);
-    saveCachedRecords(merged);
-    return { success: true, data: merged, isFallback: false };
+    // Merge Supabase records with local documents & IndexedDB
+    const merged = mergeRecords(data, cached);
+    const hydrated = await hydrateWithIndexedDB(merged);
+    saveCachedRecords(hydrated);
+    return { success: true, data: hydrated, isFallback: false };
   } catch (err) {
-    console.warn('Network error reaching Supabase:', err);
+    console.warn('Network notice reaching Supabase, loading from cache:', err);
     const cached = getCachedRecords();
-    return { success: true, data: cached, isFallback: true, error: err.message };
+    const hydrated = await hydrateWithIndexedDB(cached);
+    return { success: true, data: hydrated, isFallback: true, error: err.message };
   }
 };
 
@@ -201,7 +293,7 @@ export const insertStudentRecord = async (recordData) => {
     gender: recordData.gender || 'Male',
     specialization: recordData.specialization?.trim(),
     semester: recordData.semester?.trim(),
-    source_of_internship: recordData.source_of_internship?.trim(),
+    source_of_internship: recordData.source_of_internship?.trim() || 'College Placement Cell',
     start_date: recordData.start_date,
     end_date: recordData.end_date,
     duration: duration,
@@ -214,6 +306,13 @@ export const insertStudentRecord = async (recordData) => {
     status: recordData.status || (recordData.completion_letter_url ? 'Completed' : 'Submitted'),
     notes: recordData.notes || ''
   };
+
+  if (payload.completion_letter_url && payload.enrolment_no) {
+    persistDocumentOffline(`completion_${payload.enrolment_no.toLowerCase()}`, payload.completion_letter_url);
+  }
+  if (payload.offer_letter_url && payload.enrolment_no) {
+    persistDocumentOffline(`offer_${payload.enrolment_no.toLowerCase()}`, payload.offer_letter_url);
+  }
 
   // Check if an existing record matches by ID, enrollment, or email to update instead of duplicate
   const cached = getCachedRecords();
@@ -234,7 +333,7 @@ export const insertStudentRecord = async (recordData) => {
       .select();
 
     if (error) {
-      console.warn('Supabase insert error, saving to local cache:', error.message);
+      console.warn('Supabase insert notice, saving to local cache:', error.message);
       const newRecord = { ...payload, id: `local_${Date.now()}`, created_at: new Date().toISOString() };
       const current = getCachedRecords();
       const updated = [newRecord, ...current];
@@ -244,7 +343,8 @@ export const insertStudentRecord = async (recordData) => {
 
     // Refresh cache
     const current = getCachedRecords();
-    saveCachedRecords([data[0], ...current.filter(r => r.id !== data[0].id)]);
+    const refreshed = [data[0], ...current.filter(r => r.id !== data[0].id)];
+    saveCachedRecords(refreshed);
     return { success: true, data, isFallback: false };
   } catch (err) {
     console.warn('Network exception during insert, saving locally:', err);
@@ -261,69 +361,136 @@ export const insertStudentRecord = async (recordData) => {
 export const updateStudentRecord = async (id, updateFields) => {
   const current = getCachedRecords();
   const targetRecord = current.find(r => 
-    r.id === id || 
+    (id && r.id === id) || 
     (updateFields.enrolment_no && r.enrolment_no && r.enrolment_no.toLowerCase() === updateFields.enrolment_no.toLowerCase()) ||
     (updateFields.email && r.email && r.email.toLowerCase() === updateFields.email.toLowerCase())
-  ) || { id };
+  ) || { id, ...updateFields };
 
+  const effectiveEnrolment = updateFields.enrolment_no || targetRecord.enrolment_no;
+  const effectiveEmail = updateFields.email || targetRecord.email;
   const effectiveId = targetRecord.id || id;
+
   const mergedUpdate = {
+    ...targetRecord,
     ...updateFields,
     updated_at: new Date().toISOString()
   };
 
-  // If completion letter is added and status wasn't explicitly changed to something else, set Completed
-  if (mergedUpdate.completion_letter_url && (!mergedUpdate.status || mergedUpdate.status === 'Submitted')) {
-    mergedUpdate.status = 'Completed';
+  // If completion letter is attached, ensure status is Completed
+  if (mergedUpdate.completion_letter_url) {
+    mergedUpdate.status = updateFields.status || 'Completed';
+    if (effectiveEnrolment) {
+      persistDocumentOffline(`completion_${effectiveEnrolment.toLowerCase()}`, mergedUpdate.completion_letter_url);
+    }
+  }
+  if (mergedUpdate.offer_letter_url && effectiveEnrolment) {
+    persistDocumentOffline(`offer_${effectiveEnrolment.toLowerCase()}`, mergedUpdate.offer_letter_url);
   }
 
-  // 1. Immediately update local cache to ensure zero loss
+  // 1. Immediately update local cache & memory
   const updatedCache = current.map(r => {
-    if (r.id === effectiveId || 
-        (targetRecord.enrolment_no && r.enrolment_no && r.enrolment_no === targetRecord.enrolment_no) ||
-        (targetRecord.email && r.email && r.email === targetRecord.email)) {
+    if ((r.id && r.id === effectiveId) || 
+        (effectiveEnrolment && r.enrolment_no && r.enrolment_no.toLowerCase() === effectiveEnrolment.toLowerCase()) ||
+        (effectiveEmail && r.email && r.email.toLowerCase() === effectiveEmail.toLowerCase())) {
       return { ...r, ...mergedUpdate };
     }
     return r;
   });
+
+  const existsInCache = updatedCache.some(r => 
+    (r.id && r.id === effectiveId) || 
+    (effectiveEnrolment && r.enrolment_no && r.enrolment_no.toLowerCase() === effectiveEnrolment.toLowerCase())
+  );
+  if (!existsInCache) {
+    updatedCache.unshift(mergedUpdate);
+  }
+
   saveCachedRecords(updatedCache);
 
-  // 2. Attempt update to Supabase
+  // 2. Persist to Supabase with multi-tier matching & automatic row creation
   try {
-    let query = supabase.from('student_internships').update(mergedUpdate);
+    const dbPayload = {
+      submission_date: mergedUpdate.submission_date || new Date().toISOString().split('T')[0],
+      email: effectiveEmail,
+      contact_no: mergedUpdate.contact_no,
+      enrolment_no: effectiveEnrolment,
+      full_name: mergedUpdate.full_name,
+      gender: mergedUpdate.gender || 'Male',
+      specialization: mergedUpdate.specialization,
+      semester: mergedUpdate.semester,
+      source_of_internship: mergedUpdate.source_of_internship || 'College Placement Cell',
+      start_date: mergedUpdate.start_date,
+      end_date: mergedUpdate.end_date,
+      duration: mergedUpdate.duration,
+      company_name_and_city: mergedUpdate.company_name_and_city,
+      mode_of_internship: mergedUpdate.mode_of_internship || 'Offline',
+      domain_of_company: mergedUpdate.domain_of_company,
+      is_ppo_offer: mergedUpdate.is_ppo_offer || 'No',
+      offer_letter_url: mergedUpdate.offer_letter_url || null,
+      completion_letter_url: mergedUpdate.completion_letter_url || null,
+      status: mergedUpdate.status || 'Completed',
+      notes: mergedUpdate.notes || '',
+      updated_at: new Date().toISOString()
+    };
+
+    let updateRes = null;
 
     if (isValidUUID(effectiveId)) {
-      query = query.eq('id', effectiveId);
-    } else if (targetRecord.enrolment_no) {
-      query = query.eq('enrolment_no', targetRecord.enrolment_no);
-    } else if (targetRecord.email) {
-      query = query.eq('email', targetRecord.email);
-    } else {
-      query = query.eq('id', effectiveId);
+      updateRes = await supabase
+        .from('student_internships')
+        .update(dbPayload)
+        .eq('id', effectiveId)
+        .select();
     }
 
-    const { data, error } = await query.select();
-
-    if (error) {
-      console.warn('Supabase update notice, saved in local cache:', error.message);
-      return { 
-        success: true, 
-        data: updatedCache.filter(r => r.id === effectiveId), 
-        isFallback: true,
-        error: error.message 
-      };
+    if (!updateRes || !updateRes.data || updateRes.data.length === 0) {
+      if (effectiveEnrolment) {
+        updateRes = await supabase
+          .from('student_internships')
+          .update(dbPayload)
+          .ilike('enrolment_no', effectiveEnrolment)
+          .select();
+      }
     }
 
-    if (data && data.length > 0) {
-      const refreshedCache = updatedCache.map(r => r.id === effectiveId ? data[0] : r);
-      saveCachedRecords(refreshedCache);
-      return { success: true, data, isFallback: false };
+    if (!updateRes || !updateRes.data || updateRes.data.length === 0) {
+      if (effectiveEmail) {
+        updateRes = await supabase
+          .from('student_internships')
+          .update(dbPayload)
+          .ilike('email', effectiveEmail)
+          .select();
+      }
     }
 
-    return { success: true, data: updatedCache.filter(r => r.id === effectiveId), isFallback: false };
+    // If row wasn't found in DB to update, insert it so HOD & Faculty see it immediately
+    if (!updateRes || !updateRes.data || updateRes.data.length === 0) {
+      const insertRes = await supabase
+        .from('student_internships')
+        .insert([dbPayload])
+        .select();
+
+      if (insertRes.data && insertRes.data.length > 0) {
+        const savedDbRecord = insertRes.data[0];
+        const refreshed = updatedCache.map(r => 
+          (effectiveEnrolment && r.enrolment_no && r.enrolment_no.toLowerCase() === effectiveEnrolment.toLowerCase()) ? savedDbRecord : r
+        );
+        saveCachedRecords(refreshed);
+        return { success: true, data: [savedDbRecord], isFallback: false };
+      }
+    } else if (updateRes.data && updateRes.data.length > 0) {
+      const savedDbRecord = updateRes.data[0];
+      const refreshed = updatedCache.map(r => 
+        (effectiveEnrolment && r.enrolment_no && r.enrolment_no.toLowerCase() === effectiveEnrolment.toLowerCase()) ? savedDbRecord : r
+      );
+      saveCachedRecords(refreshed);
+      return { success: true, data: updateRes.data, isFallback: false };
+    }
+
+    return { success: true, data: [mergedUpdate], isFallback: false };
   } catch (err) {
-    console.warn('Network exception during update, saved locally:', err);
-    return { success: true, data: updatedCache.filter(r => r.id === effectiveId), isFallback: true };
+    console.warn('Supabase update notice (Persisted in IndexedDB & cache):', err);
+    return { success: true, data: [mergedUpdate], isFallback: true };
   }
 };
 

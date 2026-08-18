@@ -94,6 +94,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
     if (uploadRes.success) {
       const publicUrl = uploadRes.publicUrl;
       const updateFields = {
+        ...editingCompletionRecord,
         completion_letter_url: publicUrl,
         status: 'Completed',
         updated_at: new Date().toISOString()
@@ -110,7 +111,15 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       }));
 
       // 2. Persist to Supabase and cache
-      await updateStudentRecord(editingCompletionRecord.id, updateFields);
+      const saveRes = await updateStudentRecord(editingCompletionRecord.id, updateFields);
+      if (saveRes && saveRes.data && saveRes.data.length > 0) {
+        const saved = saveRes.data[0];
+        setRecords(prevRecords => prevRecords.map(r => 
+          (editingCompletionRecord.enrolment_no && r.enrolment_no && r.enrolment_no.toLowerCase() === editingCompletionRecord.enrolment_no.toLowerCase()) 
+            ? { ...r, ...saved, completion_letter_url: publicUrl, status: 'Completed' } 
+            : r
+        ));
+      }
       
       setUploadingCompletion(false);
       setEditingCompletionRecord(null);
