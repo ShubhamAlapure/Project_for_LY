@@ -56,19 +56,21 @@ export const Navbar = ({ currentRoute, onNavigate, authUser, onLogout }) => {
       {/* Center / Right: Navigation Actions & User Profile */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
         {/* Navigation Quick Links */}
-        <button
-          onClick={() => onNavigate('student-records')}
-          className="btn btn-sm"
-          style={{
-            backgroundColor: currentRoute === 'student-records' ? 'rgba(255, 255, 255, 0.24)' : 'rgba(255, 255, 255, 0.1)',
-            color: '#ffffff',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: 'var(--radius-md)'
-          }}
-        >
-          <Database size={15} />
-          <span>Records DB</span>
-        </button>
+        {authUser?.role !== ROLES.STUDENT && (
+          <button
+            onClick={() => onNavigate('student-records')}
+            className="btn btn-sm"
+            style={{
+              backgroundColor: currentRoute === 'student-records' ? 'rgba(255, 255, 255, 0.24)' : 'rgba(255, 255, 255, 0.1)',
+              color: '#ffffff',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: 'var(--radius-md)'
+            }}
+          >
+            <Database size={15} />
+            <span>Records DB</span>
+          </button>
+        )}
 
         <button
           onClick={() => onNavigate('student-form')}
@@ -81,7 +83,7 @@ export const Navbar = ({ currentRoute, onNavigate, authUser, onLogout }) => {
           }}
         >
           <PlusCircle size={15} />
-          <span>Submit Record</span>
+          <span>{authUser?.role === ROLES.STUDENT ? 'My Internship Form' : 'Submit Record'}</span>
         </button>
 
         <button

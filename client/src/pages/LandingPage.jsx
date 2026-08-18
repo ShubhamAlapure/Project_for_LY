@@ -10,27 +10,19 @@ import {
   ArrowRight, 
   CheckCircle2, 
   AlertCircle, 
-  Sparkles,
   FileCheck2,
   Database,
   LogIn,
   Eye,
-  EyeOff,
-  ChevronDown,
-  Layers,
-  FileText,
-  Clock,
-  ArrowUpRight,
-  School,
-  Check
+  EyeOff
 } from 'lucide-react';
-import { ROLES, ROLE_CONFIG, loginUser, quickDemoLogin, DEFAULT_USERS } from '../utils/auth';
+import { ROLES, ROLE_CONFIG, loginUser, DEFAULT_USERS } from '../utils/auth';
 import campusDomeImg from '../assets/campus_dome.jpg';
 
 export const LandingPage = ({ onLoginSuccess, onExplore }) => {
   const [selectedRole, setSelectedRole] = useState(ROLES.ADMIN);
-  const [identifier, setIdentifier] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,15 +32,15 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
   const handleRoleSelect = (role) => {
     setSelectedRole(role);
     setError('');
-    const defaultAccount = DEFAULT_USERS.find(u => u.role === role);
-    if (defaultAccount) {
-      setIdentifier(defaultAccount.username);
-      setPassword(defaultAccount.password);
-    }
+    setIdentifier('');
+    setPassword('');
   };
 
   const handleOpenLoginForRole = (role) => {
-    handleRoleSelect(role);
+    setSelectedRole(role);
+    setError('');
+    setIdentifier('');
+    setPassword('');
     setIsLoginModalOpen(true);
   };
 
@@ -65,28 +57,16 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
       setTimeout(() => {
         setIsLoginModalOpen(false);
         onLoginSuccess(res.user);
-      }, 400);
-    } else {
-      setError(res.error || 'Authentication failed. Please check credentials.');
-    }
-  };
-
-  const handleQuickLogin = (role) => {
-    setSelectedRole(role);
-    const res = quickDemoLogin(role);
-    if (res.success) {
-      setSuccessMsg(`Logging in as ${res.user.full_name}...`);
-      setTimeout(() => {
-        setIsLoginModalOpen(false);
-        onLoginSuccess(res.user);
       }, 350);
+    } else {
+      setError(res.error || 'Authentication failed. Please verify your credentials.');
     }
   };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#ffffff', color: '#1e293b', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
       {/* ==================================================================== */}
-      {/* 1. TOP WHITE INSTITUTIONAL NAVBAR (Matching Reference Screenshot) */}
+      {/* 1. TOP WHITE INSTITUTIONAL NAVBAR */}
       {/* ==================================================================== */}
       <header style={{
         height: '74px',
@@ -175,7 +155,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
       </header>
 
       {/* ==================================================================== */}
-      {/* 2. HERO SECTION WITH CAMPUS DOME PHOTO BACKGROUND (Image 3) */}
+      {/* 2. HERO SECTION WITH CAMPUS DOME PHOTO BACKGROUND */}
       {/* ==================================================================== */}
       <section id="hero" style={{
         position: 'relative',
@@ -190,7 +170,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
         padding: '3.5rem 2.5rem',
         overflow: 'hidden'
       }}>
-        {/* Rich Purple Gradient Overlay (Matching 1st reference screenshot) */}
+        {/* Rich Purple Gradient Overlay */}
         <div style={{
           position: 'absolute',
           top: 0,
@@ -313,8 +293,8 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
               padding: '1.75rem',
               boxShadow: '0 20px 40px rgba(0, 0, 0, 0.35)'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.15)', paddingBottom: '0.75rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#fbbf24' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255, 255, 255, 0.15)', paddingBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#fbbf24' }}>
                   Institutional Gateways
                 </div>
                 <span style={{ fontSize: '0.725rem', backgroundColor: 'rgba(255, 255, 255, 0.2)', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 700 }}>
@@ -323,7 +303,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
               </div>
 
               {/* 5 Role Selection Chips */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.6rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
                 <RoleQuickButton 
                   title="🎓 Student" 
                   desc="Internship & Letters" 
@@ -346,58 +326,11 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
                 />
                 <div style={{ gridColumn: 'span 2' }}>
                   <RoleQuickButton 
-                    title="👑 Master Admin (Shubham Alapure)" 
+                    title="👑 Master Admin" 
                     desc="Full Database Control & User Management" 
                     isMaster
                     onClick={() => handleOpenLoginForRole(ROLES.ADMIN)} 
                   />
-                </div>
-              </div>
-
-              {/* Quick Demo Sign In Bar */}
-              <div style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.25)',
-                borderRadius: '12px',
-                padding: '0.85rem 1rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                fontSize: '0.8rem'
-              }}>
-                <span style={{ color: 'rgba(255, 255, 255, 0.85)', fontWeight: 600 }}>
-                  Instant 1-Click Access:
-                </span>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                  <button
-                    onClick={() => handleQuickLogin(ROLES.ADMIN)}
-                    style={{
-                      border: 'none',
-                      backgroundColor: '#a855f7',
-                      color: 'white',
-                      fontWeight: 700,
-                      fontSize: '0.725rem',
-                      padding: '0.3rem 0.65rem',
-                      borderRadius: '6px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Admin
-                  </button>
-                  <button
-                    onClick={() => handleQuickLogin(ROLES.STUDENT)}
-                    style={{
-                      border: 'none',
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      fontWeight: 700,
-                      fontSize: '0.725rem',
-                      padding: '0.3rem 0.65rem',
-                      borderRadius: '6px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Student
-                  </button>
                 </div>
               </div>
             </div>
@@ -406,7 +339,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
       </section>
 
       {/* ==================================================================== */}
-      {/* 3. PURPLE STEP INDICATOR STRIP (Matching Reference Screenshot) */}
+      {/* 3. PURPLE STEP INDICATOR STRIP */}
       {/* ==================================================================== */}
       <section id="process" style={{
         backgroundColor: '#4c1d95',
@@ -535,12 +468,12 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
         </div>
 
         <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.45)', fontSize: '0.75rem' }}>
-          © {new Date().getFullYear()} MIT-ADT University School of Computing. All Rights Reserved. Master Admin: Shubham Alapure.
+          © {new Date().getFullYear()} MIT-ADT University School of Computing. All Rights Reserved. Master Admin Access Available.
         </div>
       </footer>
 
       {/* ==================================================================== */}
-      {/* 7. ROLE LOGIN MODAL (Triggered from Navbar & Hero Buttons) */}
+      {/* 7. SECURE ROLE LOGIN MODAL (No defaults, clean inputs) */}
       {/* ==================================================================== */}
       {isLoginModalOpen && (
         <div style={{
@@ -559,7 +492,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
         }}>
           <div className="card animate-fade-in" style={{
             width: '100%',
-            maxWidth: '520px',
+            maxWidth: '480px',
             backgroundColor: '#ffffff',
             borderRadius: '20px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
@@ -613,7 +546,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
                 gap: '0.35rem',
                 overflowX: 'auto',
                 paddingBottom: '0.5rem',
-                marginBottom: '1.25rem',
+                marginBottom: '1.5rem',
                 borderBottom: '1px solid #e2e8f0'
               }}>
                 {Object.values(ROLES).map(r => (
@@ -622,15 +555,16 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
                     type="button"
                     onClick={() => handleRoleSelect(r)}
                     style={{
-                      padding: '0.35rem 0.65rem',
+                      padding: '0.4rem 0.75rem',
                       borderRadius: '6px',
-                      fontSize: '0.725rem',
+                      fontSize: '0.75rem',
                       fontWeight: 700,
                       border: 'none',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       backgroundColor: selectedRole === r ? '#7e22ce' : '#f1f5f9',
-                      color: selectedRole === r ? '#ffffff' : '#475569'
+                      color: selectedRole === r ? '#ffffff' : '#475569',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     {r}
@@ -676,36 +610,31 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
               )}
 
               <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: '1.1rem' }}>
-                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.825rem' }}>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>
                     Username or Institutional Email
                   </label>
                   <input
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="Enter username"
+                    placeholder="Enter your username or email"
                     className="form-input"
                     style={{ marginBottom: 0 }}
                     required
                   />
                 </div>
 
-                <div style={{ marginBottom: '1.35rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                    <label className="form-label" style={{ fontWeight: 700, fontSize: '0.825rem', marginBottom: 0 }}>
-                      Password
-                    </label>
-                    <span style={{ fontSize: '0.725rem', color: '#64748b' }}>
-                      Default: <code>admin123</code> / <code>student123</code>
-                    </span>
-                  </div>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                    Password
+                  </label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter password"
+                      placeholder="Enter your password"
                       className="form-input"
                       style={{ paddingRight: '38px', marginBottom: 0 }}
                       required
@@ -734,7 +663,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
                   disabled={loading}
                   style={{
                     width: '100%',
-                    padding: '0.8rem',
+                    padding: '0.85rem',
                     borderRadius: '8px',
                     backgroundColor: '#7e22ce',
                     color: '#ffffff',
@@ -752,36 +681,6 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
                   {loading ? 'Authenticating...' : `Sign In as ${selectedRole}`}
                 </button>
               </form>
-
-              {/* Quick Demo Access buttons inside modal */}
-              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 600 }}>
-                  Or click for instant testing:
-                </span>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin(ROLES.ADMIN)}
-                    style={{ fontSize: '0.725rem', padding: '0.25rem 0.55rem', borderRadius: '4px', border: '1px solid #d8b4fe', backgroundColor: '#faf5ff', color: '#7e22ce', fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    👑 Admin (Shubham)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin(ROLES.STUDENT)}
-                    style={{ fontSize: '0.725rem', padding: '0.25rem 0.55rem', borderRadius: '4px', border: '1px solid #a7f3d0', backgroundColor: '#f0fdf4', color: '#059669', fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    🎓 Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin(ROLES.FACULTY)}
-                    style={{ fontSize: '0.725rem', padding: '0.25rem 0.55rem', borderRadius: '4px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    👨‍🏫 Faculty
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -796,7 +695,7 @@ const RoleQuickButton = ({ title, desc, onClick, isMaster }) => (
     onClick={onClick}
     style={{
       width: '100%',
-      padding: '0.75rem',
+      padding: '0.85rem',
       backgroundColor: isMaster ? 'rgba(168, 85, 247, 0.28)' : 'rgba(255, 255, 255, 0.08)',
       border: isMaster ? '1.5px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.15)',
       borderRadius: '12px',
@@ -808,8 +707,8 @@ const RoleQuickButton = ({ title, desc, onClick, isMaster }) => (
     onMouseOver={(e) => { e.currentTarget.style.backgroundColor = isMaster ? 'rgba(168, 85, 247, 0.4)' : 'rgba(255, 255, 255, 0.18)'; }}
     onMouseOut={(e) => { e.currentTarget.style.backgroundColor = isMaster ? 'rgba(168, 85, 247, 0.28)' : 'rgba(255, 255, 255, 0.08)'; }}
   >
-    <div style={{ fontSize: '0.85rem', fontWeight: 800 }}>{title}</div>
-    <div style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.75)', marginTop: '0.15rem' }}>{desc}</div>
+    <div style={{ fontSize: '0.875rem', fontWeight: 800 }}>{title}</div>
+    <div style={{ fontSize: '0.725rem', color: 'rgba(255, 255, 255, 0.75)', marginTop: '0.15rem' }}>{desc}</div>
   </button>
 );
 

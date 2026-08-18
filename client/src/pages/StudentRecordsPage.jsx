@@ -23,12 +23,15 @@ import {
   Briefcase,
   Layers,
   Eye,
-  X
+  X,
+  GraduationCap,
+  ShieldAlert
 } from 'lucide-react';
 import { fetchStudentRecords, deleteStudentRecord, updateStudentRecord, uploadStudentDocument } from '../utils/supabaseClient';
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
+import { ROLES } from '../utils/auth';
 
-export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
+export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) => {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,6 +45,8 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
   const [completionFile, setCompletionFile] = useState(null);
   const [uploadingCompletion, setUploadingCompletion] = useState(false);
   const [notification, setNotification] = useState(null);
+
+  const isStudent = authUser?.role === ROLES.STUDENT;
 
   // PDF / Document Viewer Modal State
   const [previewingDoc, setPreviewingDoc] = useState({
@@ -172,8 +177,26 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
     document.body.removeChild(link);
   };
 
-  // Filter records
-  const filteredRecords = records.filter(r => {
+  // Role-Based Filtering:
+  // If Student: Only show records belonging to the student
+  // If Faculty / Coordinator / HOD / T&P / Admin: Show all records with full search & filters
+  const visibleRecords = isStudent 
+    ? records.filter(r => {
+        const studentEmail = authUser?.email?.toLowerCase();
+        const studentEnroll = authUser?.enrolment_no?.toLowerCase();
+        const studentName = authUser?.full_name?.toLowerCase();
+        return (
+          (r.email && studentEmail && r.email.toLowerCase() === studentEmail) ||
+          (r.enrolment_no && studentEnroll && r.enrolment_no.toLowerCase() === studentEnroll) ||
+          (r.full_name && studentName && r.full_name.toLowerCase().includes(studentName)) ||
+          records.length === 1 // If only 1 demo record, allow viewing
+        );
+      })
+    : records;
+
+  const filteredRecords = visibleRecords.filter(r => {
+    if (isStudent) return true; // No complex filtering needed for student view
+
     const s = searchTerm.toLowerCase();
     const matchesSearch = 
       !s ||
@@ -247,18 +270,20 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
             <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-              <Database size={12} />
-              Supabase Database
+              {isStudent ? <GraduationCap size={14} /> : <Database size={12} />}
+              {isStudent ? 'Student Application Desk' : 'Supabase Database'}
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--slate-400)', fontWeight: 600 }}>
-              Live Synchronization
+              {isStudent ? 'Personal Application Tracking' : 'Live Synchronization'}
             </span>
           </div>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
-            Student Internship Records Database
+            {isStudent ? 'My Internship Application & Status' : 'Student Internship Records Database'}
           </h1>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Central repository of MIT-ADT School of Computing student industrial internships (17 Fields).
+            {isStudent 
+              ? 'Track your registered industrial training record, preview attached offer/completion letters, and generate official documents.' 
+              : 'Central repository of MIT-ADT School of Computing student industrial internships (17 Fields).'}
           </p>
         </div>
 
@@ -273,14 +298,16 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
             Refresh
           </button>
           
-          <button
-            onClick={exportToCSV}
-            className="btn btn-secondary btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-          >
-            <Download size={14} />
-            Export CSV
-          </button>
+          {!isStudent && (
+            <button
+              onClick={exportToCSV}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Download size={14} />
+              Export CSV
+            </button>
+          )}
 
           <button
             onClick={() => onNavigate('student-form')}
@@ -288,134 +315,199 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
             style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
           >
             <Plus size={15} />
-            Add Student Record
+            {isStudent ? 'Update My Application' : 'Add Student Record'}
           </button>
         </div>
       </div>
 
       {/* KPI Stats Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '1.25rem',
-        marginBottom: '1.75rem'
-      }}>
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
-            <span>TOTAL SUBMISSIONS</span>
-            <Database size={16} color="var(--purple-600)" />
+      {isStudent ? (
+        /* Student Specific Status Cards */
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1.25rem',
+          marginBottom: '1.75rem'
+        }}>
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span>APPLICATION STATUS</span>
+              <CheckCircle2 size={16} color="#16a34a" />
+            </div>
+            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#15803d', marginTop: '0.35rem' }}>
+              {filteredRecords.length > 0 ? (filteredRecords[0].status || 'Submitted') : 'Pending Submission'}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
+              {filteredRecords.length > 0 ? 'Record Synchronized' : 'Action Required'}
+            </div>
           </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--purple-950)', marginTop: '0.35rem' }}>
-            {totalCount}
+
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span>OFFER LETTER</span>
+              <FileCheck2 size={16} color="#2563eb" />
+            </div>
+            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#1e40af', marginTop: '0.35rem' }}>
+              {filteredRecords.length > 0 && filteredRecords[0].offer_letter_url ? 'Attached (PDF)' : 'Not Uploaded'}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
+              Verification Ready
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 600, marginTop: '0.2rem' }}>
-            All Verified Batches
+
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span>COMPLETION LETTER</span>
+              <Award size={16} color="#d97706" />
+            </div>
+            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#b45309', marginTop: '0.35rem' }}>
+              {filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? 'Attached' : 'Pending'}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
+              Attach upon finishing tenure
+            </div>
+          </div>
+
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span>OFFICIAL LETTERS</span>
+              <Layers size={16} color="var(--purple-600)" />
+            </div>
+            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--purple-950)', marginTop: '0.35rem' }}>
+              Undertaking & NOC
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 600, marginTop: '0.2rem' }}>
+              Ready for Download & Print
+            </div>
           </div>
         </div>
+      ) : (
+        /* Faculty / Admin Institutional KPI Cards */
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1.25rem',
+          marginBottom: '1.75rem'
+        }}>
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span>TOTAL SUBMISSIONS</span>
+              <Database size={16} color="var(--purple-600)" />
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--purple-950)', marginTop: '0.35rem' }}>
+              {totalCount}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 600, marginTop: '0.2rem' }}>
+              All Verified Batches
+            </div>
+          </div>
 
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
-            <span>PPO OPPORTUNITIES</span>
-            <TrendingUp size={16} color="#2563eb" />
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span>PPO OPPORTUNITIES</span>
+              <TrendingUp size={16} color="#2563eb" />
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#1e40af', marginTop: '0.35rem' }}>
+              {ppoCount}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
+              {totalCount > 0 ? Math.round((ppoCount / totalCount) * 100) : 0}% of Total Offers
+            </div>
           </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#1e40af', marginTop: '0.35rem' }}>
-            {ppoCount}
+
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span>COMPLETED TENURES</span>
+              <Award size={16} color="#059669" />
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#065f46', marginTop: '0.35rem' }}>
+              {completedCount}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
+              Completion Letter Attached
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
-            {totalCount > 0 ? Math.round((ppoCount / totalCount) * 100) : 0}% of Total Offers
+
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+              <span>ON-SITE (OFFLINE)</span>
+              <Building size={16} color="#d97706" />
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#92400e', marginTop: '0.35rem' }}>
+              {offlineCount}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
+              Corporate Workstations
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
-            <span>COMPLETED TENURES</span>
-            <Award size={16} color="#059669" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#065f46', marginTop: '0.35rem' }}>
-            {completedCount}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
-            Completion Letter Attached
+      {/* Filter Toolbar (Hidden for Students) */}
+      {!isStudent && (
+        <div className="card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'center' }}>
+            {/* Search Box */}
+            <div style={{ position: 'relative', gridColumn: 'span 2' }}>
+              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+              <input
+                type="text"
+                placeholder="Search by student name, enrollment, email, company, domain..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="form-input"
+                style={{ paddingLeft: '36px', marginBottom: 0 }}
+              />
+            </div>
+
+            {/* Specialization Filter */}
+            <div>
+              <select
+                value={specializationFilter}
+                onChange={(e) => setSpecializationFilter(e.target.value)}
+                className="form-select"
+                style={{ marginBottom: 0 }}
+              >
+                <option value="All">All Specializations</option>
+                <option value="Computer Science & Engineering (CSE)">CSE</option>
+                <option value="Artificial Intelligence & Data Science (AI & DS)">AI & DS</option>
+                <option value="Information Technology (IT)">IT</option>
+                <option value="Cyber Security & Forensics">Cyber Security</option>
+              </select>
+            </div>
+
+            {/* Mode Filter */}
+            <div>
+              <select
+                value={modeFilter}
+                onChange={(e) => setModeFilter(e.target.value)}
+                className="form-select"
+                style={{ marginBottom: 0 }}
+              >
+                <option value="All">All Internship Modes</option>
+                <option value="Offline">Offline (On-Site)</option>
+                <option value="Hybrid">Hybrid</option>
+                <option value="Online">Online</option>
+              </select>
+            </div>
+
+            {/* PPO Filter */}
+            <div>
+              <select
+                value={ppoFilter}
+                onChange={(e) => setPpoFilter(e.target.value)}
+                className="form-select"
+                style={{ marginBottom: 0 }}
+              >
+                <option value="All">All PPO Types</option>
+                <option value="Yes">PPO Possibility</option>
+                <option value="Performance">Performance Based</option>
+                <option value="No">Internship Only</option>
+              </select>
+            </div>
           </div>
         </div>
-
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
-            <span>ON-SITE (OFFLINE)</span>
-            <Building size={16} color="#d97706" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#92400e', marginTop: '0.35rem' }}>
-            {offlineCount}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
-            Corporate Workstations
-          </div>
-        </div>
-      </div>
-
-      {/* Filter Toolbar */}
-      <div className="card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'center' }}>
-          {/* Search Box */}
-          <div style={{ position: 'relative', gridColumn: 'span 2' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
-            <input
-              type="text"
-              placeholder="Search by student name, enrollment, email, company, domain..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="form-input"
-              style={{ paddingLeft: '36px', marginBottom: 0 }}
-            />
-          </div>
-
-          {/* Specialization Filter */}
-          <div>
-            <select
-              value={specializationFilter}
-              onChange={(e) => setSpecializationFilter(e.target.value)}
-              className="form-select"
-              style={{ marginBottom: 0 }}
-            >
-              <option value="All">All Specializations</option>
-              <option value="Computer Science & Engineering (CSE)">CSE</option>
-              <option value="Artificial Intelligence & Data Science (AI & DS)">AI & DS</option>
-              <option value="Information Technology (IT)">IT</option>
-              <option value="Cyber Security & Forensics">Cyber Security</option>
-            </select>
-          </div>
-
-          {/* Mode Filter */}
-          <div>
-            <select
-              value={modeFilter}
-              onChange={(e) => setModeFilter(e.target.value)}
-              className="form-select"
-              style={{ marginBottom: 0 }}
-            >
-              <option value="All">All Internship Modes</option>
-              <option value="Offline">Offline (On-Site)</option>
-              <option value="Hybrid">Hybrid</option>
-              <option value="Online">Online</option>
-            </select>
-          </div>
-
-          {/* PPO Filter */}
-          <div>
-            <select
-              value={ppoFilter}
-              onChange={(e) => setPpoFilter(e.target.value)}
-              className="form-select"
-              style={{ marginBottom: 0 }}
-            >
-              <option value="All">All PPO Types</option>
-              <option value="Yes">PPO Possibility</option>
-              <option value="Performance">Performance Based</option>
-              <option value="No">Internship Only</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Main Records Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '2rem' }}>
@@ -437,16 +529,20 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
                 <tr>
                   <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--slate-500)' }}>
                     <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem auto', color: 'var(--purple-600)' }} />
-                    <div>Loading student internship records from Supabase...</div>
+                    <div>Loading records from Supabase...</div>
                   </td>
                 </tr>
               ) : filteredRecords.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
                     <Database size={36} color="var(--slate-300)" style={{ margin: '0 auto 0.75rem auto' }} />
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--slate-700)' }}>No student records found</h3>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--slate-700)' }}>
+                      {isStudent ? 'No internship application submitted yet' : 'No student records found'}
+                    </h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '1.25rem' }}>
-                      {searchTerm ? 'Try changing your search filters or clear the search query.' : 'Submit your first student internship record to store it in Supabase.'}
+                      {isStudent 
+                        ? 'Please submit your internship registration (17 Fields) and upload your offer letter to track your status.' 
+                        : 'Submit your first student internship record to store it in Supabase.'}
                     </p>
                     <button
                       onClick={() => onNavigate('student-form')}
@@ -454,7 +550,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
                       style={{ margin: '0 auto' }}
                     >
                       <Plus size={14} />
-                      Add Student Record
+                      {isStudent ? 'Submit My Internship Form' : 'Add Student Record'}
                     </button>
                   </td>
                 </tr>
@@ -698,15 +794,17 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
                           <Eye size={13} />
                         </button>
 
-                        {/* Delete Record */}
-                        <button
-                          onClick={() => handleDelete(r.id, r.full_name)}
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.75rem', padding: '0.35rem 0.5rem', color: '#dc2626', borderColor: '#fecaca' }}
-                          title="Delete Record"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {/* Delete Record (Faculty/Admin Only - Hidden for Students) */}
+                        {!isStudent && (
+                          <button
+                            onClick={() => handleDelete(r.id, r.full_name)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.75rem', padding: '0.35rem 0.5rem', color: '#dc2626', borderColor: '#fecaca' }}
+                            title="Delete Record"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
