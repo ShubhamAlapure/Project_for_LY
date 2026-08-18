@@ -241,14 +241,14 @@ const rolesMatch = (roleA, roleB) => {
 };
 
 /**
- * Authenticate user by username/email/phone and password
+ * Authenticate user strictly by username and password
  */
-export const loginUser = async (identifier, password, requestedRole = null) => {
-  const cleanId = (identifier || '').trim().toLowerCase();
+export const loginUser = async (username, password, requestedRole = null) => {
+  const cleanUsername = (username || '').trim().toLowerCase();
   const cleanPass = (password || '').trim();
 
-  if (!cleanId || !cleanPass) {
-    return { success: false, error: 'Please provide both username/email and password.' };
+  if (!cleanUsername || !cleanPass) {
+    return { success: false, error: 'Please enter both username and password.' };
   }
 
   // 1. Try Supabase cloud query first if connected
@@ -256,7 +256,7 @@ export const loginUser = async (identifier, password, requestedRole = null) => {
     const { data, error } = await supabase
       .from('user_logins')
       .select('*')
-      .or(`username.ilike.${cleanId},email.ilike.${cleanId},phone.eq.${cleanId}`)
+      .ilike('username', cleanUsername)
       .limit(1);
 
     if (!error && data && data.length > 0) {
@@ -278,14 +278,10 @@ export const loginUser = async (identifier, password, requestedRole = null) => {
     console.warn('Supabase query note, falling back to local credentials:', err);
   }
 
-  // 2. Fallback to cached / default seed user database
+  // 2. Fallback to cached / default seed user database (Strictly by username)
   const users = getCachedUsers();
   const matchedUser = users.find(
-    u => (
-      (u.username && u.username.toLowerCase() === cleanId) || 
-      (u.email && u.email.toLowerCase() === cleanId) ||
-      (u.phone && u.phone.trim() === cleanId)
-    ) && u.password === cleanPass
+    u => u.username && u.username.toLowerCase() === cleanUsername && u.password === cleanPass
   );
 
   if (matchedUser) {
