@@ -174,6 +174,22 @@ const hydrateWithIndexedDB = async (recordsList) => {
       }
     }
 
+    if (r.full_name) {
+      const nameKey = r.full_name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      if (!completionUrl) {
+        const savedDoc = await getDocumentOffline(`completion_${nameKey}`);
+        if (savedDoc) completionUrl = savedDoc;
+      }
+    }
+
+    if (r.email) {
+      const emailKey = r.email.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      if (!completionUrl) {
+        const savedDoc = await getDocumentOffline(`completion_${emailKey}`);
+        if (savedDoc) completionUrl = savedDoc;
+      }
+    }
+
     return {
       ...r,
       completion_letter_url: completionUrl || null,
@@ -208,41 +224,38 @@ export const saveCachedRecords = (records) => {
   // Persist full records in IndexedDB
   persistDocumentOffline('all_student_records_store', JSON.stringify(records));
 
-  // Also persist individual documents into IndexedDB
+  // Also persist individual documents under all identifiers (enrollment, email, name)
   records.forEach(r => {
-    if (r.enrolment_no) {
-      const enrolKey = r.enrolment_no.toLowerCase();
-      if (r.completion_letter_url) {
-        persistDocumentOffline(`completion_${enrolKey}`, r.completion_letter_url);
-      }
-      if (r.offer_letter_url) {
-        persistDocumentOffline(`offer_${enrolKey}`, r.offer_letter_url);
-      }
+    if (r.completion_letter_url) {
+      if (r.enrolment_no) persistDocumentOffline(`completion_${r.enrolment_no.toLowerCase()}`, r.completion_letter_url);
+      if (r.email) persistDocumentOffline(`completion_${r.email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`, r.completion_letter_url);
+      if (r.full_name) persistDocumentOffline(`completion_${r.full_name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`, r.completion_letter_url);
+    }
+    if (r.offer_letter_url) {
+      if (r.enrolment_no) persistDocumentOffline(`offer_${r.enrolment_no.toLowerCase()}`, r.offer_letter_url);
+      if (r.email) persistDocumentOffline(`offer_${r.email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`, r.offer_letter_url);
     }
   });
 
-  // Save lightweight version in localStorage (without corrupting strings)
+  // Save in localStorage safely
   try {
     localStorage.setItem(LOCAL_STORAGE_RECORDS_KEY, JSON.stringify(records));
   } catch (err) {
-    // If localStorage quota exceeded, store without huge base64 strings in localStorage
-    // while IndexedDB keeps 100% full quality
     try {
       const safe = records.map(r => ({
         ...r,
-        completion_letter_url: (r.completion_letter_url && r.completion_letter_url.startsWith('data:')) ? null : r.completion_letter_url,
-        offer_letter_url: (r.offer_letter_url && r.offer_letter_url.startsWith('data:')) ? null : r.offer_letter_url
+        completion_letter_url: (r.completion_letter_url && r.completion_letter_url.length > 100000) ? null : r.completion_letter_url,
+        offer_letter_url: (r.offer_letter_url && r.offer_letter_url.length > 100000) ? null : r.offer_letter_url
       }));
       localStorage.setItem(LOCAL_STORAGE_RECORDS_KEY, JSON.stringify(safe));
     } catch (e) {
-      // IndexedDB handles full storage
+      // Handled via IndexedDB
     }
   }
 };
 
 /**
  * Merges freshly fetched Supabase records with locally modified records
- * to ensure that uploaded document URLs and local changes are never overwritten by stale DB data.
  */
 const mergeRecords = (supabaseData, cachedData) => {
   if (!supabaseData || supabaseData.length === 0) return cachedData || [];
@@ -254,7 +267,8 @@ const mergeRecords = (supabaseData, cachedData) => {
     const matchIndex = merged.findIndex(r => 
       (cachedItem.id && r.id === cachedItem.id) ||
       (cachedItem.enrolment_no && r.enrolment_no && cachedItem.enrolment_no.toLowerCase() === r.enrolment_no.toLowerCase()) ||
-      (cachedItem.email && r.email && cachedItem.email.toLowerCase() === r.email.toLowerCase())
+      (cachedItem.email && r.email && cachedItem.email.toLowerCase() === r.email.toLowerCase()) ||
+      (cachedItem.full_name && r.full_name && cachedItem.full_name.toLowerCase().trim() === r.full_name.toLowerCase().trim())
     );
 
     if (matchIndex !== -1) {
@@ -268,7 +282,7 @@ const mergeRecords = (supabaseData, cachedData) => {
         status: completionUrl ? 'Completed' : (merged[matchIndex].status || cachedItem.status),
         notes: cachedItem.notes || merged[matchIndex].notes
       };
-    } else if (String(cachedItem.id).startsWith('local_')) {
+    } else {
       merged.push(cachedItem);
     }
   });

@@ -104,7 +104,8 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       setRecords(prevRecords => prevRecords.map(r => {
         if (r.id === editingCompletionRecord.id ||
             (editingCompletionRecord.enrolment_no && r.enrolment_no && r.enrolment_no.toLowerCase() === editingCompletionRecord.enrolment_no.toLowerCase()) ||
-            (editingCompletionRecord.email && r.email && r.email.toLowerCase() === editingCompletionRecord.email.toLowerCase())) {
+            (editingCompletionRecord.email && r.email && r.email.toLowerCase() === editingCompletionRecord.email.toLowerCase()) ||
+            (editingCompletionRecord.full_name && r.full_name && r.full_name.toLowerCase().trim() === editingCompletionRecord.full_name.toLowerCase().trim())) {
           return { ...r, ...updateFields };
         }
         return r;
@@ -114,11 +115,12 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       const saveRes = await updateStudentRecord(editingCompletionRecord.id, updateFields);
       if (saveRes && saveRes.data && saveRes.data.length > 0) {
         const saved = saveRes.data[0];
-        setRecords(prevRecords => prevRecords.map(r => 
-          (editingCompletionRecord.enrolment_no && r.enrolment_no && r.enrolment_no.toLowerCase() === editingCompletionRecord.enrolment_no.toLowerCase()) 
-            ? { ...r, ...saved, completion_letter_url: publicUrl, status: 'Completed' } 
-            : r
-        ));
+        setRecords(prevRecords => prevRecords.map(r => {
+          const isMatch = (editingCompletionRecord.enrolment_no && r.enrolment_no && r.enrolment_no.toLowerCase() === editingCompletionRecord.enrolment_no.toLowerCase()) ||
+            (editingCompletionRecord.email && r.email && r.email.toLowerCase() === editingCompletionRecord.email.toLowerCase()) ||
+            (editingCompletionRecord.full_name && r.full_name && r.full_name.toLowerCase().trim() === editingCompletionRecord.full_name.toLowerCase().trim());
+          return isMatch ? { ...r, ...saved, completion_letter_url: publicUrl, status: 'Completed' } : r;
+        }));
       }
       
       setUploadingCompletion(false);
