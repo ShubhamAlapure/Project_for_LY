@@ -19,10 +19,15 @@ import {
   FileCheck2,
   Clock,
   ExternalLink,
+  Eye,
   Trash2,
   Database
 } from 'lucide-react';
 import { calculateInternshipDuration, insertStudentRecord, uploadStudentDocument } from '../utils/supabaseClient';
+import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
+
+// Sample Valid Base64 PDF Data for demo testing
+const SAMPLE_OFFER_LETTER_PDF = "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjQgMCBvYmoKPDwgL0xlbmd0aCA1IDAgUiAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJwrVAgwsjI1MTcw1TMBcQwNzCwsTS0M9IwNDM0sgEw9Awv9gILk1FwFfQWwZGBgAABWkgmXCgplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKNzgKZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAzIDAgUiAvUmVzb3VyY2VzIDYgMCBSIC9Db250ZW50cyA0IDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSA+PgplbmRvYmoKNiAwIG9iago8PCAvUHJvY1NldCBbIC9QREYgL1RleHQgXSA+PgplbmRvYmoKMyAwIG9iago8PCAvVHlwZSAvUGFnZXMgL0tpZHMgWyAyIDAgUiBdIC9Db3VudCAxID4+CmVuZG9iagoxIDAgb2JqCjw8IC9UeXBlIC9DYXRhbG9nIC9QYWdlcyAzIDAgUiA+PgplbmRvYmoKMAp0cmFpbGVyCjw8IC9Sb290IDEgMCBSID4+CiUlRU9G";
 
 const INITIAL_FORM = {
   // 1. Date of entry/submission
@@ -81,7 +86,7 @@ const SAMPLE_STUDENT_RECORD = {
   mode_of_internship: 'Hybrid',
   domain_of_company: 'Cloud Computing & Artificial Intelligence',
   is_ppo_offer: 'Yes (PPO Possibility)',
-  offer_letter_url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=800&q=80',
+  offer_letter_url: SAMPLE_OFFER_LETTER_PDF,
   completion_letter_url: '',
   notes: 'Eligible for 8th semester credits after completion evaluation.'
 };
@@ -99,6 +104,14 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedRecord, setSubmittedRecord] = useState(null);
   const [notification, setNotification] = useState(null);
+
+  // PDF Preview Modal State
+  const [previewingDoc, setPreviewingDoc] = useState({
+    isOpen: false,
+    url: '',
+    title: '',
+    studentName: ''
+  });
 
   // Recalculate duration automatically whenever start_date or end_date changes
   useEffect(() => {
@@ -127,14 +140,14 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
     setOfferFile(file);
     setOfferFileName(file.name);
     
-    // Automatically upload to Supabase Storage
+    // Automatically upload to Supabase Storage or persistent Data URL
     setUploadingOffer(true);
     const uploadRes = await uploadStudentDocument(file, 'offer-letters');
     setUploadingOffer(false);
 
     if (uploadRes.success) {
       setFormData(prev => ({ ...prev, offer_letter_url: uploadRes.publicUrl }));
-      setNotification({ type: 'success', message: 'Offer Letter uploaded to Supabase Storage!' });
+      setNotification({ type: 'success', message: 'Offer Letter uploaded & PDF preview ready!' });
       setTimeout(() => setNotification(null), 3000);
     } else {
       setNotification({ type: 'error', message: 'Upload failed: ' + uploadRes.error });
@@ -148,14 +161,14 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
     setCompletionFile(file);
     setCompletionFileName(file.name);
 
-    // Automatically upload to Supabase Storage
+    // Automatically upload to Supabase Storage or persistent Data URL
     setUploadingCompletion(true);
     const uploadRes = await uploadStudentDocument(file, 'completion-letters');
     setUploadingCompletion(false);
 
     if (uploadRes.success) {
       setFormData(prev => ({ ...prev, completion_letter_url: uploadRes.publicUrl }));
-      setNotification({ type: 'success', message: 'Completion Letter uploaded to Supabase Storage!' });
+      setNotification({ type: 'success', message: 'Completion Letter uploaded & PDF preview ready!' });
       setTimeout(() => setNotification(null), 3000);
     } else {
       setNotification({ type: 'error', message: 'Upload failed: ' + uploadRes.error });
@@ -167,7 +180,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
     setFormData(SAMPLE_STUDENT_RECORD);
     setOfferFileName('Google_Offer_Letter_2026.pdf');
     setErrors({});
-    setNotification({ type: 'success', message: 'Sample student record loaded successfully!' });
+    setNotification({ type: 'success', message: 'Sample student record loaded with Offer Letter PDF!' });
     setTimeout(() => setNotification(null), 3000);
   };
 
@@ -303,6 +316,15 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
           <span>{notification.message}</span>
         </div>
       )}
+
+      {/* PDF Document Preview Modal */}
+      <DocumentPreviewModal 
+        isOpen={previewingDoc.isOpen}
+        onClose={() => setPreviewingDoc(prev => ({ ...prev, isOpen: false }))}
+        documentUrl={previewingDoc.url}
+        documentTitle={previewingDoc.title}
+        studentName={previewingDoc.studentName}
+      />
 
       {/* Header Banner */}
       <div style={{
@@ -800,7 +822,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
             {/* Field 16: Upload Valid Offer Letter */}
             <div>
               <label className="form-label" style={{ fontWeight: 700 }}>
-                16. Upload Valid Offer Letter (Internship) <span className="text-danger">*</span>
+                16. Upload Valid Offer Letter (PDF / Document) <span className="text-danger">*</span>
               </label>
               <div style={{
                 border: '2px dashed var(--purple-300)',
@@ -815,7 +837,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
                   {offerFileName ? offerFileName : 'Select or drop Offer Letter PDF / Image'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                  Supported formats: PDF, PNG, JPG (Max 15MB)
+                  Supported formats: PDF, PNG, JPG (Stored as previewable document)
                 </div>
 
                 <input
@@ -836,17 +858,26 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
 
                 {uploadingOffer && (
                   <div style={{ fontSize: '0.8rem', color: 'var(--purple-700)', fontWeight: 600 }}>
-                    Uploading to Supabase Storage...
+                    Uploading & Preparing PDF Preview...
                   </div>
                 )}
 
                 {formData.offer_letter_url && !uploadingOffer && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginTop: '0.5rem', fontSize: '0.775rem', color: '#16a34a', fontWeight: 700 }}>
-                    <CheckCircle2 size={14} />
-                    Uploaded to Supabase
-                    <a href={formData.offer_letter_url} target="_blank" rel="noreferrer" style={{ marginLeft: '4px', color: 'var(--purple-600)' }}>
-                      <ExternalLink size={12} />
-                    </a>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewingDoc({
+                        isOpen: true,
+                        url: formData.offer_letter_url,
+                        title: offerFileName || 'Internship Offer Letter PDF',
+                        studentName: formData.full_name
+                      })}
+                      className="btn btn-secondary btn-sm"
+                      style={{ color: '#15803d', borderColor: '#86efac', backgroundColor: '#dcfce7', fontSize: '0.775rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <Eye size={13} />
+                      Preview Offer Letter PDF
+                    </button>
                   </div>
                 )}
               </div>
@@ -870,7 +901,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
                   {completionFileName ? completionFileName : 'Upload Completion Letter (Post-Internship)'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                  Optional upon initial registration; can be uploaded later
+                  Optional upon initial registration; can be attached later
                 </div>
 
                 <input
@@ -891,17 +922,26 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument }) => {
 
                 {uploadingCompletion && (
                   <div style={{ fontSize: '0.8rem', color: 'var(--purple-700)', fontWeight: 600 }}>
-                    Uploading to Supabase Storage...
+                    Uploading & Preparing PDF Preview...
                   </div>
                 )}
 
                 {formData.completion_letter_url && !uploadingCompletion && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginTop: '0.5rem', fontSize: '0.775rem', color: '#16a34a', fontWeight: 700 }}>
-                    <CheckCircle2 size={14} />
-                    Uploaded to Supabase
-                    <a href={formData.completion_letter_url} target="_blank" rel="noreferrer" style={{ marginLeft: '4px', color: 'var(--purple-600)' }}>
-                      <ExternalLink size={12} />
-                    </a>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewingDoc({
+                        isOpen: true,
+                        url: formData.completion_letter_url,
+                        title: completionFileName || 'Internship Completion Certificate PDF',
+                        studentName: formData.full_name
+                      })}
+                      className="btn btn-secondary btn-sm"
+                      style={{ color: '#0369a1', borderColor: '#7dd3fc', backgroundColor: '#e0f2fe', fontSize: '0.775rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <Eye size={13} />
+                      Preview Completion Letter PDF
+                    </button>
                   </div>
                 )}
               </div>

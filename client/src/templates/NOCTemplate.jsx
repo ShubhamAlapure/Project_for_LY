@@ -26,7 +26,7 @@ export const NOCTemplate = ({ data = {} }) => {
   const displayStart = data.startDateDisplay || formatDateForDoc(startDate);
   const displayEnd = data.endDateDisplay || formatDateForDoc(endDate);
 
-  // Signatories
+  // Signatories (Names and designations preserved for manual physical signature)
   const internshipHeadName = data.internshipHeadName || "Prof. Vaibhav Sawalkar";
   const internshipHeadDesignation = data.internshipHeadDesignation || "Internship Head";
   const internshipHeadDepartment = data.internshipHeadDepartment || "Assistant Professor – CSE";
@@ -48,11 +48,8 @@ export const NOCTemplate = ({ data = {} }) => {
       boxSizing: 'border-box'
     }}>
       <div>
-        {/* Institutional Header (Matching PDF Letterhead Template) */}
-        <DocumentHeader 
-          universityName={universityName}
-          schoolName={schoolName}
-        />
+        {/* Institutional Header Image */}
+        <DocumentHeader />
 
         {/* Ref No & Date Row */}
         <div style={{
@@ -134,35 +131,24 @@ export const NOCTemplate = ({ data = {} }) => {
           lineHeight: '1.45',
           fontFamily: 'var(--font-doc-serif)',
           textAlign: 'justify',
-          marginBottom: '20px'
+          marginBottom: '28px'
         }}>
           He/She must maintain academic attendance as per the Rules and Regulations of the MIT ADT University, failing which leads to shortage of attendance for the academic outcomes.
         </div>
 
-        {/* 3 Authorized Signatures Grid */}
+        {/* 3 Authorized Signatures Grid (Names & Designations only - blank space for physical manual signatures) */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '12px',
-          marginTop: '22px',
+          gap: '16px',
+          marginTop: '36px',
           fontFamily: 'var(--font-doc-sans)',
-          fontSize: '8pt',
+          fontSize: '8.5pt',
           textAlign: 'center'
         }}>
           {/* Signatory 1: Internship Head */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <div style={{
-              fontFamily: 'cursive',
-              fontSize: '11pt',
-              color: '#1d4ed8',
-              fontStyle: 'italic',
-              marginBottom: '2px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center'
-            }}>
-              Sawalkar 03/08/2026
-            </div>
+            <div style={{ height: '40px', width: '80%', borderBottom: '1px dashed #94a3b8', marginBottom: '8px' }}></div>
             <div style={{ fontWeight: '700', color: '#111' }}>{internshipHeadName}</div>
             <div style={{ color: '#444' }}>{internshipHeadDesignation}</div>
             <div style={{ color: '#555', fontSize: '7.5pt' }}>{internshipHeadDepartment}</div>
@@ -170,18 +156,7 @@ export const NOCTemplate = ({ data = {} }) => {
 
           {/* Signatory 2: HOD */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <div style={{
-              fontFamily: 'cursive',
-              fontSize: '11pt',
-              color: '#1d4ed8',
-              fontStyle: 'italic',
-              marginBottom: '2px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center'
-            }}>
-              Jayashree Prasad
-            </div>
+            <div style={{ height: '40px', width: '80%', borderBottom: '1px dashed #94a3b8', marginBottom: '8px' }}></div>
             <div style={{ fontWeight: '700', color: '#111' }}>{hodName}</div>
             <div style={{ color: '#444' }}>{hodDesignation}</div>
             <div style={{ color: '#555', fontSize: '7.5pt' }}>{hodDepartment}</div>
@@ -189,61 +164,15 @@ export const NOCTemplate = ({ data = {} }) => {
 
           {/* Signatory 3: Director CRTP */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <div style={{
-              fontFamily: 'cursive',
-              fontSize: '11pt',
-              color: '#1d4ed8',
-              fontStyle: 'italic',
-              marginBottom: '2px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center'
-            }}>
-              Swati More
-            </div>
+            <div style={{ height: '40px', width: '80%', borderBottom: '1px dashed #94a3b8', marginBottom: '8px' }}></div>
             <div style={{ fontWeight: '700', color: '#111' }}>{directorName}</div>
             <div style={{ color: '#444' }}>{directorDesignation}</div>
             <div style={{ color: '#555', fontSize: '7.5pt' }}>{directorDepartment}</div>
           </div>
         </div>
-
-        {/* Circular Official University Stamp (Central T&P) */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginTop: '14px',
-          marginBottom: '8px'
-        }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            border: '2px solid #1d4ed8',
-            outline: '1px dashed #1d4ed8',
-            outlineOffset: '2px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#1d4ed8',
-            textAlign: 'center',
-            transform: 'rotate(-8deg)',
-            userSelect: 'none'
-          }}>
-            <div style={{ fontSize: '5.5pt', fontWeight: '800', letterSpacing: '0.05em' }}>
-              MIT-ADT UNIVERSITY
-            </div>
-            <div style={{ fontSize: '6.5pt', fontWeight: '900', margin: '1px 0', borderTop: '1px solid #1d4ed8', borderBottom: '1px solid #1d4ed8', padding: '1px 3px' }}>
-              CENTRAL T & P
-            </div>
-            <div style={{ fontSize: '5.5pt', fontWeight: '700' }}>
-              PUNE
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Institutional Footer (Matching PDF Letterhead Template) */}
+      {/* Institutional Footer Image */}
       <DocumentFooter />
     </div>
   );

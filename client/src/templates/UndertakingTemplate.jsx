@@ -8,8 +8,6 @@ export const UndertakingTemplate = ({ data = {} }) => {
   const rollNumber = data.rollNumber || (data.enrolment_no ? data.enrolment_no.slice(-7) : "CS2022-084");
   const enrollmentNumber = data.enrollmentNumber || data.enrolment_no || "MITADT2022CS084";
   const department = data.department || data.specialization || "Computer Science & Engineering";
-  const universityName = data.universityName || "MIT Art, Design & Technology University, Pune";
-  const schoolName = data.schoolName || "School of Computing, Pune";
   
   const companyName = data.companyName || data.company_name_and_city || "Google India Private Limited, Bangalore";
   const duration = data.duration || "6 Months";
@@ -33,11 +31,8 @@ export const UndertakingTemplate = ({ data = {} }) => {
       boxSizing: 'border-box'
     }}>
       <div>
-        {/* Institutional Header (Matching PDF Letterhead Template) */}
-        <DocumentHeader 
-          universityName={universityName}
-          schoolName={schoolName}
-        />
+        {/* Institutional Header Image */}
+        <DocumentHeader />
 
         {/* Date Row (Aligned Right) */}
         <div style={{
@@ -160,9 +155,9 @@ export const UndertakingTemplate = ({ data = {} }) => {
           </div>
         </div>
 
-        {/* Candidate Signature Block (Aligned Bottom Right) */}
+        {/* Candidate Signature Block (Names & Contact preserved, signature space for physical manual sign) */}
         <div style={{
-          marginTop: '20px',
+          marginTop: '26px',
           display: 'flex',
           justifyContent: 'flex-end'
         }}>
@@ -172,17 +167,9 @@ export const UndertakingTemplate = ({ data = {} }) => {
             fontFamily: 'var(--font-doc-serif)',
             lineHeight: '1.7'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ marginBottom: '8px' }}>
               <span style={{ fontWeight: '700' }}>Candidate's Signature:</span>
-              <span style={{
-                fontFamily: 'cursive',
-                fontSize: '13pt',
-                color: '#1d4ed8',
-                fontStyle: 'italic',
-                textDecoration: 'underline'
-              }}>
-                {studentName ? studentName.split(' ')[0] : 'Sign'}
-              </span>
+              <div style={{ height: '35px', width: '180px', borderBottom: '1px dashed #94a3b8', marginTop: '4px' }}></div>
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -198,7 +185,7 @@ export const UndertakingTemplate = ({ data = {} }) => {
         </div>
       </div>
 
-      {/* Institutional Footer (Matching PDF Letterhead Template) */}
+      {/* Institutional Footer Image */}
       <DocumentFooter />
     </div>
   );

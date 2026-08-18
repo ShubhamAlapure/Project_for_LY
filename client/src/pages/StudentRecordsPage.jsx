@@ -22,9 +22,11 @@ import {
   TrendingUp,
   Briefcase,
   Layers,
+  Eye,
   X
 } from 'lucide-react';
 import { fetchStudentRecords, deleteStudentRecord, updateStudentRecord, uploadStudentDocument } from '../utils/supabaseClient';
+import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
 
 export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
   const [records, setRecords] = useState([]);
@@ -40,6 +42,14 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
   const [completionFile, setCompletionFile] = useState(null);
   const [uploadingCompletion, setUploadingCompletion] = useState(false);
   const [notification, setNotification] = useState(null);
+
+  // PDF / Document Viewer Modal State
+  const [previewingDoc, setPreviewingDoc] = useState({
+    isOpen: false,
+    url: '',
+    title: '',
+    studentName: ''
+  });
 
   const loadRecords = async () => {
     setLoading(true);
@@ -90,6 +100,16 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
       setNotification({ type: 'error', message: 'Failed to upload completion letter.' });
       setTimeout(() => setNotification(null), 3500);
     }
+  };
+
+  const openDocumentPreview = (url, title, studentName) => {
+    if (!url) return;
+    setPreviewingDoc({
+      isOpen: true,
+      url,
+      title,
+      studentName
+    });
   };
 
   const exportToCSV = () => {
@@ -200,6 +220,15 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
           <span>{notification.message}</span>
         </div>
       )}
+
+      {/* PDF Document Preview Modal */}
+      <DocumentPreviewModal 
+        isOpen={previewingDoc.isOpen}
+        onClose={() => setPreviewingDoc(prev => ({ ...prev, isOpen: false }))}
+        documentUrl={previewingDoc.url}
+        documentTitle={previewingDoc.title}
+        studentName={previewingDoc.studentName}
+      />
 
       {/* Header Bar */}
       <div style={{
@@ -399,7 +428,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
                 <th style={{ padding: '0.85rem 1.25rem' }}>Company & Domain</th>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Tenure & Duration</th>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Mode & PPO</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Documents</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Uploaded Documents</th>
                 <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Document Actions</th>
               </tr>
             </thead>
@@ -526,28 +555,31 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
                       </div>
                     </td>
 
-                    {/* Document Badges */}
+                    {/* Uploaded Document Badges with Integrated Preview Modal */}
                     <td style={{ padding: '1rem 1.25rem' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                         {r.offer_letter_url ? (
-                          <a
-                            href={r.offer_letter_url}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => openDocumentPreview(r.offer_letter_url, `${r.full_name} - Offer Letter`, r.full_name)}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '0.3rem',
-                              fontSize: '0.725rem',
-                              color: '#16a34a',
+                              gap: '0.35rem',
+                              fontSize: '0.75rem',
+                              color: '#15803d',
                               fontWeight: 700,
-                              textDecoration: 'none'
+                              backgroundColor: '#dcfce7',
+                              padding: '0.25rem 0.55rem',
+                              borderRadius: 'var(--radius-sm)',
+                              border: '1px solid #86efac',
+                              cursor: 'pointer',
+                              textAlign: 'left'
                             }}
                           >
-                            <CheckCircle2 size={13} />
-                            Offer Letter
-                            <ExternalLink size={11} />
-                          </a>
+                            <Eye size={13} />
+                            Preview Offer Letter PDF
+                          </button>
                         ) : (
                           <span style={{ fontSize: '0.725rem', color: 'var(--slate-400)' }}>
                             No Offer Letter
@@ -555,24 +587,27 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
                         )}
 
                         {r.completion_letter_url ? (
-                          <a
-                            href={r.completion_letter_url}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => openDocumentPreview(r.completion_letter_url, `${r.full_name} - Completion Certificate`, r.full_name)}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '0.3rem',
-                              fontSize: '0.725rem',
-                              color: '#0284c7',
+                              gap: '0.35rem',
+                              fontSize: '0.75rem',
+                              color: '#0369a1',
                               fontWeight: 700,
-                              textDecoration: 'none'
+                              backgroundColor: '#e0f2fe',
+                              padding: '0.25rem 0.55rem',
+                              borderRadius: 'var(--radius-sm)',
+                              border: '1px solid #7dd3fc',
+                              cursor: 'pointer',
+                              textAlign: 'left'
                             }}
                           >
                             <Award size={13} />
-                            Completion Letter
-                            <ExternalLink size={11} />
-                          </a>
+                            Preview Completion PDF
+                          </button>
                         ) : (
                           <button
                             onClick={() => setEditingCompletionRecord(r)}
@@ -660,7 +695,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
                           style={{ fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}
                           title="View Full Record (17 Fields)"
                         >
-                          <EyeModalIcon />
+                          <Eye size={13} />
                         </button>
 
                         {/* Delete Record */}
@@ -756,40 +791,36 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument }) => {
               <DetailItem label="15. Whether Offer/PPO" value={selectedRecord.is_ppo_offer} />
             </div>
 
-            {/* Document Links */}
+            {/* Document Links with Direct PDF Preview Trigger */}
             <div style={{ padding: '1.25rem', backgroundColor: 'var(--purple-50)', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem' }}>
               <div style={{ fontWeight: 700, color: 'var(--purple-950)', marginBottom: '0.75rem' }}>
                 Uploaded Documents (Fields 16 & 17):
               </div>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 {selectedRecord.offer_letter_url ? (
-                  <a
-                    href={selectedRecord.offer_letter_url}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => openDocumentPreview(selectedRecord.offer_letter_url, `${selectedRecord.full_name} - Offer Letter PDF`, selectedRecord.full_name)}
                     className="btn btn-secondary btn-sm"
-                    style={{ color: '#16a34a', borderColor: '#86efac' }}
+                    style={{ color: '#16a34a', borderColor: '#86efac', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                   >
                     <CheckCircle2 size={14} />
-                    16. View Offer Letter
-                    <ExternalLink size={12} />
-                  </a>
+                    16. Preview Offer Letter PDF
+                  </button>
                 ) : (
                   <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)' }}>16. No Offer Letter</span>
                 )}
 
                 {selectedRecord.completion_letter_url ? (
-                  <a
-                    href={selectedRecord.completion_letter_url}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => openDocumentPreview(selectedRecord.completion_letter_url, `${selectedRecord.full_name} - Completion Letter PDF`, selectedRecord.full_name)}
                     className="btn btn-secondary btn-sm"
-                    style={{ color: '#0284c7', borderColor: '#7dd3fc' }}
+                    style={{ color: '#0284c7', borderColor: '#7dd3fc', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                   >
                     <Award size={14} />
-                    17. View Completion Letter
-                    <ExternalLink size={12} />
-                  </a>
+                    17. Preview Completion Letter PDF
+                  </button>
                 ) : (
                   <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)' }}>17. No Completion Letter</span>
                 )}
@@ -902,11 +933,4 @@ const DetailItem = ({ label, value, highlight }) => (
       {value || '—'}
     </div>
   </div>
-);
-
-const EyeModalIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-    <circle cx="12" cy="12" r="3"/>
-  </svg>
 );
