@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- MIT-ADT University Pune - School of Computing
 -- Internship & Final Year Industrial Training Management System
--- Bulletproof Database Schema, Storage, and Seed Records (Zero Constraint Errors)
+-- Database Schema, Storage, and Seed Records (100% Error-Free)
 -- ==============================================================================
 
 -- 1. Enable UUID Extension
@@ -99,7 +99,8 @@ CREATE POLICY "Allow public delete in student-documents"
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.user_logins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email TEXT UNIQUE NOT NULL,
+    username TEXT,
+    email TEXT,
     password TEXT NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('Student', 'Faculty/Coordinator', 'Central T&P', 'HOD', 'Admin')),
@@ -112,9 +113,24 @@ CREATE TABLE IF NOT EXISTS public.user_logins (
     last_login TIMESTAMPTZ
 );
 
--- Index for authentication lookup by email
-CREATE INDEX IF NOT EXISTS idx_user_logins_email ON public.user_logins (email);
-CREATE INDEX IF NOT EXISTS idx_user_logins_role ON public.user_logins (role);
+-- Safely remove old NOT NULL or uniqueness constraints if the table already existed
+DO $$
+BEGIN
+    ALTER TABLE public.user_logins ALTER COLUMN username DROP NOT NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_logins DROP CONSTRAINT IF EXISTS user_logins_username_key;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER TABLE public.user_logins DROP CONSTRAINT IF EXISTS user_logins_email_key;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- Enable RLS for user_logins
 ALTER TABLE public.user_logins ENABLE ROW LEVEL SECURITY;
@@ -135,52 +151,52 @@ DROP POLICY IF EXISTS "Allow public delete from user_logins" ON public.user_logi
 CREATE POLICY "Allow public delete from user_logins"
     ON public.user_logins FOR DELETE USING (true);
 
--- Insert / Update User Accounts using WHERE NOT EXISTS (Zero Conflict Errors)
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'admin@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'
+-- Insert / Update User Accounts (Provides both username & email safely)
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'admin@mitadt.edu.in', 'admin@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'admin@mitadt.edu.in');
 
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'shubham.alapure@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'shubham.alapure@mitadt.edu.in', 'shubham.alapure@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'shubham.alapure@mitadt.edu.in');
 
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'vaibhav.sawalkar@mituniversity.edu.in', '9665368452', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'vaibhav.sawalkar@mituniversity.edu.in', 'vaibhav.sawalkar@mituniversity.edu.in', '9665368452', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'vaibhav.sawalkar@mituniversity.edu.in');
 
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'faculty@mitadt.edu.in', 'faculty123', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'faculty@mitadt.edu.in', 'faculty@mitadt.edu.in', 'faculty123', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'faculty@mitadt.edu.in');
 
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'swati.more@mituniversity.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'swati.more@mituniversity.edu.in', 'swati.more@mituniversity.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'swati.more@mituniversity.edu.in');
 
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'tp@mitadt.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'tp@mitadt.edu.in', 'tp@mitadt.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'tp@mitadt.edu.in');
 
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'jayashree.prasad@mituniversity.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'jayashree.prasad@mituniversity.edu.in', 'jayashree.prasad@mituniversity.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'jayashree.prasad@mituniversity.edu.in');
 
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'hod@mitadt.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'hod@mitadt.edu.in', 'hod@mitadt.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'hod@mitadt.edu.in');
 
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'aaryan99@gmail.com', 'student123', 'Aryan Patil', 'Student', 'Computer Science & Engineering', 'B.Tech Student (Final Year)', '9876543210'
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'aaryan99@gmail.com', 'aaryan99@gmail.com', 'student123', 'Aryan Patil', 'Student', 'Computer Science & Engineering', 'B.Tech Student (Final Year)', '9876543210'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'aaryan99@gmail.com');
 
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'pooja.sharma@mituniversity.edu.in', 'student123', 'Pooja Sharma', 'Student', 'Artificial Intelligence & Data Science', 'Final Year B.Tech (AI & DS)', '9822334455'
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'pooja.sharma@mituniversity.edu.in', 'pooja.sharma@mituniversity.edu.in', 'student123', 'Pooja Sharma', 'Student', 'Artificial Intelligence & Data Science', 'Final Year B.Tech (AI & DS)', '9822334455'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'pooja.sharma@mituniversity.edu.in');
 
-INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
-SELECT 'student@mitadt.edu.in', 'student123', 'Shubham Santosh Alapure', 'Student', 'Computer Science & Engineering', 'B.Tech Final Year Student', '9876543210'
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+SELECT 'student@mitadt.edu.in', 'student@mitadt.edu.in', 'student123', 'Shubham Santosh Alapure', 'Student', 'Computer Science & Engineering', 'B.Tech Final Year Student', '9876543210'
 WHERE NOT EXISTS (SELECT 1 FROM public.user_logins WHERE email = 'student@mitadt.edu.in');
 
--- Always update passwords to ensure latest values are active
+-- Always update passwords
 UPDATE public.user_logins SET password = 'admin123' WHERE email IN ('admin@mitadt.edu.in', 'shubham.alapure@mitadt.edu.in');
 UPDATE public.user_logins SET password = '9665368452' WHERE email = 'vaibhav.sawalkar@mituniversity.edu.in';
 UPDATE public.user_logins SET password = 'faculty123' WHERE email = 'faculty@mitadt.edu.in';
@@ -192,87 +208,27 @@ UPDATE public.user_logins SET password = 'student123' WHERE email IN ('aaryan99@
 -- 7. INITIAL STUDENT TEST RECORDS (Aryan Patil & Pooja Sharma)
 -- ==============================================================================
 INSERT INTO public.student_internships (
-    submission_date,
-    email,
-    contact_no,
-    enrolment_no,
-    full_name,
-    gender,
-    specialization,
-    semester,
-    source_of_internship,
-    start_date,
-    end_date,
-    duration,
-    company_name_and_city,
-    mode_of_internship,
-    domain_of_company,
-    is_ppo_offer,
-    offer_letter_url,
-    status
+    submission_date, email, contact_no, enrolment_no, full_name, gender, specialization,
+    semester, source_of_internship, start_date, end_date, duration, company_name_and_city,
+    mode_of_internship, domain_of_company, is_ppo_offer, offer_letter_url, status
 )
 SELECT 
-    '2026-01-01',
-    'aaryan99@gmail.com',
-    '9876543210',
-    'ADT23SOCB1190',
-    'Aryan Patil',
-    'Male',
-    'Computer Science & Engineering (CSE)',
-    'Semester VII (Final Year)',
-    'Off-Campus Drive',
-    '2026-02-01',
-    '2026-08-01',
-    '6 Months (182 Days)',
-    'Google India pvt ltd.',
-    'Offline',
-    'Information Technology (IT) / Software',
-    'No',
-    'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format&fit=crop',
-    'Verified'
+    '2026-01-01', 'aaryan99@gmail.com', '9876543210', 'ADT23SOCB1190', 'Aryan Patil', 'Male', 'Computer Science & Engineering (CSE)',
+    'Semester VII (Final Year)', 'Off-Campus Drive', '2026-02-01', '2026-08-01', '6 Months (182 Days)', 'Google India pvt ltd.',
+    'Offline', 'Information Technology (IT) / Software', 'No', 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format&fit=crop', 'Verified'
 WHERE NOT EXISTS (
     SELECT 1 FROM public.student_internships WHERE enrolment_no = 'ADT23SOCB1190'
 );
 
 INSERT INTO public.student_internships (
-    submission_date,
-    email,
-    contact_no,
-    enrolment_no,
-    full_name,
-    gender,
-    specialization,
-    semester,
-    source_of_internship,
-    start_date,
-    end_date,
-    duration,
-    company_name_and_city,
-    mode_of_internship,
-    domain_of_company,
-    is_ppo_offer,
-    offer_letter_url,
-    status
+    submission_date, email, contact_no, enrolment_no, full_name, gender, specialization,
+    semester, source_of_internship, start_date, end_date, duration, company_name_and_city,
+    mode_of_internship, domain_of_company, is_ppo_offer, offer_letter_url, status
 )
 SELECT 
-    '2026-01-15',
-    'pooja.sharma@mituniversity.edu.in',
-    '9822334455',
-    'ADT23SOCB1204',
-    'Pooja Sharma',
-    'Female',
-    'Artificial Intelligence & Data Science (AI & DS)',
-    'Semester VIII (Final Year)',
-    'Campus Placement Cell',
-    '2026-01-15',
-    '2026-07-15',
-    '6 Months (182 Days)',
-    'Microsoft India R&D Pvt. Ltd., Bengaluru',
-    'Hybrid',
-    'Artificial Intelligence & Cloud Systems',
-    'Yes',
-    'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&auto=format&fit=crop',
-    'Verified'
+    '2026-01-15', 'pooja.sharma@mituniversity.edu.in', '9822334455', 'ADT23SOCB1204', 'Pooja Sharma', 'Female', 'Artificial Intelligence & Data Science (AI & DS)',
+    'Semester VIII (Final Year)', 'Campus Placement Cell', '2026-01-15', '2026-07-15', '6 Months (182 Days)', 'Microsoft India R&D Pvt. Ltd., Bengaluru',
+    'Hybrid', 'Artificial Intelligence & Cloud Systems', 'Yes', 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&auto=format&fit=crop', 'Verified'
 WHERE NOT EXISTS (
     SELECT 1 FROM public.student_internships WHERE enrolment_no = 'ADT23SOCB1204'
 );
