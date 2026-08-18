@@ -47,11 +47,11 @@ export const ROLE_CONFIG = {
 };
 
 export const DEFAULT_USERS = [
-  // 1. Lead Admin
+  // 1. Lead Admin Accounts
   {
     id: 'usr_admin_01',
-    username: 'admin',
     email: 'admin@mitadt.edu.in',
+    username: 'admin',
     password: 'admin123',
     full_name: 'Shubham Alapure',
     role: ROLES.ADMIN,
@@ -62,8 +62,8 @@ export const DEFAULT_USERS = [
   },
   {
     id: 'usr_admin_02',
-    username: 'shubhamalapure',
     email: 'shubham.alapure@mitadt.edu.in',
+    username: 'shubhamalapure',
     password: 'admin123',
     full_name: 'Shubham Alapure',
     role: ROLES.ADMIN,
@@ -76,8 +76,21 @@ export const DEFAULT_USERS = [
   // 2. Student Accounts
   {
     id: 'usr_student_01',
-    username: 'student',
+    email: 'aaryan99@gmail.com',
+    username: 'aaryan99@gmail.com',
+    password: 'student123',
+    full_name: 'Aryan Patil',
+    role: ROLES.STUDENT,
+    department: 'Department of Computer Science & Engineering',
+    enrolment_no: 'ADT23SOCB1190',
+    designation: 'B.Tech Student (Final Year)',
+    phone: '9876543210',
+    status: 'Active'
+  },
+  {
+    id: 'usr_student_02',
     email: 'student@mitadt.edu.in',
+    username: 'student',
     password: 'student123',
     full_name: 'Shubham Santosh Alapure',
     role: ROLES.STUDENT,
@@ -87,12 +100,25 @@ export const DEFAULT_USERS = [
     phone: '9876543210',
     status: 'Active'
   },
+  {
+    id: 'usr_student_03',
+    email: 'pooja.sharma@mituniversity.edu.in',
+    username: 'pooja.sharma@mituniversity.edu.in',
+    password: 'student123',
+    full_name: 'Pooja Sharma',
+    role: ROLES.STUDENT,
+    department: 'Department of Artificial Intelligence & Data Science',
+    enrolment_no: 'ADT23SOCB1204',
+    designation: 'Final Year B.Tech (AI & DS)',
+    phone: '9822334455',
+    status: 'Active'
+  },
 
   // 3. Faculty / Coordinator Accounts
   {
     id: 'usr_faculty_01',
-    username: 'vaibhav.sawalkar@mituniversity.edu.in',
     email: 'vaibhav.sawalkar@mituniversity.edu.in',
+    username: 'vaibhav.sawalkar@mituniversity.edu.in',
     password: '9665368452',
     full_name: 'Prof. Vaibhav Sawalkar',
     role: ROLES.FACULTY,
@@ -103,21 +129,9 @@ export const DEFAULT_USERS = [
   },
   {
     id: 'usr_faculty_02',
-    username: 'faculty',
     email: 'faculty@mitadt.edu.in',
+    username: 'faculty',
     password: 'faculty123',
-    full_name: 'Prof. Vaibhav Sawalkar',
-    role: ROLES.FACULTY,
-    department: 'Department of Computer Science & Engineering',
-    designation: 'Internship Coordinator & Assistant Professor',
-    phone: '9665368452',
-    status: 'Active'
-  },
-  {
-    id: 'usr_faculty_03',
-    username: 'vaibhavsawalkar',
-    email: 'vaibhav.sawalkar@mitadt.edu.in',
-    password: '9665368452',
     full_name: 'Prof. Vaibhav Sawalkar',
     role: ROLES.FACULTY,
     department: 'Department of Computer Science & Engineering',
@@ -129,8 +143,8 @@ export const DEFAULT_USERS = [
   // 4. Central T&P Accounts
   {
     id: 'usr_tp_01',
-    username: 'tp',
-    email: 'tp@mitadt.edu.in',
+    email: 'swati.more@mituniversity.edu.in',
+    username: 'swati.more',
     password: 'tp123',
     full_name: 'Prof. Dr. Swati More',
     role: ROLES.CENTRAL_TP,
@@ -141,8 +155,8 @@ export const DEFAULT_USERS = [
   },
   {
     id: 'usr_tp_02',
-    username: 'swati.more@mituniversity.edu.in',
-    email: 'swati.more@mituniversity.edu.in',
+    email: 'tp@mitadt.edu.in',
+    username: 'tp',
     password: 'tp123',
     full_name: 'Prof. Dr. Swati More',
     role: ROLES.CENTRAL_TP,
@@ -155,8 +169,8 @@ export const DEFAULT_USERS = [
   // 5. HOD Accounts
   {
     id: 'usr_hod_01',
-    username: 'hod',
-    email: 'hod@mitadt.edu.in',
+    email: 'jayashree.prasad@mituniversity.edu.in',
+    username: 'jayashree.prasad',
     password: 'hod123',
     full_name: 'Prof. Dr. Jayashree Prasad',
     role: ROLES.HOD,
@@ -167,8 +181,8 @@ export const DEFAULT_USERS = [
   },
   {
     id: 'usr_hod_02',
-    username: 'jayashree.prasad@mituniversity.edu.in',
-    email: 'jayashree.prasad@mituniversity.edu.in',
+    email: 'hod@mitadt.edu.in',
+    username: 'hod',
     password: 'hod123',
     full_name: 'Prof. Dr. Jayashree Prasad',
     role: ROLES.HOD,
@@ -187,10 +201,9 @@ const getCachedUsers = () => {
     const cached = localStorage.getItem(USERS_CACHE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached);
-      // Merge with DEFAULT_USERS
       const merged = [...DEFAULT_USERS];
       parsed.forEach(pu => {
-        if (!merged.find(u => u.username.toLowerCase() === pu.username?.toLowerCase() || u.email.toLowerCase() === pu.email?.toLowerCase())) {
+        if (!merged.find(u => u.email?.toLowerCase() === pu.email?.toLowerCase())) {
           merged.push(pu);
         }
       });
@@ -223,7 +236,7 @@ export const getCurrentUser = () => {
 };
 
 /**
- * Normalizes role comparison (e.g. 'Faculty' vs 'Faculty/Coordinator')
+ * Normalizes role comparison
  */
 const rolesMatch = (roleA, roleB) => {
   if (!roleA || !roleB) return true;
@@ -241,22 +254,22 @@ const rolesMatch = (roleA, roleB) => {
 };
 
 /**
- * Authenticate user strictly by username and password
+ * Authenticate user strictly by Email and Password
  */
-export const loginUser = async (username, password, requestedRole = null) => {
-  const cleanUsername = (username || '').trim().toLowerCase();
-  const cleanPass = (password || '').trim();
+export const loginUser = async (emailInput, passwordInput, requestedRole = null) => {
+  const cleanEmail = (emailInput || '').trim().toLowerCase();
+  const cleanPass = (passwordInput || '').trim();
 
-  if (!cleanUsername || !cleanPass) {
-    return { success: false, error: 'Please enter both username and password.' };
+  if (!cleanEmail || !cleanPass) {
+    return { success: false, error: 'Please enter both Email and Password.' };
   }
 
-  // 1. Try Supabase cloud query first if connected
+  // 1. Query Supabase cloud database by Email
   try {
     const { data, error } = await supabase
       .from('user_logins')
       .select('*')
-      .ilike('username', cleanUsername)
+      .ilike('email', cleanEmail)
       .limit(1);
 
     if (!error && data && data.length > 0) {
@@ -278,10 +291,13 @@ export const loginUser = async (username, password, requestedRole = null) => {
     console.warn('Supabase query note, falling back to local credentials:', err);
   }
 
-  // 2. Fallback to cached / default seed user database (Strictly by username)
+  // 2. Fallback to cached / default seed user database (Strictly by Email or username alias)
   const users = getCachedUsers();
   const matchedUser = users.find(
-    u => u.username && u.username.toLowerCase() === cleanUsername && u.password === cleanPass
+    u => (
+      (u.email && u.email.toLowerCase() === cleanEmail) ||
+      (u.username && u.username.toLowerCase() === cleanEmail)
+    ) && u.password === cleanPass
   );
 
   if (matchedUser) {
@@ -295,7 +311,7 @@ export const loginUser = async (username, password, requestedRole = null) => {
     return { success: true, user: matchedUser, isFallback: true };
   }
 
-  return { success: false, error: 'Invalid username or password. Please verify credentials.' };
+  return { success: false, error: 'Invalid email or password. Please verify your credentials.' };
 };
 
 /**
@@ -308,27 +324,4 @@ export const logoutUser = () => {
   } catch (e) {
     return false;
   }
-};
-
-/**
- * Add a new user to the local cache and Supabase
- */
-export const registerUser = async (userData) => {
-  const users = getCachedUsers();
-  const newUser = {
-    id: `usr_${Date.now()}`,
-    status: 'Active',
-    ...userData
-  };
-
-  users.push(newUser);
-  saveCachedUsers(users);
-
-  try {
-    await supabase.from('user_logins').insert([newUser]);
-  } catch (err) {
-    console.warn('Could not sync user to Supabase:', err);
-  }
-
-  return { success: true, user: newUser };
 };

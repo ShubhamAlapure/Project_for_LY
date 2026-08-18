@@ -43,16 +43,68 @@ export const calculateInternshipDuration = (startDateStr, endDateStr) => {
   return `${diffDays} Days`;
 };
 
+// Initial default student records for testing & offline mode
+const DEFAULT_INITIAL_RECORDS = [
+  {
+    id: 'rec_aryan_patil_01',
+    submission_date: '2026-01-01',
+    full_name: 'Aryan Patil',
+    email: 'aaryan99@gmail.com',
+    contact_no: '9876543210',
+    gender: 'Male',
+    enrolment_no: 'ADT23SOCB1190',
+    specialization: 'Computer Science & Engineering (CSE)',
+    semester: 'Semester VII (Final Year)',
+    company_name_and_city: 'Google India pvt ltd.',
+    domain_of_company: 'Information Technology (IT) / Software',
+    source_of_internship: 'Off-Campus Drive',
+    start_date: '2026-02-01',
+    end_date: '2026-08-01',
+    duration: '6 Months (182 Days)',
+    mode_of_internship: 'Offline',
+    is_ppo_offer: 'No',
+    offer_letter_url: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format&fit=crop',
+    completion_letter_url: null,
+    status: 'Verified'
+  },
+  {
+    id: 'rec_pooja_sharma_02',
+    submission_date: '2026-01-15',
+    full_name: 'Pooja Sharma',
+    email: 'pooja.sharma@mituniversity.edu.in',
+    contact_no: '9822334455',
+    gender: 'Female',
+    enrolment_no: 'ADT23SOCB1204',
+    specialization: 'Artificial Intelligence & Data Science (AI & DS)',
+    semester: 'Semester VIII (Final Year)',
+    company_name_and_city: 'Microsoft India R&D Pvt. Ltd., Bengaluru',
+    domain_of_company: 'Artificial Intelligence & Cloud Systems',
+    source_of_internship: 'Campus Placement Cell',
+    start_date: '2026-01-15',
+    end_date: '2026-07-15',
+    duration: '6 Months (182 Days)',
+    mode_of_internship: 'Hybrid',
+    is_ppo_offer: 'Yes',
+    offer_letter_url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&auto=format&fit=crop',
+    completion_letter_url: null,
+    status: 'Verified'
+  }
+];
+
 // Local storage key for offline caching & fallback
 const LOCAL_STORAGE_RECORDS_KEY = 'interndocs_supabase_cached_records';
 
 const getCachedRecords = () => {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_RECORDS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.length > 0) return parsed;
+    }
+    return DEFAULT_INITIAL_RECORDS;
   } catch (err) {
     console.error('Error reading cached student records:', err);
-    return [];
+    return DEFAULT_INITIAL_RECORDS;
   }
 };
 

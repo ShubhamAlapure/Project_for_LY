@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- MIT-ADT University Pune - School of Computing
 -- Internship & Final Year Industrial Training Management System
--- Database Schema & Role-Based Authentication
+-- Database Schema & Role-Based Authentication (Email & Password)
 -- ==============================================================================
 
 -- 1. Enable UUID Extension
@@ -111,13 +111,12 @@ CREATE POLICY "Allow public delete in student-documents"
     USING (bucket_id = 'student-documents');
 
 -- ==============================================================================
--- 6. USER LOGINS TABLE (Strict Username & Password Authentication)
+-- 6. USER LOGINS TABLE (Email & Password Authentication)
 -- Roles: Student, Faculty/Coordinator, Central T&P, HOD, Admin
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.user_logins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username TEXT UNIQUE NOT NULL,
-    email TEXT,
+    email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('Student', 'Faculty/Coordinator', 'Central T&P', 'HOD', 'Admin')),
@@ -130,11 +129,8 @@ CREATE TABLE IF NOT EXISTS public.user_logins (
     last_login TIMESTAMPTZ
 );
 
--- Remove old unique constraint on email if it exists from previous runs
-ALTER TABLE public.user_logins DROP CONSTRAINT IF EXISTS user_logins_email_key;
-
--- Index for authentication lookup
-CREATE INDEX IF NOT EXISTS idx_user_logins_username ON public.user_logins (username);
+-- Index for authentication lookup by email
+CREATE INDEX IF NOT EXISTS idx_user_logins_email ON public.user_logins (email);
 CREATE INDEX IF NOT EXISTS idx_user_logins_role ON public.user_logins (role);
 
 -- Enable RLS for user_logins & Idempotent Policies
@@ -156,30 +152,102 @@ DROP POLICY IF EXISTS "Allow public delete from user_logins" ON public.user_logi
 CREATE POLICY "Allow public delete from user_logins"
     ON public.user_logins FOR DELETE USING (true);
 
--- Insert / Update Default Seed Accounts (Admin, Student, Faculty, T&P, HOD)
-INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+-- Insert / Update Default Seed User Logins (Email as unique key)
+INSERT INTO public.user_logins (email, password, full_name, role, department, designation, phone)
 VALUES 
-    -- 1. Admin Login (Shubham Alapure)
-    ('admin', 'admin@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'),
-    ('shubhamalapure', 'shubham.alapure@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'),
+    -- 1. Admin Logins (Shubham Alapure)
+    ('admin@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'),
+    ('shubham.alapure@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'),
     
-    -- 2. Student Login
-    ('student', 'student@mitadt.edu.in', 'student123', 'Shubham Santosh Alapure', 'Student', 'Computer Science & Engineering', 'B.Tech Final Year Student', '9876543210'),
+    -- 2. Student Logins
+    ('aaryan99@gmail.com', 'student123', 'Aryan Patil', 'Student', 'Computer Science & Engineering', 'B.Tech Student (Final Year)', '9876543210'),
+    ('student@mitadt.edu.in', 'student123', 'Shubham Santosh Alapure', 'Student', 'Computer Science & Engineering', 'B.Tech Final Year Student', '9876543210'),
+    ('pooja.sharma@mituniversity.edu.in', 'student123', 'Pooja Sharma', 'Student', 'Artificial Intelligence & Data Science', 'Final Year B.Tech (AI & DS)', '9822334455'),
     
     -- 3. Faculty / Coordinator Login (Prof. Vaibhav Sawalkar)
-    ('vaibhav.sawalkar@mituniversity.edu.in', 'vaibhav.sawalkar@mituniversity.edu.in', '9665368452', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'),
-    ('faculty', 'faculty@mitadt.edu.in', 'faculty123', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'),
+    ('vaibhav.sawalkar@mituniversity.edu.in', '9665368452', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'),
+    ('faculty@mitadt.edu.in', 'faculty123', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'),
     
     -- 4. Central T&P Login (Prof. Dr. Swati More)
-    ('tp', 'tp@mitadt.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'),
-    ('swati.more', 'swati.more@mituniversity.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'),
+    ('swati.more@mituniversity.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'),
+    ('tp@mitadt.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'),
     
     -- 5. HOD Login (Prof. Dr. Jayashree Prasad)
-    ('hod', 'hod@mitadt.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'),
-    ('jayashree.prasad', 'jayashree.prasad@mituniversity.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560')
-ON CONFLICT (username) DO UPDATE 
+    ('jayashree.prasad@mituniversity.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'),
+    ('hod@mitadt.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560')
+ON CONFLICT (email) DO UPDATE 
 SET 
     password = EXCLUDED.password,
-    email = EXCLUDED.email,
     full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role,
+    department = EXCLUDED.department,
+    designation = EXCLUDED.designation,
     phone = EXCLUDED.phone;
+
+-- ==============================================================================
+-- 7. INITIAL STUDENT INTERNSHIP TEST RECORDS (2 Verified Records)
+-- ==============================================================================
+INSERT INTO public.student_internships (
+    submission_date,
+    email,
+    contact_no,
+    enrolment_no,
+    full_name,
+    gender,
+    specialization,
+    semester,
+    source_of_internship,
+    start_date,
+    end_date,
+    duration,
+    company_name_and_city,
+    mode_of_internship,
+    domain_of_company,
+    is_ppo_offer,
+    offer_letter_url,
+    status
+)
+VALUES 
+    -- Student 1: Aryan Patil (CSE, Google India)
+    (
+        '2026-01-01',
+        'aaryan99@gmail.com',
+        '9876543210',
+        'ADT23SOCB1190',
+        'Aryan Patil',
+        'Male',
+        'Computer Science & Engineering (CSE)',
+        'Semester VII (Final Year)',
+        'Off-Campus Drive',
+        '2026-02-01',
+        '2026-08-01',
+        '6 Months (182 Days)',
+        'Google India pvt ltd.',
+        'Offline',
+        'Information Technology (IT) / Software',
+        'No',
+        'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&auto=format&fit=crop',
+        'Verified'
+    ),
+    -- Student 2: Pooja Sharma (AI & DS, Microsoft India)
+    (
+        '2026-01-15',
+        'pooja.sharma@mituniversity.edu.in',
+        '9822334455',
+        'ADT23SOCB1204',
+        'Pooja Sharma',
+        'Female',
+        'Artificial Intelligence & Data Science (AI & DS)',
+        'Semester VIII (Final Year)',
+        'Campus Placement Cell',
+        '2026-01-15',
+        '2026-07-15',
+        '6 Months (182 Days)',
+        'Microsoft India R&D Pvt. Ltd., Bengaluru',
+        'Hybrid',
+        'Artificial Intelligence & Cloud Systems',
+        'Yes',
+        'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&auto=format&fit=crop',
+        'Verified'
+    )
+ON CONFLICT DO NOTHING;

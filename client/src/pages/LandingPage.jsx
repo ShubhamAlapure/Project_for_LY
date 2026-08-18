@@ -612,13 +612,13 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
               <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                    Username
+                    Institutional Email ID
                   </label>
                   <input
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="Enter your username"
+                    placeholder="e.g. name@mituniversity.edu.in"
                     className="form-input"
                     style={{ marginBottom: 0 }}
                     required
