@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Shield, 
   GraduationCap, 
@@ -14,10 +14,46 @@ import {
   Database,
   LogIn,
   Eye,
-  EyeOff
+  EyeOff,
+  ChevronLeft,
+  ChevronRight,
+  Users
 } from 'lucide-react';
 import { ROLES, ROLE_CONFIG, loginUser, DEFAULT_USERS } from '../utils/auth';
 import campusDomeImg from '../assets/campus_dome.jpg';
+import drRajeshImg from '../assets/leadership/dr_rajesh_s.png';
+import drRamachandraImg from '../assets/leadership/dr_ramachandra_pujeri.png';
+import drGaneshImg from '../assets/leadership/dr_ganesh_pathak.png';
+import drShraddhaImg from '../assets/leadership/dr_shraddha_phansalkar.png';
+import drJayshreeImg from '../assets/leadership/dr_jayshree_prasad.png';
+
+const LEADERSHIP_MEMBERS = [
+  {
+    name: "Dr. Rajesh S",
+    role: "Vice Chancellor",
+    image: drRajeshImg
+  },
+  {
+    name: "Dr. Ramachandra Pujeri",
+    role: "Pro Vice Chancellor",
+    image: drRamachandraImg
+  },
+  {
+    name: "Dr. Ganesh Pathak",
+    role: "Dean — MIT School of Computing",
+    image: drGaneshImg
+  },
+  {
+    name: "Dr. Shraddha Phansalkar",
+    role: "Associate Dean — Academics",
+    image: drShraddhaImg
+  },
+  {
+    name: "Dr. Jayshree Prasad",
+    role: "Associate Dean — R&D • Head AIA CSE",
+    image: drJayshreeImg
+  }
+];
 
 export const LandingPage = ({ onLoginSuccess, onExplore }) => {
   const [selectedRole, setSelectedRole] = useState(ROLES.ADMIN);
@@ -28,6 +64,26 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const leadershipRef = useRef(null);
+
+  const scrollLeadership = (direction) => {
+    if (leadershipRef.current) {
+      const scrollAmount = direction === 'left' ? -320 : 320;
+      leadershipRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const handleLeadershipScroll = () => {
+    if (leadershipRef.current) {
+      const scrollLeft = leadershipRef.current.scrollLeft;
+      const maxScroll = leadershipRef.current.scrollWidth - leadershipRef.current.clientWidth;
+      if (maxScroll > 0) {
+        const ratio = scrollLeft / maxScroll;
+        setActiveSlide(ratio > 0.4 ? 1 : 0);
+      }
+    }
+  };
 
   const handleRoleSelect = (role) => {
     setSelectedRole(role);
@@ -442,7 +498,275 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
       </section>
 
       {/* ==================================================================== */}
-      {/* 6. INSTITUTIONAL FOOTER */}
+      {/* 6. LEADERSHIP & ADMINISTRATION (OUR PEOPLE) */}
+      {/* ==================================================================== */}
+      <section id="leadership" style={{
+        padding: '5rem 2rem 4.5rem 2rem',
+        backgroundColor: '#f8fafc',
+        borderTop: '1px solid #e2e8f0',
+        position: 'relative'
+      }}>
+        <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
+          {/* Section Header */}
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <span style={{
+              display: 'inline-block',
+              backgroundColor: '#f3e8ff',
+              color: '#7e22ce',
+              fontWeight: 800,
+              fontSize: '0.725rem',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              padding: '0.35rem 1rem',
+              borderRadius: '9999px',
+              marginBottom: '0.75rem'
+            }}>
+              OUR PEOPLE
+            </span>
+            <h2 style={{
+              fontSize: '2.25rem',
+              fontWeight: 800,
+              color: '#0f172a',
+              letterSpacing: '-0.02em',
+              margin: '0 0 0.65rem 0'
+            }}>
+              Leadership & Administration
+            </h2>
+            <p style={{
+              fontSize: '0.975rem',
+              color: '#64748b',
+              maxWidth: '650px',
+              margin: '0 auto',
+              lineHeight: 1.5
+            }}>
+              Meet the academic leaders driving innovation, excellence, and research at MIT ADT University — School of Computing.
+            </p>
+          </div>
+
+          {/* Carousel Container with Side Navigation Arrows */}
+          <div style={{ position: 'relative' }}>
+            {/* Left Chevron Button */}
+            <button
+              onClick={() => scrollLeadership('left')}
+              aria-label="Scroll Left"
+              style={{
+                position: 'absolute',
+                left: '-16px',
+                top: '40%',
+                transform: 'translateY(-50%)',
+                zIndex: 10,
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#475569',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#7e22ce';
+                e.currentTarget.style.color = '#ffffff';
+                e.currentTarget.style.borderColor = '#7e22ce';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ffffff';
+                e.currentTarget.style.color = '#475569';
+                e.currentTarget.style.borderColor = '#e2e8f0';
+              }}
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            {/* Cards Slider / Grid */}
+            <div
+              ref={leadershipRef}
+              onScroll={handleLeadershipScroll}
+              style={{
+                display: 'grid',
+                gridAutoFlow: 'column',
+                gridAutoColumns: 'minmax(210px, 1fr)',
+                gap: '1.25rem',
+                overflowX: 'auto',
+                scrollSnapType: 'x mandatory',
+                padding: '0.5rem 0.5rem 1.5rem 0.5rem',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}
+            >
+              {LEADERSHIP_MEMBERS.map((member, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                    scrollSnapAlign: 'start',
+                    minWidth: '210px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-6px)';
+                    e.currentTarget.style.boxShadow = '0 16px 32px -4px rgba(126, 34, 206, 0.15)';
+                    e.currentTarget.style.borderColor = '#d8b4fe';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.04)';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                  }}
+                >
+                  {/* Photo Container */}
+                  <div style={{
+                    width: '100%',
+                    height: '240px',
+                    backgroundColor: '#f1f5f9',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    <img
+                      src={member.image}
+                      alt={member.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        objectPosition: 'top center',
+                        transition: 'transform 0.3s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.04)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    />
+                  </div>
+
+                  {/* Card Content */}
+                  <div style={{
+                    padding: '1.25rem 1rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    flexGrow: 1
+                  }}>
+                    <h3 style={{
+                      fontSize: '1rem',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      margin: '0 0 0.35rem 0',
+                      lineHeight: 1.3
+                    }}>
+                      {member.name}
+                    </h3>
+                    <p style={{
+                      fontSize: '0.775rem',
+                      fontWeight: 700,
+                      color: '#6366f1',
+                      margin: 0,
+                      lineHeight: 1.35
+                    }}>
+                      {member.role}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Chevron Button */}
+            <button
+              onClick={() => scrollLeadership('right')}
+              aria-label="Scroll Right"
+              style={{
+                position: 'absolute',
+                right: '-16px',
+                top: '40%',
+                transform: 'translateY(-50%)',
+                zIndex: 10,
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#475569',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#7e22ce';
+                e.currentTarget.style.color = '#ffffff';
+                e.currentTarget.style.borderColor = '#7e22ce';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ffffff';
+                e.currentTarget.style.color = '#475569';
+                e.currentTarget.style.borderColor = '#e2e8f0';
+              }}
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          {/* Slider Pagination Indicator Dots */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginTop: '1.25rem'
+          }}>
+            <button
+              onClick={() => {
+                if (leadershipRef.current) leadershipRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+                setActiveSlide(0);
+              }}
+              style={{
+                width: activeSlide === 0 ? '24px' : '8px',
+                height: '8px',
+                borderRadius: '4px',
+                backgroundColor: activeSlide === 0 ? '#7e22ce' : '#cbd5e1',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                transition: 'all 0.25s ease'
+              }}
+            />
+            <button
+              onClick={() => {
+                if (leadershipRef.current) leadershipRef.current.scrollTo({ left: 400, behavior: 'smooth' });
+                setActiveSlide(1);
+              }}
+              style={{
+                width: activeSlide === 1 ? '24px' : '8px',
+                height: '8px',
+                borderRadius: '4px',
+                backgroundColor: activeSlide === 1 ? '#7e22ce' : '#cbd5e1',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                transition: 'all 0.25s ease'
+              }}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ==================================================================== */}
+      {/* 7. INSTITUTIONAL FOOTER */}
       {/* ==================================================================== */}
       <footer style={{
         marginTop: 'auto',
