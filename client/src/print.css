@@ -74,24 +74,9 @@
     text-decoration: underline !important;
   }
 
-  /* Force borders to print crisply */
-  .doc-header-block {
-    border-bottom: 2px solid #000000 !important;
-  }
-
-  .doc-main-title {
-    border-bottom: 1.5px solid #000000 !important;
-  }
-
-  .doc-signature-line {
-    border-top: 1px dashed #000000 !important;
-  }
-
-  .doc-stamp-box {
-    border: 1px dashed #666666 !important;
-  }
-
+  .doc-header-block,
   .doc-footer-block {
-    border-top: 1px solid #999999 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
