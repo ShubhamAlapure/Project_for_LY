@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { HomePage } from './pages/HomePage';
@@ -8,12 +8,18 @@ import { NOCFormPage } from './pages/NOCFormPage';
 import { DocumentPreviewPage } from './pages/DocumentPreviewPage';
 import { StudentSubmissionPage } from './pages/StudentSubmissionPage';
 import { StudentRecordsPage } from './pages/StudentRecordsPage';
+import { LoginPage } from './pages/LoginPage';
+import { getCurrentUser, logoutUser, ROLES, ROLE_CONFIG } from './utils/auth';
 import { Shield, CheckCircle2, ArrowRight } from 'lucide-react';
 import './index.css';
 import './print.css';
 
 export const App = () => {
-  const [currentRoute, setCurrentRoute] = useState('home'); // 'home' | 'student-form' | 'student-records' | 'documents' | 'undertaking' | 'noc' | 'preview' | 'about'
+  const [authUser, setAuthUser] = useState(() => getCurrentUser());
+  const [currentRoute, setCurrentRoute] = useState(() => {
+    const user = getCurrentUser();
+    return user ? 'home' : 'login';
+  });
   const [activeDocType, setActiveDocType] = useState('undertaking');
   const [previewData, setPreviewData] = useState(null);
   const [undertakingPrefill, setUndertakingPrefill] = useState(null);
@@ -21,6 +27,20 @@ export const App = () => {
 
   const handleNavigate = (route) => {
     setCurrentRoute(route);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLoginSuccess = (user) => {
+    setAuthUser(user);
+    const defaultRoute = ROLE_CONFIG[user.role]?.defaultRoute || 'home';
+    setCurrentRoute(defaultRoute);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLogout = () => {
+    logoutUser();
+    setAuthUser(null);
+    setCurrentRoute('login');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -68,20 +88,33 @@ export const App = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // If user is not authenticated or explicitly on the login page, render the Role Login Landing Page
+  if (!authUser || currentRoute === 'login') {
+    return (
+      <LoginPage 
+        onLoginSuccess={handleLoginSuccess}
+        onGuestExplore={() => setCurrentRoute('home')}
+      />
+    );
+  }
+
   return (
     <div className="portal-layout">
       {/* Top Navigation Bar */}
       <Navbar 
         currentRoute={currentRoute} 
-        onNavigate={handleNavigate} 
+        onNavigate={handleNavigate}
+        authUser={authUser}
+        onLogout={handleLogout}
       />
 
       {/* Main Body: Sidebar + Main Content Area */}
       <div className="portal-body-wrapper">
-        {/* Left Sidebar */}
+        {/* Left Sidebar with Role Filtering */}
         <Sidebar 
           currentRoute={currentRoute} 
-          onNavigate={handleNavigate} 
+          onNavigate={handleNavigate}
+          authUser={authUser}
         />
 
         {/* Content Area */}
@@ -89,7 +122,8 @@ export const App = () => {
           {currentRoute === 'home' && (
             <HomePage 
               onNavigate={handleNavigate} 
-              onSelectDocument={handleSelectDocument} 
+              onSelectDocument={handleSelectDocument}
+              authUser={authUser}
             />
           )}
 
@@ -97,6 +131,7 @@ export const App = () => {
             <StudentSubmissionPage 
               onNavigate={handleNavigate}
               onPrefillDocument={handlePrefillDocument}
+              authUser={authUser}
             />
           )}
 
@@ -104,6 +139,7 @@ export const App = () => {
             <StudentRecordsPage 
               onNavigate={handleNavigate}
               onPrefillDocument={handlePrefillDocument}
+              authUser={authUser}
             />
           )}
 

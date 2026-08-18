@@ -140,3 +140,64 @@ CREATE POLICY "Allow public updates to student-documents"
 CREATE POLICY "Allow public delete in student-documents"
     ON storage.objects FOR DELETE
     USING (bucket_id = 'student-documents');
+
+-- ==============================================================================
+-- 6. USER LOGINS TABLE (Role-Based Authentication)
+-- Roles: Student, Faculty/Coordinator, Central T&P, HOD, Admin
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.user_logins (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    full_name TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('Student', 'Faculty/Coordinator', 'Central T&P', 'HOD', 'Admin')),
+    department TEXT DEFAULT 'School of Computing',
+    designation TEXT,
+    enrolment_no TEXT,
+    phone TEXT,
+    status TEXT DEFAULT 'Active',
+    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    last_login TIMESTAMPTZ
+);
+
+-- Index for authentication lookup
+CREATE INDEX IF NOT EXISTS idx_user_logins_username ON public.user_logins (username);
+CREATE INDEX IF NOT EXISTS idx_user_logins_email ON public.user_logins (email);
+CREATE INDEX IF NOT EXISTS idx_user_logins_role ON public.user_logins (role);
+
+-- Enable RLS for user_logins
+ALTER TABLE public.user_logins ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read access to user_logins"
+    ON public.user_logins FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert to user_logins"
+    ON public.user_logins FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update to user_logins"
+    ON public.user_logins FOR UPDATE USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public delete from user_logins"
+    ON public.user_logins FOR DELETE USING (true);
+
+-- Insert Default Seed Accounts (Admin for Shubham Alapure + Initial Role Placeholders)
+INSERT INTO public.user_logins (username, email, password, full_name, role, department, designation, phone)
+VALUES 
+    -- 1. Admin Login (Shubham Alapure)
+    ('admin', 'admin@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'),
+    ('shubhamalapure', 'shubham.alapure@mitadt.edu.in', 'admin123', 'Shubham Alapure', 'Admin', 'School of Computing', 'Lead System Administrator', '9876543210'),
+    
+    -- 2. Student Demo Login
+    ('student', 'student@mitadt.edu.in', 'student123', 'Shubham Santosh Alapure', 'Student', 'Computer Science & Engineering', 'B.Tech Final Year Student', '9876543210'),
+    
+    -- 3. Faculty / Coordinator Demo Login
+    ('faculty', 'faculty@mitadt.edu.in', 'faculty123', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '02067652560'),
+    
+    -- 4. Central T&P Demo Login
+    ('tp', 'tp@mitadt.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'),
+    
+    -- 5. HOD Demo Login
+    ('hod', 'hod@mitadt.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560')
+ON CONFLICT (username) DO NOTHING;
+

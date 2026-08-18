@@ -16,20 +16,23 @@ import {
   GraduationCap
 } from 'lucide-react';
 
-export const HomePage = ({ onNavigate, onSelectDocument }) => {
+export const HomePage = ({ onNavigate, onSelectDocument, authUser }) => {
+  const role = authUser ? authUser.role : 'Admin';
+  const name = authUser ? authUser.full_name : 'Shubham Alapure';
+
   return (
     <div className="animate-fade-in">
       {/* Portal Hero Banner */}
       <div className="portal-hero-banner">
         <div>
-          <span className="portal-hero-tag">
-            STUDENT INTERNSHIP PORTAL & DATABASE DESK
+          <span className="portal-hero-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>●</span> {role.toUpperCase()} PORTAL DESK • WELCOME, {name.toUpperCase()}
           </span>
           <h1 className="portal-hero-title">
-            Student Internship Documentation System
+            Student Internship Management Portal
           </h1>
           <p className="portal-hero-subtitle">
-            MIT-ADT University • School of Computing (SOC) • Powered by Supabase
+            MIT-ADT University • School of Computing (SOC) • Verified Role: <strong>{role}</strong>
           </p>
         </div>
 
@@ -43,9 +46,9 @@ export const HomePage = ({ onNavigate, onSelectDocument }) => {
             </div>
           </div>
           <div className="portal-stat-pill">
-            <div className="portal-stat-pill-label">Record Schema</div>
+            <div className="portal-stat-pill-label">Access Level</div>
             <div className="portal-stat-pill-value" style={{ color: '#ffffff', fontSize: '1.05rem', marginTop: '4px' }}>
-              17 Verified Fields
+              {role} Privileges
             </div>
           </div>
         </div>
