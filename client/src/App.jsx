@@ -8,7 +8,7 @@ import { NOCFormPage } from './pages/NOCFormPage';
 import { DocumentPreviewPage } from './pages/DocumentPreviewPage';
 import { StudentSubmissionPage } from './pages/StudentSubmissionPage';
 import { StudentRecordsPage } from './pages/StudentRecordsPage';
-import { LoginPage } from './pages/LoginPage';
+import { LandingPage } from './pages/LandingPage';
 import { getCurrentUser, logoutUser, ROLES, ROLE_CONFIG } from './utils/auth';
 import { Shield, CheckCircle2, ArrowRight } from 'lucide-react';
 import './index.css';
@@ -88,12 +88,12 @@ export const App = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // If user is not authenticated or explicitly on the login page, render the Role Login Landing Page
+  // If user is not authenticated or explicitly on the landing/login page, render the Hero Landing Page
   if (!authUser || currentRoute === 'login') {
     return (
-      <LoginPage 
+      <LandingPage 
         onLoginSuccess={handleLoginSuccess}
-        onGuestExplore={() => setCurrentRoute('home')}
+        onExplore={() => setCurrentRoute('home')}
       />
     );
   }
