@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { ROLES, ROLE_CONFIG, loginUser, DEFAULT_USERS } from '../utils/auth';
 import campusDomeImg from '../assets/campus_dome.jpg';
+import campusBuildingImg from '../assets/campus_building.jpg';
 import drRajeshImg from '../assets/leadership/dr_rajesh_s.png';
 import drRamachandraImg from '../assets/leadership/dr_ramachandra_pujeri.png';
 import drGaneshImg from '../assets/leadership/dr_ganesh_pathak.png';
@@ -499,7 +500,132 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
       </section>
 
       {/* ==================================================================== */}
-      {/* 6. LEADERSHIP & ADMINISTRATION (OUR PEOPLE) */}
+      {/* 6. OUR CAMPUS - A NEW GENERATION UNIVERSITY */}
+      {/* ==================================================================== */}
+      <section id="campus" style={{
+        padding: '5rem 2rem 4rem 2rem',
+        backgroundColor: '#ffffff',
+        borderTop: '1px solid #e2e8f0'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          {/* Section Header */}
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <span style={{
+              display: 'inline-block',
+              backgroundColor: '#f3e8ff',
+              color: '#7e22ce',
+              fontWeight: 800,
+              fontSize: '0.725rem',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              padding: '0.35rem 1rem',
+              borderRadius: '9999px',
+              marginBottom: '0.75rem'
+            }}>
+              OUR CAMPUS
+            </span>
+            <h2 style={{
+              fontSize: '2.25rem',
+              fontWeight: 800,
+              color: '#0f172a',
+              letterSpacing: '-0.02em',
+              margin: '0 0 0.5rem 0'
+            }}>
+              A New Generation University
+            </h2>
+          </div>
+
+          {/* Grand Campus Feature Card */}
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '24px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 8px 30px -4px rgba(0, 0, 0, 0.05)',
+            padding: '2.5rem',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '3rem',
+            alignItems: 'center'
+          }}>
+            {/* Campus Image */}
+            <div style={{
+              borderRadius: '18px',
+              overflow: 'hidden',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.12)',
+              position: 'relative',
+              backgroundColor: '#f1f5f9'
+            }}>
+              <img
+                src={campusBuildingImg}
+                alt="MIT ADT University Campus Building"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  maxHeight: '380px',
+                  objectFit: 'cover',
+                  display: 'block',
+                  transition: 'transform 0.4s ease'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              />
+            </div>
+
+            {/* Campus Info & Highlights */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <p style={{
+                fontSize: '1.025rem',
+                lineHeight: 1.7,
+                color: '#475569',
+                margin: '0 0 2rem 0'
+              }}>
+                MIT Art, Design & Technology University has positioned itself as a New Generation University with an aspiration to produce Innovators, Business Leaders, Scientists, Social Transformers, and nation builders. MIT-ADT takes a holistic approach to education, motivating students to build a complete winning personality that is <strong style={{ color: '#0f172a' }}>"physically fit, intellectually sharp, mentally alert and spiritually elevated."</strong>
+              </p>
+
+              {/* 4 Feature Points in 2 Columns */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '1.25rem'
+              }}>
+                {[
+                  'Yoga & Meditation',
+                  'Physical Training',
+                  'Communication Skills',
+                  'Personality Development'
+                ].map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      backgroundColor: '#10b981',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: '0 2px 6px rgba(16, 185, 129, 0.35)'
+                    }}>
+                      <CheckCircle2 size={16} />
+                    </div>
+                    <span style={{
+                      fontWeight: 700,
+                      fontSize: '0.925rem',
+                      color: '#334155'
+                    }}>
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================================================================== */}
+      {/* 7. LEADERSHIP & ADMINISTRATION (OUR PEOPLE) */}
       {/* ==================================================================== */}
       <section id="leadership" style={{
         padding: '5rem 2rem 4.5rem 2rem',
