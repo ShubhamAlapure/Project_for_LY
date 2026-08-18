@@ -3,46 +3,41 @@ import { DocumentHeader, DocumentFooter } from './DocumentHeaderFooter';
 import { formatDateForDoc, formatDateShort } from '../utils/validation';
 
 export const NOCTemplate = ({ data = {} }) => {
-  const {
-    referenceNumber = "MIT-SOC/CSE/2026-27/",
-    documentDate = "2026-08-03",
-    documentDateDisplay = "3/08/26",
-    universityName = "MIT Art, Design & Technology University, Pune",
-    schoolName = "School of Computing, Pune",
-    department = "CSE / AIA",
-    
-    // Recipient Company
-    companyName = "Assisto AI Technologies",
-    companyLocation = "Noida, UP",
-    
-    // Student Details
-    studentName = "Shrawan Mokale",
-    rollNumber = "47",
-    enrollmentNumber = "ADT23SOCA1062",
-    
-    // Duration
-    startDate = "2026-07-30",
-    endDate = "2026-12-30",
-    startDateDisplay = "30th July",
-    endDateDisplay = "30th December",
-    
-    // Signatories from Image 2
-    internshipHeadName = "Prof. Vaibhav Sawalkar",
-    internshipHeadDesignation = "Internship Head",
-    internshipHeadDepartment = "Assistant Professor – CSE",
-    
-    hodName = "Prof. Dr. Jayashree Prasad",
-    hodDesignation = "Head of Department",
-    hodDepartment = "Department of CSE-AIA",
-    
-    directorName = "Prof. Dr. Swati More",
-    directorDesignation = "Director",
-    directorDepartment = "Corporate Relations and Placement Cell"
-  } = data;
+  const referenceNumber = data.referenceNumber || `MIT-SOC/${(data.specialization || 'CSE').slice(0, 3)}/2026-27/NOC-${data.enrolment_no ? data.enrolment_no.slice(-4) : '0842'}`;
+  const documentDate = data.documentDate || data.submission_date || new Date().toISOString().split('T')[0];
+  const displayDate = data.documentDateDisplay || formatDateShort(documentDate);
 
-  const displayDate = documentDateDisplay || formatDateShort(documentDate) || "3/08/26";
-  const displayStart = startDateDisplay || formatDateForDoc(startDate) || "30th July";
-  const displayEnd = endDateDisplay || formatDateForDoc(endDate) || "30th December";
+  const universityName = data.universityName || "MIT Art, Design & Technology University, Pune";
+  const schoolName = data.schoolName || "School of Computing, Pune";
+  const department = data.department || data.specialization || "Computer Science & Engineering";
+  
+  // Recipient Company & Location
+  const companyName = data.companyName || (data.company_name_and_city ? data.company_name_and_city.split(',')[0] : "Google India Private Limited");
+  const companyLocation = data.companyLocation || (data.company_name_and_city && data.company_name_and_city.includes(',') ? data.company_name_and_city.split(',').slice(1).join(',').trim() : "Bangalore, India");
+  
+  // Student Details
+  const studentName = data.studentName || data.full_name || "Shubham Santosh Alapure";
+  const rollNumber = data.rollNumber || (data.enrolment_no ? data.enrolment_no.slice(-7) : "CS2022-084");
+  const enrollmentNumber = data.enrollmentNumber || data.enrolment_no || "MITADT2022CS084";
+  
+  // Duration & Dates
+  const startDate = data.startDate || data.start_date || "2026-01-05";
+  const endDate = data.endDate || data.end_date || "2026-06-30";
+  const displayStart = data.startDateDisplay || formatDateForDoc(startDate);
+  const displayEnd = data.endDateDisplay || formatDateForDoc(endDate);
+
+  // Signatories
+  const internshipHeadName = data.internshipHeadName || "Prof. Vaibhav Sawalkar";
+  const internshipHeadDesignation = data.internshipHeadDesignation || "Internship Head";
+  const internshipHeadDepartment = data.internshipHeadDepartment || "Assistant Professor – CSE";
+  
+  const hodName = data.hodName || "Prof. Dr. Jayashree Prasad";
+  const hodDesignation = data.hodDesignation || "Head of Department";
+  const hodDepartment = data.hodDepartment || `Department of ${department}`;
+  
+  const directorName = data.directorName || "Prof. Dr. Swati More";
+  const directorDesignation = data.directorDesignation || "Director";
+  const directorDepartment = data.directorDepartment || "Corporate Relations and Placement Cell";
 
   return (
     <div className="a4-document-paper" id="noc-document" style={{
@@ -53,7 +48,7 @@ export const NOCTemplate = ({ data = {} }) => {
       boxSizing: 'border-box'
     }}>
       <div>
-        {/* Institutional Header */}
+        {/* Institutional Header (Matching PDF Letterhead Template) */}
         <DocumentHeader 
           universityName={universityName}
           schoolName={schoolName}
@@ -67,7 +62,7 @@ export const NOCTemplate = ({ data = {} }) => {
           fontSize: '9.5pt',
           fontFamily: 'var(--font-doc-serif)',
           fontWeight: '700',
-          marginBottom: '14px'
+          marginBottom: '12px'
         }}>
           <div>
             Ref. No-{referenceNumber}
@@ -78,9 +73,9 @@ export const NOCTemplate = ({ data = {} }) => {
         </div>
 
         {/* Centered Document Title */}
-        <div style={{ textAlign: 'center', margin: '6px 0 16px 0' }}>
+        <div style={{ textAlign: 'center', margin: '4px 0 14px 0' }}>
           <span style={{
-            fontSize: '11.5pt',
+            fontSize: '12pt',
             fontWeight: '800',
             textDecoration: 'underline',
             textUnderlineOffset: '3px',
@@ -95,7 +90,7 @@ export const NOCTemplate = ({ data = {} }) => {
           fontSize: '10pt',
           lineHeight: '1.45',
           fontFamily: 'var(--font-doc-serif)',
-          marginBottom: '14px'
+          marginBottom: '12px'
         }}>
           <div>To,</div>
           <div style={{ fontWeight: '700' }}>The HR</div>
@@ -110,7 +105,7 @@ export const NOCTemplate = ({ data = {} }) => {
           marginBottom: '8px'
         }}>
           <div>Dear Sir / Madam,</div>
-          <div style={{ marginTop: '4px' }}>
+          <div style={{ marginTop: '3px' }}>
             Greetings from MIT Art, Design and Technology University, School of Computing, Loni Kalbhor, Pune.
           </div>
         </div>
@@ -135,35 +130,34 @@ export const NOCTemplate = ({ data = {} }) => {
 
         {/* Attendance Regulation Paragraph */}
         <div style={{
-          fontSize: '9.75pt',
-          lineHeight: '1.5',
+          fontSize: '9.5pt',
+          lineHeight: '1.45',
           fontFamily: 'var(--font-doc-serif)',
           textAlign: 'justify',
-          marginBottom: '24px'
+          marginBottom: '20px'
         }}>
           He/She must maintain academic attendance as per the Rules and Regulations of the MIT ADT University, failing which leads to shortage of attendance for the academic outcomes.
         </div>
 
-        {/* 3 Authorized Signatures Grid (from Image 2) */}
+        {/* 3 Authorized Signatures Grid */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '14px',
-          marginTop: '28px',
+          gap: '12px',
+          marginTop: '22px',
           fontFamily: 'var(--font-doc-sans)',
           fontSize: '8pt',
           textAlign: 'center'
         }}>
           {/* Signatory 1: Internship Head */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-            {/* Signature Stroke Simulation */}
             <div style={{
               fontFamily: 'cursive',
               fontSize: '11pt',
               color: '#1d4ed8',
               fontStyle: 'italic',
               marginBottom: '2px',
-              height: '32px',
+              height: '28px',
               display: 'flex',
               alignItems: 'center'
             }}>
@@ -182,7 +176,7 @@ export const NOCTemplate = ({ data = {} }) => {
               color: '#1d4ed8',
               fontStyle: 'italic',
               marginBottom: '2px',
-              height: '32px',
+              height: '28px',
               display: 'flex',
               alignItems: 'center'
             }}>
@@ -190,7 +184,7 @@ export const NOCTemplate = ({ data = {} }) => {
             </div>
             <div style={{ fontWeight: '700', color: '#111' }}>{hodName}</div>
             <div style={{ color: '#444' }}>{hodDesignation}</div>
-            <div style={{ color: '#555', fontSize: '7.5pt' }}>{hodDepartment || `Department of ${department}`}</div>
+            <div style={{ color: '#555', fontSize: '7.5pt' }}>{hodDepartment}</div>
           </div>
 
           {/* Signatory 3: Director CRTP */}
@@ -201,7 +195,7 @@ export const NOCTemplate = ({ data = {} }) => {
               color: '#1d4ed8',
               fontStyle: 'italic',
               marginBottom: '2px',
-              height: '32px',
+              height: '28px',
               display: 'flex',
               alignItems: 'center'
             }}>
@@ -217,12 +211,12 @@ export const NOCTemplate = ({ data = {} }) => {
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          marginTop: '16px',
-          marginBottom: '10px'
+          marginTop: '14px',
+          marginBottom: '8px'
         }}>
           <div style={{
-            width: '84px',
-            height: '84px',
+            width: '80px',
+            height: '80px',
             borderRadius: '50%',
             border: '2px solid #1d4ed8',
             outline: '1px dashed #1d4ed8',
@@ -234,13 +228,12 @@ export const NOCTemplate = ({ data = {} }) => {
             color: '#1d4ed8',
             textAlign: 'center',
             transform: 'rotate(-8deg)',
-            userSelect: 'none',
-            boxShadow: '0 0 0 1px rgba(29, 78, 216, 0.1)'
+            userSelect: 'none'
           }}>
             <div style={{ fontSize: '5.5pt', fontWeight: '800', letterSpacing: '0.05em' }}>
               MIT-ADT UNIVERSITY
             </div>
-            <div style={{ fontSize: '7pt', fontWeight: '900', margin: '1px 0', borderTop: '1px solid #1d4ed8', borderBottom: '1px solid #1d4ed8', padding: '1px 4px' }}>
+            <div style={{ fontSize: '6.5pt', fontWeight: '900', margin: '1px 0', borderTop: '1px solid #1d4ed8', borderBottom: '1px solid #1d4ed8', padding: '1px 3px' }}>
               CENTRAL T & P
             </div>
             <div style={{ fontSize: '5.5pt', fontWeight: '700' }}>
@@ -250,7 +243,7 @@ export const NOCTemplate = ({ data = {} }) => {
         </div>
       </div>
 
-      {/* Institutional Footer */}
+      {/* Institutional Footer (Matching PDF Letterhead Template) */}
       <DocumentFooter />
     </div>
   );

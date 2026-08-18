@@ -3,30 +3,26 @@ import { DocumentHeader, DocumentFooter } from './DocumentHeaderFooter';
 import { formatDateForDoc, formatDateShort } from '../utils/validation';
 
 export const UndertakingTemplate = ({ data = {} }) => {
-  const {
-    studentName = "Shrawan Mokale",
-    className = "AIA-3",
-    rollNumber = "47",
-    enrollmentNumber = "ADT23SOCA1062",
-    department = "AIA",
-    universityName = "MIT Art, Design & Technology University, Pune",
-    schoolName = "School of Computing, Pune",
-    
-    companyName = "Assisto AI Technologies",
-    duration = "6 Months",
-    startDate = "2026-07-30",
-    endDate = "2026-12-30",
-    startDateDisplay = "30th July",
-    endDateDisplay = "30th December",
-    
-    contactNumber = "9834248040",
-    documentDate = "2026-08-03",
-    documentDateDisplay = "3/08/26"
-  } = data;
+  const studentName = data.studentName || data.full_name || "Shubham Santosh Alapure";
+  const className = data.className || data.semester || "Semester VIII (Final Year)";
+  const rollNumber = data.rollNumber || (data.enrolment_no ? data.enrolment_no.slice(-7) : "CS2022-084");
+  const enrollmentNumber = data.enrollmentNumber || data.enrolment_no || "MITADT2022CS084";
+  const department = data.department || data.specialization || "Computer Science & Engineering";
+  const universityName = data.universityName || "MIT Art, Design & Technology University, Pune";
+  const schoolName = data.schoolName || "School of Computing, Pune";
+  
+  const companyName = data.companyName || data.company_name_and_city || "Google India Private Limited, Bangalore";
+  const duration = data.duration || "6 Months";
+  const startDate = data.startDate || data.start_date || "2026-01-05";
+  const endDate = data.endDate || data.end_date || "2026-06-30";
+  
+  const contactNumber = data.contactNumber || data.contact_no || "9876543210";
+  const documentDate = data.documentDate || data.submission_date || new Date().toISOString().split('T')[0];
+  const documentDateDisplay = data.documentDateDisplay || formatDateShort(documentDate);
 
-  const displayDate = documentDateDisplay || formatDateShort(documentDate) || "3/08/26";
-  const displayStart = startDateDisplay || formatDateForDoc(startDate) || "30th July";
-  const displayEnd = endDateDisplay || formatDateForDoc(endDate) || "30th December";
+  const displayDate = documentDateDisplay || formatDateShort(documentDate);
+  const displayStart = data.startDateDisplay || formatDateForDoc(startDate);
+  const displayEnd = data.endDateDisplay || formatDateForDoc(endDate);
 
   return (
     <div className="a4-document-paper" id="undertaking-document" style={{
@@ -37,7 +33,7 @@ export const UndertakingTemplate = ({ data = {} }) => {
       boxSizing: 'border-box'
     }}>
       <div>
-        {/* Institutional Header */}
+        {/* Institutional Header (Matching PDF Letterhead Template) */}
         <DocumentHeader 
           universityName={universityName}
           schoolName={schoolName}
@@ -58,9 +54,9 @@ export const UndertakingTemplate = ({ data = {} }) => {
         </div>
 
         {/* Centered Document Title */}
-        <div style={{ textAlign: 'center', margin: '8px 0 16px 0' }}>
+        <div style={{ textAlign: 'center', margin: '6px 0 14px 0' }}>
           <span style={{
-            fontSize: '12pt',
+            fontSize: '13pt',
             fontWeight: '800',
             textDecoration: 'underline',
             textUnderlineOffset: '3px',
@@ -74,18 +70,18 @@ export const UndertakingTemplate = ({ data = {} }) => {
         <div style={{
           fontSize: '10pt',
           fontFamily: 'var(--font-doc-serif)',
-          marginBottom: '12px'
+          marginBottom: '10px'
         }}>
           Dear Sir / Madam,
         </div>
 
-        {/* Student Identification Paragraph with Exact Underlines */}
+        {/* Student Identification Paragraph with exact underlines */}
         <div style={{
           fontSize: '10pt',
           lineHeight: '1.85',
           fontFamily: 'var(--font-doc-serif)',
           textAlign: 'justify',
-          marginBottom: '14px'
+          marginBottom: '12px'
         }}>
           I, <span className="doc-dynamic-text">{studentName}</span>, 
           Class <span className="doc-dynamic-text">{className}</span>, 
@@ -103,7 +99,7 @@ export const UndertakingTemplate = ({ data = {} }) => {
 
         {/* Preamble Statement */}
         <div style={{
-          fontSize: '9.75pt',
+          fontSize: '9.5pt',
           lineHeight: '1.4',
           fontFamily: 'var(--font-doc-serif)',
           marginBottom: '10px'
@@ -111,7 +107,7 @@ export const UndertakingTemplate = ({ data = {} }) => {
           I hereby undertake to fully abide by all the Policies / Norms / Instructions of the Institute given from time to time, including the following:
         </div>
 
-        {/* Exact Points I to IX */}
+        {/* Points I to IX */}
         <div style={{
           fontSize: '9.2pt',
           lineHeight: '1.45',
@@ -166,7 +162,7 @@ export const UndertakingTemplate = ({ data = {} }) => {
 
         {/* Candidate Signature Block (Aligned Bottom Right) */}
         <div style={{
-          marginTop: '22px',
+          marginTop: '20px',
           display: 'flex',
           justifyContent: 'flex-end'
         }}>
@@ -202,7 +198,7 @@ export const UndertakingTemplate = ({ data = {} }) => {
         </div>
       </div>
 
-      {/* Institutional Footer */}
+      {/* Institutional Footer (Matching PDF Letterhead Template) */}
       <DocumentFooter />
     </div>
   );

@@ -20,6 +20,7 @@ import { StepIndicator } from '../components/common/StepIndicator';
 import { validateUndertakingForm } from '../utils/validation';
 import { saveFormData, loadFormData, clearFormData } from '../utils/storage';
 import { SAMPLE_DATA } from '../data/sampleData';
+import { calculateInternshipDuration } from '../utils/supabaseClient';
 
 const INITIAL_STATE = {
   studentName: '',
@@ -60,6 +61,16 @@ export const UndertakingFormPage = ({ onGeneratePreview, onBack, initialData }) 
       setTimeout(() => setSaveStatus(''), 3000);
     }
   }, [initialData]);
+
+  // Recalculate duration automatically whenever startDate or endDate changes
+  useEffect(() => {
+    if (formData.startDate && formData.endDate) {
+      const computedDuration = calculateInternshipDuration(formData.startDate, formData.endDate);
+      if (computedDuration) {
+        setFormData(prev => ({ ...prev, duration: computedDuration }));
+      }
+    }
+  }, [formData.startDate, formData.endDate]);
 
   // Autosave to localStorage on change
   useEffect(() => {
