@@ -180,65 +180,176 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
   };
 
   const exportToExcel = () => {
-    if (filteredRecords.length === 0) {
+    if (!filteredRecords || filteredRecords.length === 0) {
       alert('No student records to export.');
       return;
     }
 
-    const excelData = filteredRecords.map((r, idx) => ({
-      "Sr No": idx + 1,
-      "Submission Date": r.submission_date || '',
-      "Enrolment No": r.enrolment_no || '',
-      "Full Name": r.full_name || '',
-      "Email ID": r.email || '',
-      "Contact No": r.contact_no || '',
-      "Gender": r.gender || '',
-      "Specialization": r.specialization || '',
-      "Semester": r.semester || '',
-      "Company Name & City": r.company_name_and_city || '',
-      "Domain": r.domain_of_company || '',
-      "Source of Internship": r.source_of_internship || '',
-      "Start Date": r.start_date || '',
-      "End Date": r.end_date || '',
-      "Duration": r.duration || '',
-      "Mode of Internship": r.mode_of_internship || '',
-      "PPO Offer": r.is_ppo_offer || '',
-      "Offer Letter URL": r.offer_letter_url || '',
-      "Completion Letter URL": r.completion_letter_url || '',
-      "Status": r.status || 'Submitted'
-    }));
+    try {
+      const excelData = filteredRecords.map((r, idx) => ({
+        "Sr No": idx + 1,
+        "Submission Date": r.submission_date || '',
+        "Enrolment No": r.enrolment_no || '',
+        "Full Name": r.full_name || '',
+        "Email ID": r.email || '',
+        "Contact No": r.contact_no || '',
+        "Gender": r.gender || '',
+        "Specialization": r.specialization || '',
+        "Semester": r.semester || '',
+        "Company Name & City": r.company_name_and_city || '',
+        "Domain": r.domain_of_company || '',
+        "Source of Internship": r.source_of_internship || '',
+        "Start Date": r.start_date || '',
+        "End Date": r.end_date || '',
+        "Duration": r.duration || '',
+        "Mode of Internship": r.mode_of_internship || '',
+        "PPO Offer": r.is_ppo_offer || '',
+        "Offer Letter URL": r.offer_letter_url || '',
+        "Completion Letter URL": r.completion_letter_url || '',
+        "Status": r.status || 'Submitted'
+      }));
 
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
-    
-    // Set auto column widths for readable spreadsheet layout
-    worksheet['!cols'] = [
-      { wch: 8 },  // Sr No
-      { wch: 15 }, // Submission Date
-      { wch: 18 }, // Enrolment No
-      { wch: 25 }, // Full Name
-      { wch: 28 }, // Email
-      { wch: 15 }, // Contact
-      { wch: 10 }, // Gender
-      { wch: 30 }, // Specialization
-      { wch: 12 }, // Semester
-      { wch: 30 }, // Company Name & City
-      { wch: 20 }, // Domain
-      { wch: 22 }, // Source
-      { wch: 14 }, // Start Date
-      { wch: 14 }, // End Date
-      { wch: 18 }, // Duration
-      { wch: 15 }, // Mode
-      { wch: 15 }, // PPO
-      { wch: 35 }, // Offer Letter URL
-      { wch: 35 }, // Completion Letter URL
-      { wch: 14 }  // Status
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      
+      // Set auto column widths for readable spreadsheet layout
+      worksheet['!cols'] = [
+        { wch: 8 },  // Sr No
+        { wch: 15 }, // Submission Date
+        { wch: 18 }, // Enrolment No
+        { wch: 25 }, // Full Name
+        { wch: 28 }, // Email
+        { wch: 15 }, // Contact
+        { wch: 10 }, // Gender
+        { wch: 30 }, // Specialization
+        { wch: 12 }, // Semester
+        { wch: 30 }, // Company Name & City
+        { wch: 20 }, // Domain
+        { wch: 22 }, // Source
+        { wch: 14 }, // Start Date
+        { wch: 14 }, // End Date
+        { wch: 18 }, // Duration
+        { wch: 15 }, // Mode
+        { wch: 15 }, // PPO
+        { wch: 35 }, // Offer Letter URL
+        { wch: 35 }, // Completion Letter URL
+        { wch: 14 }  // Status
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Internship Records");
+
+      // Generate binary array buffer
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' 
+      });
+      
+      const dateStr = new Date().toISOString().split('T')[0];
+      const fileName = `MIT_ADT_Student_Internships_${dateStr}.xlsx`;
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 200);
+
+      setNotification({ type: 'success', message: 'Excel spreadsheet (.xlsx) downloaded successfully!' });
+      setTimeout(() => setNotification(null), 3000);
+    } catch (err) {
+      console.warn('XLSX write fallback:', err);
+      exportToExcelXML();
+    }
+  };
+
+  const exportToExcelXML = () => {
+    const headers = [
+      "Sr No", "Submission Date", "Enrolment No", "Full Name", "Email ID",
+      "Contact No", "Gender", "Specialization", "Semester", "Company Name & City",
+      "Domain", "Source of Internship", "Start Date", "End Date", "Duration",
+      "Mode of Internship", "PPO Offer", "Offer Letter URL", "Completion Letter URL", "Status"
     ];
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Internship Records");
+    let xml = '<?xml version="1.0"?>\n';
+    xml += '<?mso-application progid="Excel.Sheet"?>\n';
+    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:o="urn:schemas-microsoft-com:office:office"\n';
+    xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n';
+    xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:html="http://www.w3.org/TR/REC-html40">\n';
+    xml += ' <Styles>\n';
+    xml += '  <Style ss:ID="HeaderStyle">\n';
+    xml += '   <Font ss:Bold="1" ss:Color="#FFFFFF"/>\n';
+    xml += '   <Interior ss:Color="#4C1D95" ss:Pattern="Solid"/>\n';
+    xml += '   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>\n';
+    xml += '  </Style>\n';
+    xml += ' </Styles>\n';
+    xml += ' <Worksheet ss:Name="Internship Records">\n';
+    xml += '  <Table>\n';
 
+    // Header Row
+    xml += '   <Row>\n';
+    headers.forEach(h => {
+      xml += `    <Cell ss:StyleID="HeaderStyle"><Data ss:Type="String">${h}</Data></Cell>\n`;
+    });
+    xml += '   </Row>\n';
+
+    // Data Rows
+    filteredRecords.forEach((r, idx) => {
+      xml += '   <Row>\n';
+      const values = [
+        idx + 1,
+        r.submission_date || '',
+        r.enrolment_no || '',
+        r.full_name || '',
+        r.email || '',
+        r.contact_no || '',
+        r.gender || '',
+        r.specialization || '',
+        r.semester || '',
+        r.company_name_and_city || '',
+        r.domain_of_company || '',
+        r.source_of_internship || '',
+        r.start_date || '',
+        r.end_date || '',
+        r.duration || '',
+        r.mode_of_internship || '',
+        r.is_ppo_offer || '',
+        r.offer_letter_url || '',
+        r.completion_letter_url || '',
+        r.status || 'Submitted'
+      ];
+      values.forEach(v => {
+        const safeVal = String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        xml += `    <Cell><Data ss:Type="String">${safeVal}</Data></Cell>\n`;
+      });
+      xml += '   </Row>\n';
+    });
+
+    xml += '  </Table>\n';
+    xml += ' </Worksheet>\n';
+    xml += '</Workbook>';
+
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const dateStr = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(workbook, `MIT_ADT_Student_Internships_${dateStr}.xlsx`);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `MIT_ADT_Student_Internships_${dateStr}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }, 200);
+
+    setNotification({ type: 'success', message: 'Excel file (.xls) downloaded successfully!' });
+    setTimeout(() => setNotification(null), 3000);
   };
 
   // Role-Based Filtering:
