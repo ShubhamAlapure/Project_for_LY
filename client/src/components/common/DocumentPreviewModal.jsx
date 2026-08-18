@@ -43,12 +43,21 @@ export const DocumentPreviewModal = ({ isOpen, onClose, documentUrl, documentTit
 
   if (!isOpen || !documentUrl) return null;
 
+  const cleanUrl = (documentUrl || '').split('?')[0].split('#')[0].toLowerCase();
+
   const isPdf = documentUrl.startsWith('data:application/pdf') || 
+                cleanUrl.endsWith('.pdf') || 
                 documentUrl.toLowerCase().includes('.pdf') || 
                 documentUrl.includes('application/pdf');
   
-  const isImage = documentUrl.startsWith('data:image') || 
-                  /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(documentUrl);
+  const isImage = !isPdf && (
+    documentUrl.startsWith('data:image') || 
+    /\.(jpg|jpeg|png|webp|gif|svg|bmp|avif|tiff)/i.test(documentUrl) ||
+    Boolean(cleanUrl.match(/\.(jpg|jpeg|png|webp|gif|svg|bmp|avif|tiff)$/i)) ||
+    documentUrl.includes('images.unsplash.com') ||
+    documentUrl.includes('photo-') ||
+    documentUrl.includes('image/')
+  );
 
   const activeRenderUrl = blobUrl || documentUrl;
 
