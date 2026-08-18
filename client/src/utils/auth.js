@@ -11,28 +11,28 @@ export const ROLES = {
 export const ROLE_CONFIG = {
   [ROLES.STUDENT]: {
     label: 'Student',
-    description: 'Submit internship details, track approval status, and generate Undertaking & NOC letters.',
+    description: 'Submit internship details, track application verification status, and generate Undertaking & NOC.',
     badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     icon: 'GraduationCap',
     defaultRoute: 'student-form'
   },
   [ROLES.FACULTY]: {
-    label: 'Faculty / Coordinator',
-    description: 'Review departmental student internships, verify offer letters, and endorse Undertakings.',
+    label: 'Faculty / Internship Coordinator',
+    description: 'Review student applications, verify offer letters, and endorse academic documents.',
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
     icon: 'UserCheck',
     defaultRoute: 'student-records'
   },
   [ROLES.CENTRAL_TP]: {
-    label: 'Central T&P Cell',
-    description: 'Campus-wide corporate relations dashboard, PPO conversions, and company analytics.',
+    label: 'Central Training & Placement (T&P)',
+    description: 'Corporate relations, placement cell oversight, PPO confirmation, and campus drives.',
     badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
     icon: 'Building2',
     defaultRoute: 'student-records'
   },
   [ROLES.HOD]: {
     label: 'Head of Department (HOD)',
-    description: 'Departmental oversight, academic approvals, and official NOC authorization.',
+    description: 'Departmental approval, compliance with academic rules, and NOC authorization.',
     badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300',
     icon: 'Award',
     defaultRoute: 'student-records'
@@ -47,6 +47,7 @@ export const ROLE_CONFIG = {
 };
 
 export const DEFAULT_USERS = [
+  // 1. Lead Admin
   {
     id: 'usr_admin_01',
     username: 'admin',
@@ -71,6 +72,8 @@ export const DEFAULT_USERS = [
     phone: '9876543210',
     status: 'Active'
   },
+
+  // 2. Student Accounts
   {
     id: 'usr_student_01',
     username: 'student',
@@ -84,8 +87,22 @@ export const DEFAULT_USERS = [
     phone: '9876543210',
     status: 'Active'
   },
+
+  // 3. Faculty / Coordinator Accounts
   {
     id: 'usr_faculty_01',
+    username: 'vaibhav.sawalkar@mituniversity.edu.in',
+    email: 'vaibhav.sawalkar@mituniversity.edu.in',
+    password: '9665368452',
+    full_name: 'Prof. Vaibhav Sawalkar',
+    role: ROLES.FACULTY,
+    department: 'Department of Computer Science & Engineering',
+    designation: 'Internship Coordinator & Assistant Professor',
+    phone: '9665368452',
+    status: 'Active'
+  },
+  {
+    id: 'usr_faculty_02',
     username: 'faculty',
     email: 'faculty@mitadt.edu.in',
     password: 'faculty123',
@@ -93,9 +110,23 @@ export const DEFAULT_USERS = [
     role: ROLES.FACULTY,
     department: 'Department of Computer Science & Engineering',
     designation: 'Internship Coordinator & Assistant Professor',
-    phone: '02067652560',
+    phone: '9665368452',
     status: 'Active'
   },
+  {
+    id: 'usr_faculty_03',
+    username: 'vaibhavsawalkar',
+    email: 'vaibhav.sawalkar@mitadt.edu.in',
+    password: '9665368452',
+    full_name: 'Prof. Vaibhav Sawalkar',
+    role: ROLES.FACULTY,
+    department: 'Department of Computer Science & Engineering',
+    designation: 'Internship Coordinator & Assistant Professor',
+    phone: '9665368452',
+    status: 'Active'
+  },
+
+  // 4. Central T&P Accounts
   {
     id: 'usr_tp_01',
     username: 'tp',
@@ -109,9 +140,35 @@ export const DEFAULT_USERS = [
     status: 'Active'
   },
   {
+    id: 'usr_tp_02',
+    username: 'swati.more@mituniversity.edu.in',
+    email: 'swati.more@mituniversity.edu.in',
+    password: 'tp123',
+    full_name: 'Prof. Dr. Swati More',
+    role: ROLES.CENTRAL_TP,
+    department: 'Corporate Relations & Placement Cell',
+    designation: 'Director, Central T&P',
+    phone: '02067652560',
+    status: 'Active'
+  },
+
+  // 5. HOD Accounts
+  {
     id: 'usr_hod_01',
     username: 'hod',
     email: 'hod@mitadt.edu.in',
+    password: 'hod123',
+    full_name: 'Prof. Dr. Jayashree Prasad',
+    role: ROLES.HOD,
+    department: 'Department of CSE-AIA',
+    designation: 'Head of Department (CSE)',
+    phone: '02067652560',
+    status: 'Active'
+  },
+  {
+    id: 'usr_hod_02',
+    username: 'jayashree.prasad@mituniversity.edu.in',
+    email: 'jayashree.prasad@mituniversity.edu.in',
     password: 'hod123',
     full_name: 'Prof. Dr. Jayashree Prasad',
     role: ROLES.HOD,
@@ -128,13 +185,24 @@ const USERS_CACHE_KEY = 'mit_interndocs_users_cache';
 const getCachedUsers = () => {
   try {
     const cached = localStorage.getItem(USERS_CACHE_KEY);
-    return cached ? JSON.parse(cached) : DEFAULT_USERS;
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      // Merge with DEFAULT_USERS
+      const merged = [...DEFAULT_USERS];
+      parsed.forEach(pu => {
+        if (!merged.find(u => u.username.toLowerCase() === pu.username?.toLowerCase() || u.email.toLowerCase() === pu.email?.toLowerCase())) {
+          merged.push(pu);
+        }
+      });
+      return merged;
+    }
+    return DEFAULT_USERS;
   } catch (e) {
     return DEFAULT_USERS;
   }
 };
 
-const saveCachedUsers = (users) => {
+export const saveCachedUsers = (users) => {
   try {
     localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(users));
   } catch (e) {
@@ -155,7 +223,25 @@ export const getCurrentUser = () => {
 };
 
 /**
- * Authenticate user by username/email and password
+ * Normalizes role comparison (e.g. 'Faculty' vs 'Faculty/Coordinator')
+ */
+const rolesMatch = (roleA, roleB) => {
+  if (!roleA || !roleB) return true;
+  const a = roleA.toLowerCase().trim();
+  const b = roleB.toLowerCase().trim();
+  if (a === b) return true;
+  if (a.includes('faculty') && b.includes('faculty')) return true;
+  if (a.includes('coordinator') && b.includes('coordinator')) return true;
+  if (a.includes('tp') && b.includes('tp')) return true;
+  if (a.includes('placement') && b.includes('placement')) return true;
+  if (a.includes('hod') && b.includes('hod')) return true;
+  if (a.includes('admin') && b.includes('admin')) return true;
+  if (a.includes('student') && b.includes('student')) return true;
+  return false;
+};
+
+/**
+ * Authenticate user by username/email/phone and password
  */
 export const loginUser = async (identifier, password, requestedRole = null) => {
   const cleanId = (identifier || '').trim().toLowerCase();
@@ -165,21 +251,21 @@ export const loginUser = async (identifier, password, requestedRole = null) => {
     return { success: false, error: 'Please provide both username/email and password.' };
   }
 
+  // 1. Try Supabase cloud query first if connected
   try {
-    // 1. Try Supabase query first
     const { data, error } = await supabase
       .from('user_logins')
       .select('*')
-      .or(`username.eq.${cleanId},email.eq.${cleanId}`)
+      .or(`username.ilike.${cleanId},email.ilike.${cleanId},phone.eq.${cleanId}`)
       .limit(1);
 
     if (!error && data && data.length > 0) {
       const user = data[0];
       if (user.password === cleanPass) {
-        if (requestedRole && user.role !== requestedRole && user.role !== ROLES.ADMIN) {
+        if (requestedRole && !rolesMatch(user.role, requestedRole) && user.role !== ROLES.ADMIN) {
           return {
             success: false,
-            error: `Your account is registered as ${user.role}. Please select ${user.role} to login.`
+            error: `Your account is registered as ${user.role}. Please switch to the ${user.role} tab.`
           };
         }
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
@@ -189,17 +275,21 @@ export const loginUser = async (identifier, password, requestedRole = null) => {
       }
     }
   } catch (err) {
-    console.warn('Supabase auth network notice, checking local seed database:', err);
+    console.warn('Supabase query note, falling back to local credentials:', err);
   }
 
-  // 2. Fallback to cached / seed user database
+  // 2. Fallback to cached / default seed user database
   const users = getCachedUsers();
   const matchedUser = users.find(
-    u => (u.username.toLowerCase() === cleanId || u.email.toLowerCase() === cleanId) && u.password === cleanPass
+    u => (
+      (u.username && u.username.toLowerCase() === cleanId) || 
+      (u.email && u.email.toLowerCase() === cleanId) ||
+      (u.phone && u.phone.trim() === cleanId)
+    ) && u.password === cleanPass
   );
 
   if (matchedUser) {
-    if (requestedRole && matchedUser.role !== requestedRole && matchedUser.role !== ROLES.ADMIN) {
+    if (requestedRole && !rolesMatch(matchedUser.role, requestedRole) && matchedUser.role !== ROLES.ADMIN) {
       return {
         success: false,
         error: `Your account is registered as ${matchedUser.role}. Please select the ${matchedUser.role} tab.`
@@ -210,19 +300,6 @@ export const loginUser = async (identifier, password, requestedRole = null) => {
   }
 
   return { success: false, error: 'Invalid username or password. Please verify credentials.' };
-};
-
-/**
- * Quick 1-click Demo Login for effortless role switching
- */
-export const quickDemoLogin = (role) => {
-  const users = getCachedUsers();
-  const user = users.find(u => u.role === role) || DEFAULT_USERS.find(u => u.role === role);
-  if (user) {
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-    return { success: true, user };
-  }
-  return { success: false, error: 'Role account not found' };
 };
 
 /**
@@ -238,52 +315,24 @@ export const logoutUser = () => {
 };
 
 /**
- * Fetch all registered users (for Admin dashboard)
- */
-export const fetchAllUsers = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('user_logins')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && data && data.length > 0) {
-      saveCachedUsers(data);
-      return { success: true, data };
-    }
-  } catch (err) {
-    console.warn('Error fetching users from Supabase:', err);
-  }
-
-  return { success: true, data: getCachedUsers(), isFallback: true };
-};
-
-/**
- * Add or register a new user login (Admin feature)
+ * Add a new user to the local cache and Supabase
  */
 export const registerUser = async (userData) => {
+  const users = getCachedUsers();
   const newUser = {
-    ...userData,
-    created_at: new Date().toISOString()
+    id: `usr_${Date.now()}`,
+    status: 'Active',
+    ...userData
   };
 
-  try {
-    const { data, error } = await supabase
-      .from('user_logins')
-      .insert([newUser])
-      .select();
+  users.push(newUser);
+  saveCachedUsers(users);
 
-    if (!error && data) {
-      const current = getCachedUsers();
-      saveCachedUsers([data[0], ...current]);
-      return { success: true, data: data[0] };
-    }
+  try {
+    await supabase.from('user_logins').insert([newUser]);
   } catch (err) {
-    console.warn('Supabase insert user notice:', err);
+    console.warn('Could not sync user to Supabase:', err);
   }
 
-  const current = getCachedUsers();
-  const localNewUser = { ...newUser, id: 'usr_' + Date.now() };
-  saveCachedUsers([localNewUser, ...current]);
-  return { success: true, data: localNewUser, isFallback: true };
+  return { success: true, user: newUser };
 };

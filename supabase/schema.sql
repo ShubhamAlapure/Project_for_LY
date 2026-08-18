@@ -191,13 +191,22 @@ VALUES
     -- 2. Student Demo Login
     ('student', 'student@mitadt.edu.in', 'student123', 'Shubham Santosh Alapure', 'Student', 'Computer Science & Engineering', 'B.Tech Final Year Student', '9876543210'),
     
-    -- 3. Faculty / Coordinator Demo Login
-    ('faculty', 'faculty@mitadt.edu.in', 'faculty123', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '02067652560'),
+    -- 3. Faculty / Coordinator Login (Prof. Vaibhav Sawalkar)
+    ('vaibhav.sawalkar@mituniversity.edu.in', 'vaibhav.sawalkar@mituniversity.edu.in', '9665368452', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'),
+    ('faculty', 'faculty@mitadt.edu.in', 'faculty123', 'Prof. Vaibhav Sawalkar', 'Faculty/Coordinator', 'Department of Computer Science & Engineering', 'Internship Coordinator & Assistant Professor', '9665368452'),
     
-    -- 4. Central T&P Demo Login
+    -- 4. Central T&P Login (Prof. Dr. Swati More)
     ('tp', 'tp@mitadt.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'),
+    ('swati.more@mituniversity.edu.in', 'swati.more@mituniversity.edu.in', 'tp123', 'Prof. Dr. Swati More', 'Central T&P', 'Corporate Relations & Placement Cell', 'Director, Central T&P', '02067652560'),
     
-    -- 5. HOD Demo Login
-    ('hod', 'hod@mitadt.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560')
-ON CONFLICT (username) DO NOTHING;
+    -- 5. HOD Login (Prof. Dr. Jayashree Prasad)
+    ('hod', 'hod@mitadt.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560'),
+    ('jayashree.prasad@mituniversity.edu.in', 'jayashree.prasad@mituniversity.edu.in', 'hod123', 'Prof. Dr. Jayashree Prasad', 'HOD', 'Department of CSE-AIA', 'Head of Department (CSE)', '02067652560')
+ON CONFLICT (username) DO UPDATE 
+SET 
+    password = EXCLUDED.password,
+    email = EXCLUDED.email,
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone;
+
 
