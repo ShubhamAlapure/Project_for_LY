@@ -25,8 +25,10 @@ import {
   Eye,
   X,
   GraduationCap,
-  ShieldAlert
+  ShieldAlert,
+  FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { fetchStudentRecords, deleteStudentRecord, updateStudentRecord, uploadStudentDocument } from '../utils/supabaseClient';
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
 import { ROLES } from '../utils/auth';
@@ -118,7 +120,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
   };
 
   const exportToCSV = () => {
-    if (records.length === 0) {
+    if (filteredRecords.length === 0) {
       alert('No student records to export.');
       return;
     }
@@ -175,6 +177,68 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const exportToExcel = () => {
+    if (filteredRecords.length === 0) {
+      alert('No student records to export.');
+      return;
+    }
+
+    const excelData = filteredRecords.map((r, idx) => ({
+      "Sr No": idx + 1,
+      "Submission Date": r.submission_date || '',
+      "Enrolment No": r.enrolment_no || '',
+      "Full Name": r.full_name || '',
+      "Email ID": r.email || '',
+      "Contact No": r.contact_no || '',
+      "Gender": r.gender || '',
+      "Specialization": r.specialization || '',
+      "Semester": r.semester || '',
+      "Company Name & City": r.company_name_and_city || '',
+      "Domain": r.domain_of_company || '',
+      "Source of Internship": r.source_of_internship || '',
+      "Start Date": r.start_date || '',
+      "End Date": r.end_date || '',
+      "Duration": r.duration || '',
+      "Mode of Internship": r.mode_of_internship || '',
+      "PPO Offer": r.is_ppo_offer || '',
+      "Offer Letter URL": r.offer_letter_url || '',
+      "Completion Letter URL": r.completion_letter_url || '',
+      "Status": r.status || 'Submitted'
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    
+    // Set auto column widths for readable spreadsheet layout
+    worksheet['!cols'] = [
+      { wch: 8 },  // Sr No
+      { wch: 15 }, // Submission Date
+      { wch: 18 }, // Enrolment No
+      { wch: 25 }, // Full Name
+      { wch: 28 }, // Email
+      { wch: 15 }, // Contact
+      { wch: 10 }, // Gender
+      { wch: 30 }, // Specialization
+      { wch: 12 }, // Semester
+      { wch: 30 }, // Company Name & City
+      { wch: 20 }, // Domain
+      { wch: 22 }, // Source
+      { wch: 14 }, // Start Date
+      { wch: 14 }, // End Date
+      { wch: 18 }, // Duration
+      { wch: 15 }, // Mode
+      { wch: 15 }, // PPO
+      { wch: 35 }, // Offer Letter URL
+      { wch: 35 }, // Completion Letter URL
+      { wch: 14 }  // Status
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Internship Records");
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `MIT_ADT_Student_Internships_${dateStr}.xlsx`);
   };
 
   // Role-Based Filtering:
@@ -299,14 +363,35 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
           </button>
           
           {!isStudent && (
-            <button
-              onClick={exportToCSV}
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-            >
-              <Download size={14} />
-              Export CSV
-            </button>
+            <>
+              <button
+                onClick={exportToCSV}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                title="Export database records as CSV file"
+              >
+                <Download size={14} />
+                Export CSV
+              </button>
+
+              <button
+                onClick={exportToExcel}
+                className="btn btn-secondary btn-sm"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.35rem',
+                  backgroundColor: '#f0fdf4',
+                  borderColor: '#86efac',
+                  color: '#15803d',
+                  fontWeight: 600
+                }}
+                title="Export database records as formatted Excel (.xlsx) spreadsheet"
+              >
+                <FileSpreadsheet size={14} color="#16a34a" />
+                Export Excel (.xlsx)
+              </button>
+            </>
           )}
 
           <button
