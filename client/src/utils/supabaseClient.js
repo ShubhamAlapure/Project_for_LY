@@ -91,13 +91,13 @@ const DEFAULT_INITIAL_RECORDS = [
   }
 ];
 
-// Local storage key for offline caching & fallback
+// Local storage & IndexedDB keys
 const LOCAL_STORAGE_RECORDS_KEY = 'interndocs_supabase_cached_records';
 const DB_NAME = 'InternDocsDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'student_documents';
 
-// Helper for IndexedDB to store heavy base64 PDFs without exceeding localStorage 5MB quota
+// Helper for IndexedDB to store full heavy PDFs without any truncation or 5MB limits
 const getIDB = () => {
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || !window.indexedDB) return resolve(null);
@@ -118,6 +118,7 @@ const getIDB = () => {
 };
 
 export const persistDocumentOffline = async (key, dataUrl) => {
+  if (!key || !dataUrl) return;
   try {
     const db = await getIDB();
     if (!db) return;
@@ -130,6 +131,7 @@ export const persistDocumentOffline = async (key, dataUrl) => {
 };
 
 export const getDocumentOffline = async (key) => {
+  if (!key) return null;
   try {
     const db = await getIDB();
     if (!db) return null;
@@ -151,13 +153,16 @@ const hydrateWithIndexedDB = async (recordsList) => {
     let completionUrl = r.completion_letter_url;
     let offerUrl = r.offer_letter_url;
 
-    if (!completionUrl && r.enrolment_no) {
-      const savedDoc = await getDocumentOffline(`completion_${r.enrolment_no.toLowerCase()}`);
-      if (savedDoc) completionUrl = savedDoc;
-    }
-    if (!offerUrl && r.enrolment_no) {
-      const savedDoc = await getDocumentOffline(`offer_${r.enrolment_no.toLowerCase()}`);
-      if (savedDoc) offerUrl = savedDoc;
+    if (r.enrolment_no) {
+      const enrolKey = r.enrolment_no.toLowerCase();
+      if (!completionUrl) {
+        const savedDoc = await getDocumentOffline(`completion_${enrolKey}`);
+        if (savedDoc) completionUrl = savedDoc;
+      }
+      if (!offerUrl) {
+        const savedDoc = await getDocumentOffline(`offer_${enrolKey}`);
+        if (savedDoc) offerUrl = savedDoc;
+      }
     }
 
     return {
@@ -189,21 +194,40 @@ export const getCachedRecords = () => {
 };
 
 export const saveCachedRecords = (records) => {
+  if (!records || !Array.isArray(records)) return;
+  
+  // Persist full records in IndexedDB
+  persistDocumentOffline('all_student_records_store', JSON.stringify(records));
+
+  // Also persist individual documents into IndexedDB
+  records.forEach(r => {
+    if (r.enrolment_no) {
+      const enrolKey = r.enrolment_no.toLowerCase();
+      if (r.completion_letter_url) {
+        persistDocumentOffline(`completion_${enrolKey}`, r.completion_letter_url);
+      }
+      if (r.offer_letter_url) {
+        persistDocumentOffline(`offer_${enrolKey}`, r.offer_letter_url);
+      }
+    }
+  });
+
+  // Save lightweight version in localStorage (without corrupting strings)
   try {
-    // Trim massive data URLs for localStorage if needed to prevent QuotaExceededError
-    const safeRecords = records.map(r => ({
-      ...r,
-      // If it's a huge base64 string, keep it in memory & IndexedDB
-      completion_letter_url: r.completion_letter_url && r.completion_letter_url.length > 200000 
-        ? r.completion_letter_url.slice(0, 200) + '...[STORED_IN_IDB]' 
-        : r.completion_letter_url,
-      offer_letter_url: r.offer_letter_url && r.offer_letter_url.length > 200000
-        ? r.offer_letter_url.slice(0, 200) + '...[STORED_IN_IDB]'
-        : r.offer_letter_url
-    }));
-    localStorage.setItem(LOCAL_STORAGE_RECORDS_KEY, JSON.stringify(safeRecords));
+    localStorage.setItem(LOCAL_STORAGE_RECORDS_KEY, JSON.stringify(records));
   } catch (err) {
-    console.warn('localStorage save warning (Handled via IndexedDB):', err);
+    // If localStorage quota exceeded, store without huge base64 strings in localStorage
+    // while IndexedDB keeps 100% full quality
+    try {
+      const safe = records.map(r => ({
+        ...r,
+        completion_letter_url: (r.completion_letter_url && r.completion_letter_url.startsWith('data:')) ? null : r.completion_letter_url,
+        offer_letter_url: (r.offer_letter_url && r.offer_letter_url.startsWith('data:')) ? null : r.offer_letter_url
+      }));
+      localStorage.setItem(LOCAL_STORAGE_RECORDS_KEY, JSON.stringify(safe));
+    } catch (e) {
+      // IndexedDB handles full storage
+    }
   }
 };
 
@@ -217,7 +241,6 @@ const mergeRecords = (supabaseData, cachedData) => {
 
   const merged = [...supabaseData];
 
-  // Look for any cached records that have newer updates or documents
   cachedData.forEach(cachedItem => {
     const matchIndex = merged.findIndex(r => 
       (cachedItem.id && r.id === cachedItem.id) ||
@@ -226,19 +249,17 @@ const mergeRecords = (supabaseData, cachedData) => {
     );
 
     if (matchIndex !== -1) {
-      // If cached item has a completion_letter_url or offer_letter_url and DB doesn't, preserve it
-      const hasCachedCompletion = cachedItem.completion_letter_url && !cachedItem.completion_letter_url.includes('[STORED_IN_IDB]');
-      const hasDbCompletion = merged[matchIndex].completion_letter_url;
+      const completionUrl = merged[matchIndex].completion_letter_url || cachedItem.completion_letter_url;
+      const offerUrl = merged[matchIndex].offer_letter_url || cachedItem.offer_letter_url;
 
       merged[matchIndex] = {
         ...merged[matchIndex],
-        completion_letter_url: hasDbCompletion || (hasCachedCompletion ? cachedItem.completion_letter_url : merged[matchIndex].completion_letter_url),
-        offer_letter_url: merged[matchIndex].offer_letter_url || cachedItem.offer_letter_url,
-        status: (hasDbCompletion || hasCachedCompletion) ? 'Completed' : (merged[matchIndex].status || cachedItem.status),
+        completion_letter_url: completionUrl || null,
+        offer_letter_url: offerUrl || null,
+        status: completionUrl ? 'Completed' : (merged[matchIndex].status || cachedItem.status),
         notes: cachedItem.notes || merged[matchIndex].notes
       };
     } else if (String(cachedItem.id).startsWith('local_')) {
-      // Keep local-only fallback records
       merged.push(cachedItem);
     }
   });
