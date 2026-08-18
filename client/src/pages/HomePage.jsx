@@ -6,10 +6,14 @@ import {
   Clock, 
   CheckCircle2, 
   ArrowRight, 
-  Sparkles,
-  FileText,
-  ShieldCheck,
-  Building
+  Sparkles, 
+  FileText, 
+  ShieldCheck, 
+  Building,
+  Database,
+  PlusCircle,
+  TrendingUp,
+  GraduationCap
 } from 'lucide-react';
 
 export const HomePage = ({ onNavigate, onSelectDocument }) => {
@@ -19,48 +23,140 @@ export const HomePage = ({ onNavigate, onSelectDocument }) => {
       <div className="portal-hero-banner">
         <div>
           <span className="portal-hero-tag">
-            STUDENT INTERNSHIP DOCUMENTATION DESK
+            STUDENT INTERNSHIP PORTAL & DATABASE DESK
           </span>
           <h1 className="portal-hero-title">
-            Generate Internship Documents
+            Student Internship Documentation System
           </h1>
           <p className="portal-hero-subtitle">
-            MIT-ADT University • School of Computing (SOC) • Rajbaug Campus, Pune
+            MIT-ADT University • School of Computing (SOC) • Powered by Supabase
           </p>
         </div>
 
         {/* Right Stat Pills */}
         <div className="portal-stat-pill-group">
           <div className="portal-stat-pill">
-            <div className="portal-stat-pill-label">Active Templates</div>
-            <div className="portal-stat-pill-value">2</div>
+            <div className="portal-stat-pill-label">Database Status</div>
+            <div className="portal-stat-pill-value" style={{ color: '#86efac', fontSize: '1.05rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }}></span>
+              SUPABASE CONNECTED
+            </div>
           </div>
           <div className="portal-stat-pill">
-            <div className="portal-stat-pill-label">Institutional Status</div>
-            <div className="portal-stat-pill-value" style={{ color: '#86efac', fontSize: '1.15rem', marginTop: '4px' }}>
-              VERIFIED
+            <div className="portal-stat-pill-label">Record Schema</div>
+            <div className="portal-stat-pill-value" style={{ color: '#ffffff', fontSize: '1.05rem', marginTop: '4px' }}>
+              17 Verified Fields
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3 Main Action Cards */}
+      {/* 4 Main Action Cards Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: '1.5rem',
         marginBottom: '2.5rem'
       }}>
-        {/* Card 1: Internship Undertaking */}
-        <div className="card" style={{ padding: '1.75rem', position: 'relative' }}>
-          {/* Top Pill Badge */}
+        {/* Card 1: Student Record Submission (17 Fields) */}
+        <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid var(--purple-600)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
             <div style={{
-              width: '42px',
-              height: '42px',
+              width: '44px',
+              height: '44px',
               borderRadius: '12px',
               backgroundColor: 'var(--purple-50)',
               color: 'var(--purple-600)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <PlusCircle size={22} />
+            </div>
+
+            <span style={{
+              backgroundColor: '#dcfce7',
+              color: '#15803d',
+              fontSize: '0.725rem',
+              fontWeight: 700,
+              padding: '0.2rem 0.65rem',
+              borderRadius: 'var(--radius-full)'
+            }}>
+              17 Fields • Uploads
+            </span>
+          </div>
+
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
+            Submit Student Internship
+          </h3>
+          <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+            Register complete student internship details with automatic duration calculation and offer letter upload.
+          </p>
+
+          <button
+            onClick={() => onNavigate('student-form')}
+            className="btn btn-primary btn-sm"
+            style={{ width: '100%', justifyContent: 'center' }}
+          >
+            Open Submission Form
+            <ArrowRight size={15} />
+          </button>
+        </div>
+
+        {/* Card 2: Student Records Database */}
+        <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid #2563eb' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              backgroundColor: '#eff6ff',
+              color: '#2563eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Database size={22} />
+            </div>
+
+            <span style={{
+              backgroundColor: '#eff6ff',
+              color: '#1d4ed8',
+              fontSize: '0.725rem',
+              fontWeight: 700,
+              padding: '0.2rem 0.65rem',
+              borderRadius: 'var(--radius-full)'
+            }}>
+              Live Database
+            </span>
+          </div>
+
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
+            Student Records Database
+          </h3>
+          <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+            Browse, search, filter, export to CSV, and auto-generate Undertaking & NOC directly from stored records.
+          </p>
+
+          <button
+            onClick={() => onNavigate('student-records')}
+            className="btn btn-secondary btn-sm"
+            style={{ width: '100%', justifyContent: 'center', color: '#2563eb', borderColor: '#bfdbfe' }}
+          >
+            View Student Records
+            <ArrowRight size={15} />
+          </button>
+        </div>
+
+        {/* Card 3: Internship Undertaking */}
+        <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid #d97706' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              backgroundColor: 'var(--amber-50)',
+              color: '#d97706',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -76,98 +172,33 @@ export const HomePage = ({ onNavigate, onSelectDocument }) => {
               padding: '0.2rem 0.65rem',
               borderRadius: 'var(--radius-full)'
             }}>
-              Form 01 • Active
+              Doc 01 • Undertaking
             </span>
           </div>
 
           <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
-            Internship Undertaking
+            Internship Undertaking Form
           </h3>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
-            Generate student compliance declaration with academic norms, Points I to IX, and candidate signature.
+            Generate student compliance declaration with academic norms, Points I to IX, and signature format.
           </p>
 
           <button
             onClick={() => onSelectDocument('undertaking')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--purple-600)',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: 0
-            }}
+            className="btn btn-secondary btn-sm"
+            style={{ width: '100%', justifyContent: 'center' }}
           >
             Open Undertaking Form
-            <ArrowRight size={16} />
+            <ArrowRight size={15} />
           </button>
         </div>
 
-        {/* Card 2: Internship NOC */}
-        <div className="card" style={{ padding: '1.75rem', position: 'relative' }}>
+        {/* Card 4: Internship NOC */}
+        <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid #059669' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
             <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              backgroundColor: '#eff6ff',
-              color: '#2563eb',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Award size={22} />
-            </div>
-
-            <span style={{
-              backgroundColor: 'var(--purple-100)',
-              color: 'var(--purple-700)',
-              fontSize: '0.725rem',
-              fontWeight: 700,
-              padding: '0.2rem 0.65rem',
-              borderRadius: 'var(--radius-full)'
-            }}>
-              Form 02 • Official Stamp
-            </span>
-          </div>
-
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
-            No Objection Certificate (NOC)
-          </h3>
-          <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
-            Generate official NOC letter addressed to company HR with 3 institutional signatories and Central T&P stamp.
-          </p>
-
-          <button
-            onClick={() => onSelectDocument('noc')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--purple-600)',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: 0
-            }}
-          >
-            Open NOC Form
-            <ArrowRight size={16} />
-          </button>
-        </div>
-
-        {/* Card 3: Document Repository */}
-        <div className="card" style={{ padding: '1.75rem', position: 'relative' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
+              width: '44px',
+              height: '44px',
               borderRadius: '12px',
               backgroundColor: '#ecfdf5',
               color: '#059669',
@@ -175,7 +206,7 @@ export const HomePage = ({ onNavigate, onSelectDocument }) => {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <Layers size={22} />
+              <Award size={22} />
             </div>
 
             <span style={{
@@ -186,34 +217,24 @@ export const HomePage = ({ onNavigate, onSelectDocument }) => {
               padding: '0.2rem 0.65rem',
               borderRadius: 'var(--radius-full)'
             }}>
-              Catalog
+              Doc 02 • Official Stamp
             </span>
           </div>
 
           <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
-            Template Repository
+            No Objection Certificate (NOC)
           </h3>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
-            Browse complete catalog of university internship templates including Bonafide, LOR, and Completion letters.
+            Generate official NOC letter addressed to company HR with 3 institutional signatories & T&P seal.
           </p>
 
           <button
-            onClick={() => onNavigate('documents')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--purple-600)',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: 0
-            }}
+            onClick={() => onSelectDocument('noc')}
+            className="btn btn-secondary btn-sm"
+            style={{ width: '100%', justifyContent: 'center' }}
           >
-            Browse All Templates
-            <ArrowRight size={16} />
+            Open NOC Form
+            <ArrowRight size={15} />
           </button>
         </div>
       </div>
@@ -227,11 +248,11 @@ export const HomePage = ({ onNavigate, onSelectDocument }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <ShieldCheck size={20} color="var(--purple-600)" />
           <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--purple-950)' }}>
-            MIT-ADT School of Computing Documentation Guidelines
+            MIT-ADT School of Computing Industrial Internship Protocol
           </h4>
         </div>
         <p style={{ fontSize: '0.85rem', color: 'var(--slate-600)', lineHeight: 1.6 }}>
-          All students undertaking corporate internships must submit both the <strong>Internship Undertaking</strong> (signed by candidate) and <strong>No Objection Certificate</strong> (endorsed by Internship Head, HOD, and Placement Cell) to the department records.
+          All 7th & 8th semester students must submit their complete 17-field internship record with a valid Offer Letter. Generated documents (Undertaking and NOC) will automatically reference verified database credentials for administrative evaluation.
         </p>
       </div>
     </div>

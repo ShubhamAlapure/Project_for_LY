@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, FileText, Layers } from 'lucide-react';
+import { Sparkles, FileText, Layers, Database, PlusCircle } from 'lucide-react';
 
 export const Navbar = ({ currentRoute, onNavigate }) => {
   return (
@@ -35,20 +35,48 @@ export const Navbar = ({ currentRoute, onNavigate }) => {
         />
       </div>
 
-      {/* Right side: Quick Action Buttons */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+      {/* Right side: Navigation & Quick Action Buttons */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => onNavigate('student-records')}
+          className="btn btn-sm"
+          style={{
+            backgroundColor: currentRoute === 'student-records' ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.1)',
+            color: '#ffffff',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: 'var(--radius-md)'
+          }}
+        >
+          <Database size={15} />
+          <span>Records DB</span>
+        </button>
+
+        <button
+          onClick={() => onNavigate('student-form')}
+          className="btn btn-sm"
+          style={{
+            backgroundColor: currentRoute === 'student-form' ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.1)',
+            color: '#ffffff',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: 'var(--radius-md)'
+          }}
+        >
+          <PlusCircle size={15} />
+          <span>Submit Record</span>
+        </button>
+
         <button
           onClick={() => onNavigate('documents')}
           className="btn btn-sm"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backgroundColor: currentRoute === 'documents' ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.1)',
             color: '#ffffff',
             border: '1px solid rgba(255, 255, 255, 0.2)',
             borderRadius: 'var(--radius-md)'
           }}
         >
           <Layers size={15} />
-          <span>All Templates</span>
+          <span>Templates</span>
         </button>
 
         <button

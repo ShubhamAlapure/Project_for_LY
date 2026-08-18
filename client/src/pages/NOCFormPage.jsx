@@ -60,10 +60,21 @@ const INITIAL_STATE = {
   directorDesignation: 'Director, Corporate Relations & Placement Cell'
 };
 
-export const NOCFormPage = ({ onGeneratePreview, onBack }) => {
-  const [formData, setFormData] = useState(() => loadFormData('noc', INITIAL_STATE));
+export const NOCFormPage = ({ onGeneratePreview, onBack, initialData }) => {
+  const [formData, setFormData] = useState(() => {
+    const saved = loadFormData('noc', INITIAL_STATE);
+    return initialData ? { ...saved, ...initialData } : saved;
+  });
   const [errors, setErrors] = useState({});
   const [saveStatus, setSaveStatus] = useState('');
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(prev => ({ ...prev, ...initialData }));
+      setSaveStatus('Prefilled from student record!');
+      setTimeout(() => setSaveStatus(''), 3000);
+    }
+  }, [initialData]);
 
   // Autosave to localStorage on change
   useEffect(() => {

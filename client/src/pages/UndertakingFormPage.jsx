@@ -45,10 +45,21 @@ const INITIAL_STATE = {
   mentorName: ''
 };
 
-export const UndertakingFormPage = ({ onGeneratePreview, onBack }) => {
-  const [formData, setFormData] = useState(() => loadFormData('undertaking', INITIAL_STATE));
+export const UndertakingFormPage = ({ onGeneratePreview, onBack, initialData }) => {
+  const [formData, setFormData] = useState(() => {
+    const saved = loadFormData('undertaking', INITIAL_STATE);
+    return initialData ? { ...saved, ...initialData } : saved;
+  });
   const [errors, setErrors] = useState({});
   const [saveStatus, setSaveStatus] = useState('');
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(prev => ({ ...prev, ...initialData }));
+      setSaveStatus('Prefilled from student record!');
+      setTimeout(() => setSaveStatus(''), 3000);
+    }
+  }, [initialData]);
 
   // Autosave to localStorage on change
   useEffect(() => {

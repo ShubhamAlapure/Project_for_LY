@@ -6,14 +6,18 @@ import { DocumentSelectionPage } from './pages/DocumentSelectionPage';
 import { UndertakingFormPage } from './pages/UndertakingFormPage';
 import { NOCFormPage } from './pages/NOCFormPage';
 import { DocumentPreviewPage } from './pages/DocumentPreviewPage';
+import { StudentSubmissionPage } from './pages/StudentSubmissionPage';
+import { StudentRecordsPage } from './pages/StudentRecordsPage';
 import { Shield, CheckCircle2, ArrowRight } from 'lucide-react';
 import './index.css';
 import './print.css';
 
 export const App = () => {
-  const [currentRoute, setCurrentRoute] = useState('home'); // 'home' | 'documents' | 'undertaking' | 'noc' | 'preview' | 'about'
+  const [currentRoute, setCurrentRoute] = useState('home'); // 'home' | 'student-form' | 'student-records' | 'documents' | 'undertaking' | 'noc' | 'preview' | 'about'
   const [activeDocType, setActiveDocType] = useState('undertaking');
   const [previewData, setPreviewData] = useState(null);
+  const [undertakingPrefill, setUndertakingPrefill] = useState(null);
+  const [nocPrefill, setNocPrefill] = useState(null);
 
   const handleNavigate = (route) => {
     setCurrentRoute(route);
@@ -29,6 +33,19 @@ export const App = () => {
       setCurrentRoute('noc');
     } else {
       setCurrentRoute('documents');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePrefillDocument = (docType, prefillData) => {
+    if (docType === 'undertaking') {
+      setUndertakingPrefill(prefillData);
+      setActiveDocType('undertaking');
+      setCurrentRoute('undertaking');
+    } else if (docType === 'noc') {
+      setNocPrefill(prefillData);
+      setActiveDocType('noc');
+      setCurrentRoute('noc');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -76,6 +93,20 @@ export const App = () => {
             />
           )}
 
+          {currentRoute === 'student-form' && (
+            <StudentSubmissionPage 
+              onNavigate={handleNavigate}
+              onPrefillDocument={handlePrefillDocument}
+            />
+          )}
+
+          {currentRoute === 'student-records' && (
+            <StudentRecordsPage 
+              onNavigate={handleNavigate}
+              onPrefillDocument={handlePrefillDocument}
+            />
+          )}
+
           {currentRoute === 'documents' && (
             <DocumentSelectionPage 
               onSelectDocument={handleSelectDocument} 
@@ -84,6 +115,7 @@ export const App = () => {
 
           {currentRoute === 'undertaking' && (
             <UndertakingFormPage 
+              initialData={undertakingPrefill}
               onGeneratePreview={handleGeneratePreview}
               onBack={() => handleNavigate('documents')}
             />
@@ -91,6 +123,7 @@ export const App = () => {
 
           {currentRoute === 'noc' && (
             <NOCFormPage 
+              initialData={nocPrefill}
               onGeneratePreview={handleGeneratePreview}
               onBack={() => handleNavigate('documents')}
             />
@@ -119,10 +152,10 @@ export const App = () => {
 
               <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.75rem' }}>
-                  Official Institutional Formats
+                  Official Institutional Formats & Database Sync
                 </h2>
                 <p style={{ color: 'var(--slate-700)', lineHeight: 1.6, marginBottom: '1.25rem' }}>
-                  InternDocs generates official university-compliant documents matching the standard formats established by MIT Art, Design and Technology University, School of Computing, Pune.
+                  InternDocs generates official university-compliant documents matching the standard formats established by MIT Art, Design and Technology University, School of Computing, Pune. All student submissions and document attachments are synchronized with Supabase.
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginTop: '1.5rem' }}>
@@ -139,20 +172,20 @@ export const App = () => {
                   <div style={{ padding: '1.25rem', backgroundColor: 'var(--purple-50)', borderRadius: 'var(--radius-md)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
                       <Shield size={16} color="var(--purple-600)" />
-                      Client-Side Privacy Guaranteed
+                      Supabase Cloud Storage
                     </div>
                     <p style={{ fontSize: '0.825rem', color: 'var(--slate-600)' }}>
-                      Student records and document compilations run locally without transmitting private credentials.
+                      Student records, offer letters, and completion certificates securely organized.
                     </p>
                   </div>
                 </div>
               </div>
 
               <button
-                onClick={() => handleNavigate('documents')}
+                onClick={() => handleNavigate('student-form')}
                 className="btn btn-primary btn-lg"
               >
-                Go to Document Selection
+                Go to Student Submission Form
                 <ArrowRight size={18} />
               </button>
             </div>
