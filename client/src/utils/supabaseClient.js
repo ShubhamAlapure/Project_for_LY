@@ -97,6 +97,28 @@ const DEFAULT_INITIAL_RECORDS = [
     offer_letter_url: SAMPLE_MICROSOFT_OFFER_PDF,
     completion_letter_url: null,
     status: 'Verified'
+  },
+  {
+    id: 'rec_rahul_deshmukh_03',
+    submission_date: '2026-02-01',
+    full_name: 'Rahul Deshmukh',
+    email: 'rahul.deshmukh@mituniversity.edu.in',
+    contact_no: '9811223344',
+    gender: 'Male',
+    enrolment_no: 'ADT23SOCB1205',
+    specialization: 'Computer Science & Engineering (CSE)',
+    semester: 'Semester VIII (Final Year)',
+    company_name_and_city: 'Amazon Development Centre, Pune',
+    domain_of_company: 'Cloud Computing & Software Development',
+    source_of_internship: 'Campus Placement Cell',
+    start_date: '2026-02-01',
+    end_date: '2026-08-01',
+    duration: '6 Months (182 Days)',
+    mode_of_internship: 'Offline',
+    is_ppo_offer: 'Yes',
+    offer_letter_url: SAMPLE_GOOGLE_OFFER_PDF,
+    completion_letter_url: null,
+    status: 'Verified'
   }
 ];
 

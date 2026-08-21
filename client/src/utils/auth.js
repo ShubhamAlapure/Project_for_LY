@@ -109,6 +109,18 @@ export const DEFAULT_USERS = [
   },
   {
     id: 'usr_student_03',
+    email: 'rahul.deshmukh@mituniversity.edu.in',
+    password: 'student123',
+    full_name: 'Rahul Deshmukh',
+    role: ROLES.STUDENT,
+    department: 'Department of Computer Science & Engineering',
+    enrolment_no: 'ADT23SOCB1205',
+    designation: 'Final Year B.Tech (CSE)',
+    phone: '9811223344',
+    status: 'Active'
+  },
+  {
+    id: 'usr_student_04',
     email: 'student@mitadt.edu.in',
     password: 'student123',
     full_name: 'Shubham Santosh Alapure',
