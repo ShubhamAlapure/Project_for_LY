@@ -313,6 +313,31 @@ const mergeRecords = (supabaseData, cachedData) => {
 };
 
 /**
+ * Real-time Supabase Database Subscription for live multi-device synchronization
+ */
+export const subscribeToStudentRecords = (onChangeCallback) => {
+  try {
+    const channel = supabase
+      .channel('realtime_student_internships')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'student_internships' },
+        (payload) => {
+          if (onChangeCallback) onChangeCallback(payload);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('Realtime subscription warning:', err);
+    return () => {};
+  }
+};
+
+/**
  * Fetch all student internship records from Supabase with resilient fallback & intelligent cache merge
  */
 export const fetchStudentRecords = async () => {

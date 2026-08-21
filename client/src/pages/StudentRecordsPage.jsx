@@ -29,7 +29,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { fetchStudentRecords, deleteStudentRecord, updateStudentRecord, uploadStudentDocument } from '../utils/supabaseClient';
+import { fetchStudentRecords, deleteStudentRecord, updateStudentRecord, uploadStudentDocument, subscribeToStudentRecords } from '../utils/supabaseClient';
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
 import { ROLES } from '../utils/auth';
 
@@ -58,10 +58,10 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
     studentName: ''
   });
 
-  const loadRecords = async () => {
-    setLoading(true);
+  const loadRecords = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const res = await fetchStudentRecords();
-    setLoading(false);
+    if (showLoading) setLoading(false);
     if (res.success) {
       setRecords(res.data);
       setIsFallback(res.isFallback || false);
@@ -69,7 +69,16 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
   };
 
   useEffect(() => {
-    loadRecords();
+    loadRecords(true);
+
+    // Subscribe to Supabase Realtime DB changes for instant multi-client live sync
+    const unsubscribe = subscribeToStudentRecords(() => {
+      loadRecords(false);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const handleDelete = async (id, name) => {
