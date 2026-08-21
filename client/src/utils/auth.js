@@ -374,24 +374,24 @@ export const updateUserPassword = async (email, currentPassword, newPassword) =>
       }
     }
 
-    // 2. Perform IMMEDIATE UPDATE on Supabase DB user_logins table
+    // 2. Perform IMMEDIATE UPDATE on Supabase DB user_logins table (only update existing columns!)
     const { data: updatedData, error: updateErr } = await supabase
       .from('user_logins')
       .update({ 
-        password: cleanNewPass,
-        updated_at: new Date().toISOString()
+        password: cleanNewPass
       })
       .ilike('email', cleanEmail)
       .select();
 
     if (updateErr) {
-      console.warn('Supabase DB password update notice:', updateErr.message);
+      console.error('Supabase DB password update error:', updateErr.message);
+      return { success: false, error: `Supabase DB update failed: ${updateErr.message}` };
     }
 
     // If row wasn't found in DB to update (e.g. seed user before explicit insert), upsert row into user_logins
     if (!updatedData || updatedData.length === 0) {
       const activeUser = getCurrentUser() || {};
-      await supabase
+      const { error: upsertErr } = await supabase
         .from('user_logins')
         .upsert({
           email: cleanEmail,
@@ -400,9 +400,13 @@ export const updateUserPassword = async (email, currentPassword, newPassword) =>
           role: activeUser.role || 'Student',
           department: activeUser.department || 'School of Computing',
           designation: activeUser.designation || '',
-          phone: activeUser.phone || '',
-          updated_at: new Date().toISOString()
+          phone: activeUser.phone || ''
         }, { onConflict: 'email' });
+
+      if (upsertErr) {
+        console.error('Supabase DB password upsert error:', upsertErr.message);
+        return { success: false, error: `Supabase DB upsert failed: ${upsertErr.message}` };
+      }
     }
 
     // 3. Update localStorage auth session and users cache IMMEDIATELY
