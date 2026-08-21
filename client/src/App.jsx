@@ -9,6 +9,7 @@ import { DocumentPreviewPage } from './pages/DocumentPreviewPage';
 import { StudentSubmissionPage } from './pages/StudentSubmissionPage';
 import { StudentRecordsPage } from './pages/StudentRecordsPage';
 import { LandingPage } from './pages/LandingPage';
+import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { getCurrentUser, logoutUser, ROLES, ROLE_CONFIG } from './utils/auth';
 import { Shield, CheckCircle2, ArrowRight } from 'lucide-react';
 import './index.css';
@@ -171,6 +172,13 @@ export const App = () => {
               formData={previewData}
               onEdit={handleEditDetails}
               onStartNew={handleStartNew}
+            />
+          )}
+
+          {currentRoute === 'change-password' && (
+            <ChangePasswordPage
+              authUser={authUser}
+              onNavigate={handleNavigate}
             />
           )}
 

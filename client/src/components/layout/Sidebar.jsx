@@ -11,7 +11,8 @@ import {
   GraduationCap,
   UserCheck,
   Building2,
-  Users
+  Users,
+  KeyRound
 } from 'lucide-react';
 import { ROLES, ROLE_CONFIG } from '../../utils/auth';
 
@@ -64,6 +65,14 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser }) => {
       icon: Award,
       route: 'noc',
       roles: [ROLES.ADMIN, ROLES.FACULTY, ROLES.HOD, ROLES.CENTRAL_TP, ROLES.STUDENT]
+    },
+    {
+      id: 'change-password',
+      label: 'Change Password',
+      icon: KeyRound,
+      route: 'change-password',
+      badge: 'Security',
+      roles: [ROLES.ADMIN, ROLES.FACULTY, ROLES.CENTRAL_TP, ROLES.HOD, ROLES.STUDENT]
     },
     {
       id: 'about',

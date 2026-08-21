@@ -334,3 +334,101 @@ export const logoutUser = () => {
     return false;
   }
 };
+
+/**
+ * Update user password immediately in Supabase DB (table: user_logins) and update session cache
+ */
+export const updateUserPassword = async (email, currentPassword, newPassword) => {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanCurrentPass = (currentPassword || '').trim();
+  const cleanNewPass = (newPassword || '').trim();
+
+  if (!cleanEmail || !cleanCurrentPass || !cleanNewPass) {
+    return { success: false, error: 'Please fill out all password fields.' };
+  }
+
+  if (cleanNewPass.length < 6) {
+    return { success: false, error: 'New password must be at least 6 characters long.' };
+  }
+
+  try {
+    // 1. Verify current password in Supabase first
+    const { data: fetchUser, error: fetchErr } = await supabase
+      .from('user_logins')
+      .select('*')
+      .ilike('email', cleanEmail)
+      .limit(1);
+
+    let dbRecord = fetchUser && fetchUser.length > 0 ? fetchUser[0] : null;
+
+    if (dbRecord) {
+      if (dbRecord.password !== cleanCurrentPass) {
+        return { success: false, error: 'Current password is incorrect. Please double-check your current password.' };
+      }
+    } else {
+      // Fallback check against cached/seed users
+      const users = getCachedUsers();
+      const matched = users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+      if (matched && matched.password !== cleanCurrentPass) {
+        return { success: false, error: 'Current password is incorrect. Please double-check your current password.' };
+      }
+    }
+
+    // 2. Perform IMMEDIATE UPDATE on Supabase DB user_logins table
+    const { data: updatedData, error: updateErr } = await supabase
+      .from('user_logins')
+      .update({ 
+        password: cleanNewPass,
+        updated_at: new Date().toISOString()
+      })
+      .ilike('email', cleanEmail)
+      .select();
+
+    if (updateErr) {
+      console.warn('Supabase DB password update notice:', updateErr.message);
+    }
+
+    // If row wasn't found in DB to update (e.g. seed user before explicit insert), upsert row into user_logins
+    if (!updatedData || updatedData.length === 0) {
+      const activeUser = getCurrentUser() || {};
+      await supabase
+        .from('user_logins')
+        .upsert({
+          email: cleanEmail,
+          password: cleanNewPass,
+          full_name: activeUser.full_name || 'System User',
+          role: activeUser.role || 'Student',
+          department: activeUser.department || 'School of Computing',
+          designation: activeUser.designation || '',
+          phone: activeUser.phone || '',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'email' });
+    }
+
+    // 3. Update localStorage auth session and users cache IMMEDIATELY
+    const currentSession = getCurrentUser();
+    if (currentSession && currentSession.email.toLowerCase() === cleanEmail) {
+      const updatedSession = { ...currentSession, password: cleanNewPass };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedSession));
+    }
+
+    const cachedUsers = getCachedUsers();
+    const updatedUsers = cachedUsers.map(u => {
+      if (u.email && u.email.toLowerCase() === cleanEmail) {
+        return { ...u, password: cleanNewPass };
+      }
+      return u;
+    });
+    saveCachedUsers(updatedUsers);
+
+    return { 
+      success: true, 
+      message: 'Password updated immediately in Supabase DB! Next login will require the new password.',
+      newPassword: cleanNewPass
+    };
+  } catch (err) {
+    console.error('Password update exception:', err);
+    return { success: false, error: err.message || 'Failed to update password.' };
+  }
+};
+
