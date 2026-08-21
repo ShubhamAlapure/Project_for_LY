@@ -58,7 +58,7 @@ export const ChangePasswordPage = ({ authUser, onNavigate }) => {
     if (res.success) {
       setStatusMessage({
         type: 'success',
-        text: 'Password updated immediately in Supabase DB! Your next login will require this new password.'
+        text: res.message || 'Password updated immediately! Your next login will require this new password.'
       });
       setCurrentPassword('');
       setNewPassword('');
