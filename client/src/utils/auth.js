@@ -375,11 +375,21 @@ export const updateUserPassword = async (email, currentPassword, newPassword) =>
     }
 
     // 2. Perform IMMEDIATE UPDATE on Supabase DB user_logins table
-    const { data: updatedData, error: updateErr } = await supabase
+    let { data: updatedData, error: updateErr } = await supabase
       .from('user_logins')
       .update({ password: cleanNewPass })
-      .ilike('email', cleanEmail)
+      .eq('email', cleanEmail)
       .select();
+
+    if ((!updatedData || updatedData.length === 0) && email !== cleanEmail) {
+      const retry = await supabase
+        .from('user_logins')
+        .update({ password: cleanNewPass })
+        .eq('email', email)
+        .select();
+      updatedData = retry.data;
+      if (retry.error) updateErr = retry.error;
+    }
 
     if (!updateErr && updatedData && updatedData.length > 0) {
       dbUpdated = true;
@@ -401,7 +411,7 @@ export const updateUserPassword = async (email, currentPassword, newPassword) =>
       if (!upsertErr) {
         dbUpdated = true;
       } else {
-        dbErrorNote = upsertErr.message;
+        dbErrorNote = upsertErr ? upsertErr.message : (updateErr ? updateErr.message : 'RLS or record match issue');
       }
     }
   } catch (err) {
