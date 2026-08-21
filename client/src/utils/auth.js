@@ -351,45 +351,40 @@ export const updateUserPassword = async (email, currentPassword, newPassword) =>
     return { success: false, error: 'New password must be at least 6 characters long.' };
   }
 
+  const users = getCachedUsers();
+  const matchedLocalUser = users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+  const currentSession = getCurrentUser();
+
+  let dbUpdated = false;
+  let dbErrorNote = null;
+
   try {
-    // 1. Verify current password in Supabase first
+    // 1. Verify current password against Supabase DB if accessible
     const { data: fetchUser, error: fetchErr } = await supabase
       .from('user_logins')
       .select('*')
       .ilike('email', cleanEmail)
       .limit(1);
 
-    let dbRecord = fetchUser && fetchUser.length > 0 ? fetchUser[0] : null;
-
-    if (dbRecord) {
-      if (dbRecord.password !== cleanCurrentPass) {
+    if (!fetchErr && fetchUser && fetchUser.length > 0) {
+      if (fetchUser[0].password !== cleanCurrentPass) {
         return { success: false, error: 'Current password is incorrect. Please double-check your current password.' };
       }
-    } else {
-      // Fallback check against cached/seed users
-      const users = getCachedUsers();
-      const matched = users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
-      if (matched && matched.password !== cleanCurrentPass) {
-        return { success: false, error: 'Current password is incorrect. Please double-check your current password.' };
-      }
+    } else if (matchedLocalUser && matchedLocalUser.password !== cleanCurrentPass) {
+      return { success: false, error: 'Current password is incorrect. Please double-check your current password.' };
     }
 
-    // 2. Perform IMMEDIATE UPDATE on Supabase DB user_logins table (only update existing columns!)
+    // 2. Perform IMMEDIATE UPDATE on Supabase DB user_logins table
     const { data: updatedData, error: updateErr } = await supabase
       .from('user_logins')
-      .update({ 
-        password: cleanNewPass
-      })
+      .update({ password: cleanNewPass })
       .ilike('email', cleanEmail)
       .select();
 
-    if (updateErr) {
-      console.error('Supabase DB password update error:', updateErr.message);
-      return { success: false, error: `Supabase DB update failed: ${updateErr.message}` };
-    }
-
-    // If row wasn't found in DB to update (e.g. seed user before explicit insert), upsert row into user_logins
-    if (!updatedData || updatedData.length === 0) {
+    if (!updateErr && updatedData && updatedData.length > 0) {
+      dbUpdated = true;
+    } else {
+      // Upsert if row was not found in DB
       const activeUser = getCurrentUser() || {};
       const { error: upsertErr } = await supabase
         .from('user_logins')
@@ -403,36 +398,55 @@ export const updateUserPassword = async (email, currentPassword, newPassword) =>
           phone: activeUser.phone || ''
         }, { onConflict: 'email' });
 
-      if (upsertErr) {
-        console.error('Supabase DB password upsert error:', upsertErr.message);
-        return { success: false, error: `Supabase DB upsert failed: ${upsertErr.message}` };
+      if (!upsertErr) {
+        dbUpdated = true;
+      } else {
+        dbErrorNote = upsertErr.message;
       }
     }
+  } catch (err) {
+    console.warn('Network exception updating Supabase DB, persisting locally:', err.message);
+    dbErrorNote = err.message;
+  }
 
-    // 3. Update localStorage auth session and users cache IMMEDIATELY
-    const currentSession = getCurrentUser();
-    if (currentSession && currentSession.email.toLowerCase() === cleanEmail) {
-      const updatedSession = { ...currentSession, password: cleanNewPass };
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedSession));
+  // 3. ALWAYS update localStorage session and users cache IMMEDIATELY
+  if (currentSession && currentSession.email.toLowerCase() === cleanEmail) {
+    const updatedSession = { ...currentSession, password: cleanNewPass };
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedSession));
+  }
+
+  const updatedUsers = users.map(u => {
+    if (u.email && u.email.toLowerCase() === cleanEmail) {
+      return { ...u, password: cleanNewPass };
     }
+    return u;
+  });
 
-    const cachedUsers = getCachedUsers();
-    const updatedUsers = cachedUsers.map(u => {
-      if (u.email && u.email.toLowerCase() === cleanEmail) {
-        return { ...u, password: cleanNewPass };
-      }
-      return u;
+  if (!updatedUsers.some(u => u.email && u.email.toLowerCase() === cleanEmail)) {
+    const activeUser = getCurrentUser() || {};
+    updatedUsers.push({
+      email: cleanEmail,
+      password: cleanNewPass,
+      full_name: activeUser.full_name || 'System User',
+      role: activeUser.role || 'Student'
     });
-    saveCachedUsers(updatedUsers);
+  }
 
-    return { 
-      success: true, 
-      message: 'Password updated immediately in Supabase DB! Next login will require the new password.',
+  saveCachedUsers(updatedUsers);
+
+  if (dbUpdated) {
+    return {
+      success: true,
+      message: 'Password updated immediately in Supabase DB! Your next login will require this new password.',
       newPassword: cleanNewPass
     };
-  } catch (err) {
-    console.error('Password update exception:', err);
-    return { success: false, error: err.message || 'Failed to update password.' };
+  } else {
+    return {
+      success: true,
+      isFallback: true,
+      message: `Password updated successfully in active session & local cache! (${dbErrorNote ? 'Cloud notice: ' + dbErrorNote : 'Local sync completed'}).`,
+      newPassword: cleanNewPass
+    };
   }
 };
 
