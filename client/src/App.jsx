@@ -27,26 +27,48 @@ export const App = () => {
   const [undertakingPrefill, setUndertakingPrefill] = useState(null);
   const [nocPrefill, setNocPrefill] = useState(null);
   const [hasSubmittedApp, setHasSubmittedApp] = useState(false);
+  const [studentStatus, setStudentStatus] = useState(null);
+  const [isApproved, setIsApproved] = useState(false);
 
-  // Check if active student already has submitted application
+  // Check if active student already has submitted application and get approval status
   useEffect(() => {
     const checkSubmission = async () => {
       if (!authUser) return;
       if (authUser.role === ROLES.STUDENT) {
-        const { data } = await fetchStudentRecords();
-        if (data && data.length > 0) {
-          const userEmail = authUser.email?.toLowerCase();
-          const userEnroll = authUser.enrolment_no?.toLowerCase();
-          const userName = authUser.full_name?.toLowerCase();
-          const hasApp = data.some(r => 
-            (r.email && userEmail && r.email.toLowerCase() === userEmail) ||
-            (r.enrolment_no && userEnroll && r.enrolment_no.toLowerCase() === userEnroll) ||
-            (r.full_name && userName && r.full_name.toLowerCase().includes(userName))
-          );
-          setHasSubmittedApp(hasApp);
+        try {
+          const { data } = await fetchStudentRecords();
+          if (data && data.length > 0) {
+            const userEmail = authUser.email?.toLowerCase();
+            const userEnroll = authUser.enrolment_no?.toLowerCase();
+            const userName = authUser.full_name?.toLowerCase();
+            const found = data.find(r => 
+              (r.email && userEmail && r.email.toLowerCase() === userEmail) ||
+              (r.enrolment_no && userEnroll && r.enrolment_no.toLowerCase() === userEnroll) ||
+              (r.full_name && userName && r.full_name.toLowerCase().includes(userName))
+            );
+            if (found) {
+              setHasSubmittedApp(true);
+              const status = found.status || 'Submitted';
+              setStudentStatus(status);
+              const approved = ['approved', 'verified', 'completed'].includes(status.toLowerCase());
+              setIsApproved(approved);
+            } else {
+              setHasSubmittedApp(false);
+              setStudentStatus(null);
+              setIsApproved(false);
+            }
+          } else {
+            setHasSubmittedApp(false);
+            setStudentStatus(null);
+            setIsApproved(false);
+          }
+        } catch (err) {
+          console.error('Error checking student submission status:', err);
         }
       } else {
         setHasSubmittedApp(true);
+        setIsApproved(true);
+        setStudentStatus('Approved');
       }
     };
     checkSubmission();
@@ -133,6 +155,9 @@ export const App = () => {
         onNavigate={handleNavigate}
         authUser={authUser}
         onLogout={handleLogout}
+        hasSubmittedApp={hasSubmittedApp}
+        isApproved={isApproved}
+        studentStatus={studentStatus}
       />
 
       {/* Main Body: Sidebar + Main Content Area */}
@@ -143,6 +168,8 @@ export const App = () => {
           onNavigate={handleNavigate}
           authUser={authUser}
           hasSubmittedApp={hasSubmittedApp}
+          isApproved={isApproved}
+          studentStatus={studentStatus}
         />
 
         {/* Content Area */}
@@ -153,6 +180,8 @@ export const App = () => {
               onSelectDocument={handleSelectDocument}
               authUser={authUser}
               hasSubmittedApp={hasSubmittedApp}
+              isApproved={isApproved}
+              studentStatus={studentStatus}
             />
           )}
 
@@ -163,6 +192,9 @@ export const App = () => {
               authUser={authUser}
               onApplicationSubmitted={(record) => {
                 setHasSubmittedApp(true);
+                setStudentStatus(record?.status || 'Submitted');
+                const approved = ['approved', 'verified', 'completed'].includes((record?.status || '').toLowerCase());
+                setIsApproved(approved);
               }}
             />
           )}
@@ -177,7 +209,12 @@ export const App = () => {
 
           {currentRoute === 'documents' && (
             <DocumentSelectionPage 
-              onSelectDocument={handleSelectDocument} 
+              onSelectDocument={handleSelectDocument}
+              authUser={authUser}
+              hasSubmittedApp={hasSubmittedApp}
+              isApproved={isApproved}
+              studentStatus={studentStatus}
+              onNavigate={handleNavigate}
             />
           )}
 
@@ -186,6 +223,10 @@ export const App = () => {
               initialData={undertakingPrefill}
               onGeneratePreview={handleGeneratePreview}
               onBack={() => handleNavigate('documents')}
+              authUser={authUser}
+              hasSubmittedApp={hasSubmittedApp}
+              isApproved={isApproved}
+              onNavigate={handleNavigate}
             />
           )}
 
@@ -194,6 +235,10 @@ export const App = () => {
               initialData={nocPrefill}
               onGeneratePreview={handleGeneratePreview}
               onBack={() => handleNavigate('documents')}
+              authUser={authUser}
+              hasSubmittedApp={hasSubmittedApp}
+              isApproved={isApproved}
+              onNavigate={handleNavigate}
             />
           )}
 

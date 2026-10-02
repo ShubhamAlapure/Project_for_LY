@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { ROLES, ROLE_CONFIG } from '../../utils/auth';
 
-export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp }) => {
+export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp, isApproved, studentStatus }) => {
   const userRole = authUser ? authUser.role : ROLES.ADMIN;
   const isStudent = userRole === ROLES.STUDENT;
 
@@ -35,7 +35,7 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp })
         },
         {
           id: 'student-form',
-          label: hasSubmittedApp ? '1. My Application' : '1. My Application',
+          label: '1. My Application',
           icon: hasSubmittedApp ? CheckCircle2 : PlusCircle,
           route: 'student-form',
           badge: hasSubmittedApp ? '✓ Submitted' : 'Step 1 • Required',
@@ -48,9 +48,9 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp })
           label: '2. Application Status',
           icon: Database,
           route: 'student-records',
-          badge: !hasSubmittedApp ? '🔒 Locked' : 'Track Status',
-          badgeColor: !hasSubmittedApp ? '#f1f5f9' : '#e0f2fe',
-          badgeTextColor: !hasSubmittedApp ? '#64748b' : '#0369a1',
+          badge: !hasSubmittedApp ? '🔒 Locked' : (studentStatus ? `Status: ${studentStatus}` : 'Track Status'),
+          badgeColor: !hasSubmittedApp ? '#f1f5f9' : (isApproved ? '#dcfce7' : '#e0f2fe'),
+          badgeTextColor: !hasSubmittedApp ? '#64748b' : (isApproved ? '#15803d' : '#0369a1'),
           isLocked: !hasSubmittedApp,
           lockReason: 'Complete Step 1 (Internship Application) to unlock status tracking.'
         },
@@ -59,29 +59,39 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp })
           label: 'Document Hub',
           icon: Layers,
           route: 'documents',
-          badge: !hasSubmittedApp ? '🔒 Locked' : '2 Letters',
-          badgeColor: !hasSubmittedApp ? '#f1f5f9' : '#f3e8ff',
-          badgeTextColor: !hasSubmittedApp ? '#64748b' : '#7e22ce',
-          isLocked: !hasSubmittedApp,
-          lockReason: 'Complete Step 1 (Internship Application) to unlock official letters.'
+          badge: !hasSubmittedApp ? '🔒 Locked' : (!isApproved ? '🔒 Awaiting Approval' : '2 Letters'),
+          badgeColor: !hasSubmittedApp ? '#f1f5f9' : (!isApproved ? '#fef3c7' : '#f3e8ff'),
+          badgeTextColor: !hasSubmittedApp ? '#64748b' : (!isApproved ? '#b45309' : '#7e22ce'),
+          isLocked: !isApproved,
+          lockReason: !hasSubmittedApp 
+            ? 'Complete Step 1 (Internship Application) to unlock official letters.' 
+            : 'Your application is awaiting Faculty Coordinator approval before document generation unlocks.'
         },
         {
           id: 'undertaking',
           label: 'Internship Undertaking',
           icon: FileCheck2,
           route: 'undertaking',
-          badge: !hasSubmittedApp ? '🔒 Locked' : '',
-          isLocked: !hasSubmittedApp,
-          lockReason: 'Submit internship details first to auto-fill Undertaking.'
+          badge: !hasSubmittedApp ? '🔒 Locked' : (!isApproved ? '🔒 Locked' : '✓ Ready'),
+          badgeColor: !isApproved ? '#f1f5f9' : '#ecfdf5',
+          badgeTextColor: !isApproved ? '#64748b' : '#059669',
+          isLocked: !isApproved,
+          lockReason: !hasSubmittedApp 
+            ? 'Submit internship application in Step 1 first.' 
+            : 'Awaiting Faculty Coordinator approval before generating Undertaking.'
         },
         {
           id: 'noc',
           label: 'No Objection Certificate',
           icon: Award,
           route: 'noc',
-          badge: !hasSubmittedApp ? '🔒 Locked' : '',
-          isLocked: !hasSubmittedApp,
-          lockReason: 'Submit internship details first to generate official NOC.'
+          badge: !hasSubmittedApp ? '🔒 Locked' : (!isApproved ? '🔒 Locked' : '✓ Ready'),
+          badgeColor: !isApproved ? '#f1f5f9' : '#fffbeb',
+          badgeTextColor: !isApproved ? '#64748b' : '#d97706',
+          isLocked: !isApproved,
+          lockReason: !hasSubmittedApp 
+            ? 'Submit internship application in Step 1 first.' 
+            : 'Awaiting Faculty Coordinator approval before generating NOC.'
         },
         {
           id: 'change-password',

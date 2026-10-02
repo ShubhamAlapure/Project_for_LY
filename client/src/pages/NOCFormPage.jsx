@@ -23,6 +23,8 @@ import { saveFormData, loadFormData, clearFormData } from '../utils/storage';
 import { SAMPLE_DATA } from '../data/sampleData';
 import { calculateInternshipDuration } from '../utils/supabaseClient';
 
+import { ROLES } from '../utils/auth';
+
 const INITIAL_STATE = {
   // Document Reference
   referenceNumber: 'MITADT/SOC/T&P/2026/NOC-0842',
@@ -61,7 +63,17 @@ const INITIAL_STATE = {
   directorDesignation: 'Director, Corporate Relations & Placement Cell'
 };
 
-export const NOCFormPage = ({ onGeneratePreview, onBack, initialData }) => {
+export const NOCFormPage = ({ 
+  onGeneratePreview, 
+  onBack, 
+  initialData,
+  authUser,
+  hasSubmittedApp,
+  isApproved,
+  onNavigate
+}) => {
+  const isStudent = authUser?.role === ROLES.STUDENT;
+
   const [formData, setFormData] = useState(() => {
     const saved = loadFormData('noc', INITIAL_STATE);
     return initialData ? { ...saved, ...initialData } : saved;
@@ -137,6 +149,52 @@ export const NOCFormPage = ({ onGeneratePreview, onBack, initialData }) => {
 
     onGeneratePreview('noc', formData);
   };
+
+  if (isStudent && !isApproved) {
+    return (
+      <div className="animate-fade-in" style={{ padding: '3rem 0 5rem 0' }}>
+        <div className="container container-narrow">
+          <div className="card" style={{ padding: '2.5rem', textAlign: 'center' }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              backgroundColor: '#fffbeb',
+              color: '#d97706',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.5rem auto'
+            }}>
+              <Award size={30} />
+            </div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.75rem' }}>
+              🔒 NOC Letter Generation Locked
+            </h2>
+            <p style={{ color: 'var(--slate-600)', maxWidth: '500px', margin: '0 auto 1.75rem auto', lineHeight: 1.6 }}>
+              {hasSubmittedApp 
+                ? 'Your internship application is currently under review with your assigned Faculty Coordinator. The official No Objection Certificate (NOC) will unlock once approved.'
+                : 'You must submit your Internship Application (Step 1) and receive Faculty Coordinator approval before generating the official NOC letter.'}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => onNavigate(hasSubmittedApp ? 'student-records' : 'student-form')}
+                className="btn btn-primary"
+              >
+                {hasSubmittedApp ? 'Track Application Status' : 'Go to Step 1 Application'}
+              </button>
+              <button
+                onClick={() => onNavigate('home')}
+                className="btn btn-secondary"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in" style={{ padding: '2rem 0 5rem 0' }}>

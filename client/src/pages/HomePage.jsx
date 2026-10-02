@@ -13,14 +13,30 @@ import {
   Database, 
   PlusCircle, 
   TrendingUp, 
-  GraduationCap 
+  GraduationCap,
+  Lock,
+  UserCheck
 } from 'lucide-react';
 import { ROLES } from '../utils/auth';
 
-export const HomePage = ({ onNavigate, onSelectDocument, authUser }) => {
+export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedApp, isApproved, studentStatus }) => {
   const role = authUser ? authUser.role : ROLES.ADMIN;
   const name = authUser ? authUser.full_name : 'Shubham Alapure';
   const isStudent = role === ROLES.STUDENT;
+
+  const handleDocumentClick = (docType) => {
+    if (isStudent && !isApproved) {
+      if (!hasSubmittedApp) {
+        alert('Please complete Step 1: Submit your Internship Application first.');
+        onNavigate('student-form');
+      } else {
+        alert(`Your application is currently "${studentStatus || 'Pending'}". Official documents unlock once your Faculty Coordinator approves your application.`);
+        onNavigate('student-records');
+      }
+      return;
+    }
+    onSelectDocument(docType);
+  };
 
   return (
     <div className="animate-fade-in">
@@ -56,6 +72,63 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser }) => {
         </div>
       </div>
 
+      {/* Student Progress Guidance Notice */}
+      {isStudent && (
+        <div style={{
+          backgroundColor: isApproved ? '#f0fdf4' : hasSubmittedApp ? '#eff6ff' : '#fefce8',
+          border: `1.5px solid ${isApproved ? '#86efac' : hasSubmittedApp ? '#bfdbfe' : '#fde047'}`,
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '2rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '50%',
+              backgroundColor: isApproved ? '#16a34a' : hasSubmittedApp ? '#2563eb' : '#ca8a04',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              {isApproved ? <CheckCircle2 size={24} /> : hasSubmittedApp ? <Clock size={22} /> : <PlusCircle size={22} />}
+            </div>
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: isApproved ? '#166534' : hasSubmittedApp ? '#1e40af' : '#854d0e' }}>
+                {isApproved 
+                  ? '🎉 Application Approved! Undertaking & NOC are now fully unlocked.' 
+                  : hasSubmittedApp 
+                  ? `Application Submitted • Status: ${studentStatus || 'Under Review'}` 
+                  : 'Action Required • Step 1: Submit Your Internship Application'}
+              </div>
+              <p style={{ fontSize: '0.825rem', color: isApproved ? '#15803d' : hasSubmittedApp ? '#3b82f6' : '#a16207', margin: '0.2rem 0 0 0' }}>
+                {isApproved 
+                  ? 'Your Faculty Coordinator has verified your offer letter. You can now generate your official Undertaking & NOC letters.' 
+                  : hasSubmittedApp 
+                  ? 'Your application has been forwarded to your Faculty Coordinator for review. Once approved, Undertaking & NOC will unlock.' 
+                  : 'Please complete your internship registration and attach your Offer Letter PDF. Other modules remain locked until submitted & approved.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate(hasSubmittedApp ? 'student-records' : 'student-form')}
+            className={`btn btn-sm ${isApproved ? 'btn-secondary' : 'btn-primary'}`}
+            style={{ fontSize: '0.825rem', fontWeight: 700 }}
+          >
+            {hasSubmittedApp ? 'Track Review Status' : 'Start Application Now'}
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      )}
+
       {/* 4 Main Action Cards Grid */}
       <div style={{
         display: 'grid',
@@ -63,7 +136,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser }) => {
         gap: '1.5rem',
         marginBottom: '2.5rem'
       }}>
-        {/* Card 1: Student Record Submission (17 Fields) */}
+        {/* Card 1: Student Record Submission (18 Fields) */}
         <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid var(--purple-600)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
             <div style={{
@@ -80,19 +153,19 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser }) => {
             </div>
 
             <span style={{
-              backgroundColor: '#dcfce7',
-              color: '#15803d',
+              backgroundColor: (isStudent && hasSubmittedApp) ? '#dcfce7' : '#fef08a',
+              color: (isStudent && hasSubmittedApp) ? '#15803d' : '#854d0e',
               fontSize: '0.725rem',
               fontWeight: 700,
               padding: '0.2rem 0.65rem',
               borderRadius: 'var(--radius-full)'
             }}>
-              17 Fields • Uploads
+              {isStudent ? (hasSubmittedApp ? '✓ Step 1 Submitted' : 'Step 1 • Required') : '18 Fields • Uploads'}
             </span>
           </div>
 
           <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
-            {isStudent ? 'My Internship Application' : 'Submit Student Internship'}
+            {isStudent ? '1. My Internship Application' : 'Submit Student Internship'}
           </h3>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
             {isStudent 
@@ -105,13 +178,18 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser }) => {
             className="btn btn-primary btn-sm"
             style={{ width: '100%', justifyContent: 'center' }}
           >
-            {isStudent ? 'Open My Application' : 'Open Submission Form'}
+            {isStudent ? (hasSubmittedApp ? 'Edit / View Application' : 'Open My Application') : 'Open Submission Form'}
             <ArrowRight size={15} />
           </button>
         </div>
 
         {/* Card 2: Student Records Database / My Status */}
-        <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid #2563eb' }}>
+        <div className="card" style={{ 
+          padding: '1.75rem', 
+          position: 'relative', 
+          borderTop: '4px solid #2563eb',
+          opacity: (isStudent && !hasSubmittedApp) ? 0.75 : 1
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
             <div style={{
               width: '44px',
@@ -123,127 +201,174 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser }) => {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              {isStudent ? <CheckCircle2 size={22} /> : <Database size={22} />}
+              {(isStudent && !hasSubmittedApp) ? <Lock size={20} color="var(--slate-400)" /> : <CheckCircle2 size={22} />}
             </div>
 
             <span style={{
-              backgroundColor: '#eff6ff',
-              color: '#1d4ed8',
+              backgroundColor: (isStudent && !hasSubmittedApp) ? '#f1f5f9' : '#eff6ff',
+              color: (isStudent && !hasSubmittedApp) ? '#64748b' : '#1d4ed8',
               fontSize: '0.725rem',
               fontWeight: 700,
               padding: '0.2rem 0.65rem',
               borderRadius: 'var(--radius-full)'
             }}>
-              {isStudent ? 'Application Status' : 'Live Database'}
+              {isStudent ? (!hasSubmittedApp ? '🔒 Step 2 Locked' : `Status: ${studentStatus || 'Submitted'}`) : 'Live Database'}
             </span>
           </div>
 
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
-            {isStudent ? 'My Application & Status' : 'Student Records Database'}
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: (isStudent && !hasSubmittedApp) ? 'var(--slate-600)' : 'var(--purple-950)', marginBottom: '0.4rem' }}>
+            {isStudent ? '2. My Application Status' : 'Manage Student Applications'}
           </h3>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
             {isStudent 
-              ? 'Review your verified internship details, preview uploaded offer/completion letters, and check approvals.'
-              : 'Browse, search, filter, export to CSV, and auto-generate Undertaking & NOC directly from stored records.'}
+              ? (!hasSubmittedApp 
+                ? '🔒 Submit Step 1 (Internship Application) to unlock tracking and review progress with your coordinator.' 
+                : 'Review your verified internship details, preview uploaded offer letter, and track faculty coordinator approval.')
+              : 'Browse, filter, review student applications, inspect offer letters, and issue one-click approval or rejection.'}
           </p>
 
           <button
-            onClick={() => onNavigate('student-records')}
+            onClick={() => {
+              if (isStudent && !hasSubmittedApp) {
+                alert('Please submit your Internship Application (Step 1) first.');
+                onNavigate('student-form');
+                return;
+              }
+              onNavigate('student-records');
+            }}
             className="btn btn-secondary btn-sm"
-            style={{ width: '100%', justifyContent: 'center', color: '#2563eb', borderColor: '#bfdbfe' }}
+            style={{ 
+              width: '100%', 
+              justifyContent: 'center', 
+              color: (isStudent && !hasSubmittedApp) ? 'var(--slate-500)' : '#2563eb', 
+              borderColor: (isStudent && !hasSubmittedApp) ? 'var(--slate-300)' : '#bfdbfe',
+              backgroundColor: (isStudent && !hasSubmittedApp) ? 'var(--slate-100)' : 'transparent'
+            }}
           >
-            {isStudent ? 'Track My Application' : 'View Student Records'}
-            <ArrowRight size={15} />
+            {isStudent ? (!hasSubmittedApp ? '🔒 Submit Application to Unlock' : 'Track My Application') : 'Manage Student Records'}
+            {(isStudent && !hasSubmittedApp) ? <Lock size={14} /> : <ArrowRight size={15} />}
           </button>
         </div>
 
         {/* Card 3: Internship Undertaking */}
-        <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid #059669' }}>
+        <div className="card" style={{ 
+          padding: '1.75rem', 
+          position: 'relative', 
+          borderTop: `4px solid ${isStudent && !isApproved ? 'var(--slate-300)' : '#059669'}`,
+          opacity: (isStudent && !isApproved) ? 0.72 : 1,
+          backgroundColor: (isStudent && !isApproved) ? '#fafafa' : '#ffffff'
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
             <div style={{
               width: '44px',
               height: '44px',
               borderRadius: '12px',
-              backgroundColor: '#ecfdf5',
-              color: '#059669',
+              backgroundColor: (isStudent && !isApproved) ? 'var(--slate-100)' : '#ecfdf5',
+              color: (isStudent && !isApproved) ? 'var(--slate-400)' : '#059669',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <FileCheck2 size={22} />
+              {(isStudent && !isApproved) ? <Lock size={20} /> : <FileCheck2 size={22} />}
             </div>
 
             <span style={{
-              backgroundColor: '#ecfdf5',
-              color: '#059669',
+              backgroundColor: (isStudent && !isApproved) ? '#fef3c7' : '#ecfdf5',
+              color: (isStudent && !isApproved) ? '#b45309' : '#059669',
               fontSize: '0.725rem',
               fontWeight: 700,
               padding: '0.2rem 0.65rem',
               borderRadius: 'var(--radius-full)'
             }}>
-              Clauses I - IX
+              {isStudent ? (!isApproved ? (hasSubmittedApp ? '🔒 Awaiting Approval' : '🔒 Locked') : '✓ Unlocked') : 'Clauses I - IX'}
             </span>
           </div>
 
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: (isStudent && !isApproved) ? 'var(--slate-600)' : 'var(--purple-950)', marginBottom: '0.4rem' }}>
             Internship Undertaking
           </h3>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
-            Official student undertaking document with all mandatory clauses, attendance commitments, and manual signature blocks.
+            {isStudent && !isApproved
+              ? (hasSubmittedApp 
+                ? '🔒 Unlocks once your assigned Faculty Coordinator reviews and approves your internship application.'
+                : '🔒 Submit your application in Step 1 to begin the approval process for this undertaking.')
+              : 'Official student undertaking document with all mandatory clauses, attendance commitments, and manual signature blocks.'}
           </p>
 
           <button
-            onClick={() => onSelectDocument('undertaking')}
+            onClick={() => handleDocumentClick('undertaking')}
             className="btn btn-secondary btn-sm"
-            style={{ width: '100%', justifyContent: 'center', color: '#059669', borderColor: '#a7f3d0' }}
+            style={{ 
+              width: '100%', 
+              justifyContent: 'center', 
+              color: (isStudent && !isApproved) ? 'var(--slate-500)' : '#059669', 
+              borderColor: (isStudent && !isApproved) ? 'var(--slate-300)' : '#a7f3d0',
+              backgroundColor: (isStudent && !isApproved) ? 'var(--slate-100)' : 'transparent'
+            }}
           >
-            Generate Undertaking
-            <ArrowRight size={15} />
+            {isStudent && !isApproved ? (hasSubmittedApp ? '🔒 Awaiting Faculty Approval' : '🔒 Submit Step 1 First') : 'Generate Undertaking'}
+            {isStudent && !isApproved ? <Lock size={14} /> : <ArrowRight size={15} />}
           </button>
         </div>
 
         {/* Card 4: No Objection Certificate (NOC) */}
-        <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid #d97706' }}>
+        <div className="card" style={{ 
+          padding: '1.75rem', 
+          position: 'relative', 
+          borderTop: `4px solid ${isStudent && !isApproved ? 'var(--slate-300)' : '#d97706'}`,
+          opacity: (isStudent && !isApproved) ? 0.72 : 1,
+          backgroundColor: (isStudent && !isApproved) ? '#fafafa' : '#ffffff'
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
             <div style={{
               width: '44px',
               height: '44px',
               borderRadius: '12px',
-              backgroundColor: '#fffbeb',
-              color: '#d97706',
+              backgroundColor: (isStudent && !isApproved) ? 'var(--slate-100)' : '#fffbeb',
+              color: (isStudent && !isApproved) ? 'var(--slate-400)' : '#d97706',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <Award size={22} />
+              {(isStudent && !isApproved) ? <Lock size={20} /> : <Award size={22} />}
             </div>
 
             <span style={{
-              backgroundColor: '#fffbeb',
-              color: '#b45309',
+              backgroundColor: (isStudent && !isApproved) ? '#fef3c7' : '#fffbeb',
+              color: (isStudent && !isApproved) ? '#b45309' : '#b45309',
               fontSize: '0.725rem',
               fontWeight: 700,
               padding: '0.2rem 0.65rem',
               borderRadius: 'var(--radius-full)'
             }}>
-              3 Signatories
+              {isStudent ? (!isApproved ? (hasSubmittedApp ? '🔒 Awaiting Approval' : '🔒 Locked') : '✓ Unlocked') : '3 Signatories'}
             </span>
           </div>
 
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: (isStudent && !isApproved) ? 'var(--slate-600)' : 'var(--purple-950)', marginBottom: '0.4rem' }}>
             No Objection Certificate
           </h3>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
-            Official NOC for corporate employers with automatic reference dispatch numbers, period certification, and faculty endorsement lines.
+            {isStudent && !isApproved
+              ? (hasSubmittedApp 
+                ? '🔒 Unlocks once your assigned Faculty Coordinator reviews and approves your internship application.'
+                : '🔒 Submit your application in Step 1 to begin the approval process for your NOC.')
+              : 'Official NOC for corporate employers with automatic reference dispatch numbers, period certification, and faculty endorsement lines.'}
           </p>
 
           <button
-            onClick={() => onSelectDocument('noc')}
+            onClick={() => handleDocumentClick('noc')}
             className="btn btn-secondary btn-sm"
-            style={{ width: '100%', justifyContent: 'center', color: '#d97706', borderColor: '#fde68a' }}
+            style={{ 
+              width: '100%', 
+              justifyContent: 'center', 
+              color: (isStudent && !isApproved) ? 'var(--slate-500)' : '#d97706', 
+              borderColor: (isStudent && !isApproved) ? 'var(--slate-300)' : '#fde68a',
+              backgroundColor: (isStudent && !isApproved) ? 'var(--slate-100)' : 'transparent'
+            }}
           >
-            Generate NOC Letter
-            <ArrowRight size={15} />
+            {isStudent && !isApproved ? (hasSubmittedApp ? '🔒 Awaiting Faculty Approval' : '🔒 Submit Step 1 First') : 'Generate NOC Letter'}
+            {isStudent && !isApproved ? <Lock size={14} /> : <ArrowRight size={15} />}
           </button>
         </div>
       </div>

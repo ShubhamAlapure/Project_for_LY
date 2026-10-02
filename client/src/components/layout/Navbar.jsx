@@ -16,8 +16,22 @@ import {
 } from 'lucide-react';
 import { ROLES, ROLE_CONFIG } from '../../utils/auth';
 
-export const Navbar = ({ currentRoute, onNavigate, authUser, onLogout }) => {
-  const roleConfig = authUser ? (ROLE_CONFIG[authUser.role] || ROLE_CONFIG[ROLES.ADMIN]) : null;
+export const Navbar = ({ currentRoute, onNavigate, authUser, onLogout, hasSubmittedApp, isApproved, studentStatus }) => {
+  const isStudent = authUser?.role === ROLES.STUDENT;
+
+  const handleDocumentsNav = () => {
+    if (isStudent && !isApproved) {
+      if (!hasSubmittedApp) {
+        alert('Please complete Step 1: Submit your Internship Application first.');
+        onNavigate('student-form');
+      } else {
+        alert(`Your application is currently "${studentStatus || 'Under Review'}". Official documents unlock once your Faculty Coordinator approves your application.`);
+        onNavigate('student-records');
+      }
+      return;
+    }
+    onNavigate('documents');
+  };
 
   return (
     <header className="portal-topbar non-printable" style={{
@@ -56,7 +70,7 @@ export const Navbar = ({ currentRoute, onNavigate, authUser, onLogout }) => {
       {/* Center / Right: Navigation Actions & User Profile */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
         {/* Navigation Quick Links */}
-        {authUser?.role !== ROLES.STUDENT && (
+        {!isStudent && (
           <button
             onClick={() => onNavigate('student-records')}
             className="btn btn-sm"
@@ -68,7 +82,7 @@ export const Navbar = ({ currentRoute, onNavigate, authUser, onLogout }) => {
             }}
           >
             <Database size={15} />
-            <span>Records DB</span>
+            <span>{authUser?.role === ROLES.FACULTY ? 'Manage Applications' : 'Records DB'}</span>
           </button>
         )}
 
@@ -83,20 +97,22 @@ export const Navbar = ({ currentRoute, onNavigate, authUser, onLogout }) => {
           }}
         >
           <PlusCircle size={15} />
-          <span>{authUser?.role === ROLES.STUDENT ? 'My Internship Form' : 'Submit Record'}</span>
+          <span>{isStudent ? (hasSubmittedApp ? 'My Application' : '1. My Application') : 'Submit Record'}</span>
         </button>
 
         <button
-          onClick={() => onNavigate('documents')}
+          onClick={handleDocumentsNav}
           className="btn btn-sm"
           style={{
             backgroundColor: currentRoute === 'documents' ? 'rgba(255, 255, 255, 0.24)' : 'rgba(255, 255, 255, 0.1)',
-            color: '#ffffff',
+            color: (isStudent && !isApproved) ? 'rgba(255, 255, 255, 0.6)' : '#ffffff',
             border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: 'var(--radius-md)'
+            borderRadius: 'var(--radius-md)',
+            cursor: (isStudent && !isApproved) ? 'not-allowed' : 'pointer'
           }}
+          title={isStudent && !isApproved ? 'Locked until Faculty Coordinator approval' : 'Document Hub'}
         >
-          <Layers size={15} />
+          {isStudent && !isApproved ? <span style={{ fontSize: '0.8rem' }}>🔒</span> : <Layers size={15} />}
           <span>Documents</span>
         </button>
 
