@@ -1,7 +1,7 @@
 import html2pdf from 'html2pdf.js';
 
 /**
- * Generates and downloads an exact A4 PDF from a DOM element
+ * Generates and downloads an exact single-page A4 PDF from a DOM element
  * @param {HTMLElement} element - The DOM element of the A4 document paper
  * @param {string} filename - Target PDF file name
  * @param {object} options - Optional overrides
@@ -13,7 +13,7 @@ export const downloadDocumentPDF = async (element, filename = 'document.pdf', op
   }
 
   const opt = {
-    margin: [10, 10, 10, 10], // mm
+    margin: 0,
     filename: filename.endsWith('.pdf') ? filename : `${filename}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
@@ -22,13 +22,16 @@ export const downloadDocumentPDF = async (element, filename = 'document.pdf', op
       logging: false,
       letterRendering: true,
       scrollX: 0,
-      scrollY: 0
+      scrollY: 0,
+      windowWidth: element.offsetWidth || 794
     },
     jsPDF: {
       unit: 'mm',
       format: 'a4',
-      orientation: 'portrait'
+      orientation: 'portrait',
+      compress: true
     },
+    pagebreak: { mode: 'avoid-all' },
     ...options
   };
 

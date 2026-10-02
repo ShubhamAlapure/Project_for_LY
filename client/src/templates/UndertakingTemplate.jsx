@@ -16,20 +16,32 @@ export const UndertakingTemplate = ({ data = {} }) => {
   
   const contactNumber = data.contactNumber || data.contact_no || "9876543210";
   const documentDate = data.documentDate || data.submission_date || new Date().toISOString().split('T')[0];
-  const documentDateDisplay = data.documentDateDisplay || formatDateShort(documentDate);
+  const displayDate = data.documentDateDisplay || formatDateShort(documentDate);
 
-  const displayDate = documentDateDisplay || formatDateShort(documentDate);
   const displayStart = data.startDateDisplay || formatDateForDoc(startDate);
   const displayEnd = data.endDateDisplay || formatDateForDoc(endDate);
 
   return (
-    <div className="a4-document-paper" id="undertaking-document" style={{
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      minHeight: '297mm',
-      boxSizing: 'border-box'
-    }}>
+    <div 
+      className="a4-document-paper" 
+      id="undertaking-document" 
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        width: '210mm',
+        height: '297mm',
+        maxHeight: '297mm',
+        boxSizing: 'border-box',
+        padding: '12mm 16mm 10mm 16mm',
+        overflow: 'hidden',
+        backgroundColor: '#ffffff',
+        color: '#111111',
+        fontFamily: 'var(--font-doc-serif)',
+        position: 'relative'
+      }}
+    >
+      {/* ── TOP SECTION ── */}
       <div>
         {/* Institutional Header Image */}
         <DocumentHeader />
@@ -38,20 +50,21 @@ export const UndertakingTemplate = ({ data = {} }) => {
         <div style={{
           display: 'flex',
           justifyContent: 'flex-end',
-          fontSize: '10pt',
+          fontSize: '9.5pt',
           fontFamily: 'var(--font-doc-serif)',
           fontWeight: '700',
-          marginBottom: '10px'
+          marginTop: '4px',
+          marginBottom: '8px'
         }}>
           <div>
-            Date: <span className="doc-dynamic-text" style={{ fontStyle: 'italic' }}>{displayDate}</span>
+            Date: <span className="doc-dynamic-text">{displayDate}</span>
           </div>
         </div>
 
         {/* Centered Document Title */}
-        <div style={{ textAlign: 'center', margin: '6px 0 14px 0' }}>
+        <div style={{ textAlign: 'center', margin: '4px 0 10px 0' }}>
           <span style={{
-            fontSize: '13pt',
+            fontSize: '12pt',
             fontWeight: '800',
             textDecoration: 'underline',
             textUnderlineOffset: '3px',
@@ -63,20 +76,20 @@ export const UndertakingTemplate = ({ data = {} }) => {
 
         {/* Salutation */}
         <div style={{
-          fontSize: '10pt',
+          fontSize: '9.5pt',
           fontFamily: 'var(--font-doc-serif)',
-          marginBottom: '10px'
+          marginBottom: '8px'
         }}>
           Dear Sir / Madam,
         </div>
 
         {/* Student Identification Paragraph with exact underlines */}
         <div style={{
-          fontSize: '10pt',
-          lineHeight: '1.85',
+          fontSize: '9.5pt',
+          lineHeight: '1.75',
           fontFamily: 'var(--font-doc-serif)',
           textAlign: 'justify',
-          marginBottom: '12px'
+          marginBottom: '10px'
         }}>
           I, <span className="doc-dynamic-text">{studentName}</span>, 
           Class <span className="doc-dynamic-text">{className}</span>, 
@@ -94,82 +107,86 @@ export const UndertakingTemplate = ({ data = {} }) => {
 
         {/* Preamble Statement */}
         <div style={{
-          fontSize: '9.5pt',
-          lineHeight: '1.4',
+          fontSize: '9pt',
+          lineHeight: '1.35',
           fontFamily: 'var(--font-doc-serif)',
-          marginBottom: '10px'
+          marginBottom: '8px',
+          fontWeight: '600'
         }}>
           I hereby undertake to fully abide by all the Policies / Norms / Instructions of the Institute given from time to time, including the following:
         </div>
 
         {/* Points I to IX */}
         <div style={{
-          fontSize: '9.2pt',
-          lineHeight: '1.45',
+          fontSize: '8.8pt',
+          lineHeight: '1.38',
           fontFamily: 'var(--font-doc-serif)',
           textAlign: 'justify'
         }}>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '5px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
             <span style={{ minWidth: '22px', fontWeight: '700' }}>I.</span>
             <span>I will remain responsible for attendance in lectures and practical.</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '5px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
             <span style={{ minWidth: '22px', fontWeight: '700' }}>II.</span>
             <span>I will complete all the necessary assignments and lab experiments.</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '5px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
             <span style={{ minWidth: '22px', fontWeight: '700' }}>III.</span>
             <span>I will be available for university examination including Term Assessments, Practical Assessments and Project presentations in the VII and VIII semesters.</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '5px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
             <span style={{ minWidth: '22px', fontWeight: '700' }}>IV.</span>
             <span>I will keep updating progress of internship to my designated academic mentor as and when asked by him.</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '5px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
             <span style={{ minWidth: '22px', fontWeight: '700' }}>V.</span>
             <span>I will be responsible for cancellation of my internship at any stage if found fake or irrelevant.</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '5px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
             <span style={{ minWidth: '22px', fontWeight: '700' }}>VI.</span>
             <span>I understand that maintaining a minimum of 75% attendance, as per university norms, is my responsibility.</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '5px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
             <span style={{ minWidth: '22px', fontWeight: '700' }}>VII.</span>
             <span>I will ensure that my internship commitments do not affect my academic schedule and will be carried out beyond regular college hours.</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '5px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
             <span style={{ minWidth: '22px', fontWeight: '700' }}>VIII.</span>
             <span>If the Summer Internship dates clash with Campus to Corporate Training (Summer Training), I will coordinate with CRTP by keeping DTPO in loop.</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
             <span style={{ minWidth: '22px', fontWeight: '700' }}>IX.</span>
             <span>After completion of the internship, I will submit the <strong>Internship Completion Letter</strong> to the Internship Incharge; otherwise, I am fully aware that my internship will not be approved.</span>
           </div>
         </div>
+      </div>
 
-        {/* Candidate Signature Block (Names & Contact preserved, signature space for physical manual sign) */}
+      {/* ── BOTTOM SECTION: SIGNATURE + FOOTER ── */}
+      <div style={{ marginTop: 'auto', width: '100%' }}>
+        {/* Candidate Signature Block */}
         <div style={{
-          marginTop: '26px',
           display: 'flex',
-          justifyContent: 'flex-end'
+          justifyContent: 'flex-end',
+          marginBottom: '12px'
         }}>
           <div style={{
             minWidth: '260px',
-            fontSize: '9.5pt',
+            fontSize: '9pt',
             fontFamily: 'var(--font-doc-serif)',
-            lineHeight: '1.7'
+            lineHeight: '1.6'
           }}>
-            <div style={{ marginBottom: '8px' }}>
+            <div style={{ marginBottom: '6px' }}>
               <span style={{ fontWeight: '700' }}>Candidate's Signature:</span>
-              <div style={{ height: '35px', width: '180px', borderBottom: '1px dashed #94a3b8', marginTop: '4px' }}></div>
+              <div style={{ height: '30px', width: '180px', borderBottom: '1px dashed #64748b', marginTop: '3px' }}></div>
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -183,10 +200,10 @@ export const UndertakingTemplate = ({ data = {} }) => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Institutional Footer Image */}
-      <DocumentFooter />
+        {/* Institutional Footer Image */}
+        <DocumentFooter />
+      </div>
     </div>
   );
 };
