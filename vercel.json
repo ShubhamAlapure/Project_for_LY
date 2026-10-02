@@ -3,6 +3,11 @@
   "buildCommand": "npm --prefix client install && npm --prefix client run build",
   "outputDirectory": "client/dist",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  ],
+  "env": {
+    "SUPABASE_URL": "https://nwwchkmbcybgvneauqex.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_1c6YarkkLcbFHvoi5YPtfQ__yaYF5xo"
+  }
 }

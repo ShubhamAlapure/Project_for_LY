@@ -576,5 +576,5 @@ app.post('/api/login', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 InternDocs Backend Server running on http://localhost:${PORT}`);
-  console.log(`📡 Supabase Connected: ${process.env.SUPABASE_URL || 'https://nwwchkmbycbgvneauqex.supabase.co'}`);
+  console.log(`📡 Supabase Connected: ${process.env.SUPABASE_URL || 'https://nwwchkmbcybgvneauqex.supabase.co'}`);
 });

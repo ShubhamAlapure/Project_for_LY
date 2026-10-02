@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import lyStudents from '../data/lyStudents.json';
 
 export const ROLES = {
   STUDENT: 'Student',
@@ -208,12 +209,14 @@ export const DEFAULT_USERS = [
 const AUTH_STORAGE_KEY = 'mit_interndocs_auth_user';
 const USERS_CACHE_KEY = 'mit_interndocs_users_cache';
 
+const ALL_SEED_USERS = [...DEFAULT_USERS, ...lyStudents];
+
 const getCachedUsers = () => {
   try {
     const cached = localStorage.getItem(USERS_CACHE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached);
-      const merged = [...DEFAULT_USERS];
+      const merged = [...ALL_SEED_USERS];
       parsed.forEach(pu => {
         if (!merged.find(u => u.email?.toLowerCase() === pu.email?.toLowerCase())) {
           merged.push(pu);
@@ -221,9 +224,9 @@ const getCachedUsers = () => {
       });
       return merged;
     }
-    return DEFAULT_USERS;
+    return ALL_SEED_USERS;
   } catch (e) {
-    return DEFAULT_USERS;
+    return ALL_SEED_USERS;
   }
 };
 
@@ -309,34 +312,41 @@ export const loginUser = async (emailInput, passwordInput, requestedRole = null)
     return { success: false, error: 'Please enter both Email and Password.' };
   }
 
-  // ──────── Strategy 1: Server API (works locally) ────────
+  // ──────── Strategy 1: Server API (/api/login) ────────
   try {
     const apiRes = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: resolvedEmail, password: cleanPass })
     });
-    const apiData = await apiRes.json();
-    console.log('[LOGIN] Server API response:', apiData.success, apiData.error || '');
 
-    if (apiData.success && apiData.user) {
-      const user = apiData.user;
-      if (requestedRole && !rolesMatch(user.role, requestedRole) && user.role !== ROLES.ADMIN) {
-        return {
-          success: false,
-          error: `Your account is registered as "${user.role}". Please switch to the ${user.role} tab.`
-        };
+    // Only parse as JSON if the response is actually JSON (not HTML fallback)
+    const contentType = apiRes.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const apiData = await apiRes.json();
+      console.log('[LOGIN] Server API response:', apiData.success, apiData.error || '');
+
+      if (apiData.success && apiData.user) {
+        const user = apiData.user;
+        if (requestedRole && !rolesMatch(user.role, requestedRole) && user.role !== ROLES.ADMIN) {
+          return {
+            success: false,
+            error: `Your account is registered as "${user.role}". Please switch to the ${user.role} tab.`
+          };
+        }
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+        return { success: true, user };
       }
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-      return { success: true, user };
-    }
 
-    // If server says "incorrect password" or "no account", return that directly
-    if (apiRes.status === 401) {
-      return { success: false, error: apiData.error };
+      // If server explicitly confirmed wrong password for an existing account, return error
+      if (apiRes.status === 401 && apiData.error && apiData.error.toLowerCase().includes('password')) {
+        return { success: false, error: apiData.error };
+      }
+    } else {
+      console.log('[LOGIN] Server API returned non-JSON (HTML), skipping...');
     }
   } catch (apiErr) {
-    console.log('[LOGIN] Server API not available, trying Supabase directly:', apiErr.message);
+    console.log('[LOGIN] Server API not available:', apiErr.message);
   }
 
   // ──────── Strategy 2: Direct Supabase query (works on Vercel) ────────
@@ -360,7 +370,7 @@ export const loginUser = async (emailInput, passwordInput, requestedRole = null)
       const user = data.find(u => u.email.toLowerCase() === resolvedEmail) || data[0];
       console.log('[LOGIN] Found user:', user.email, 'role:', user.role);
 
-      if (user.password === cleanPass) {
+      if (String(user.password).trim() === cleanPass) {
         if (requestedRole && !rolesMatch(user.role, requestedRole) && user.role !== ROLES.ADMIN) {
           return {
             success: false,
@@ -370,63 +380,40 @@ export const loginUser = async (emailInput, passwordInput, requestedRole = null)
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
         return { success: true, user };
       } else {
-        console.log('[LOGIN] Password mismatch. Expected:', user.password, 'Got:', cleanPass);
+        console.log('[LOGIN] Password mismatch for Supabase record.');
         return { success: false, error: 'Incorrect password. Please try again.' };
       }
-    }
-
-    // If ilike returned nothing, try a broader approach: fetch ALL and filter in JS
-    console.log('[LOGIN] ilike returned no results, trying broader fetch...');
-    const { data: allUsers, error: allErr } = await supabase
-      .from('user_logins')
-      .select('email, password, full_name, role, department, designation, enrolment_no, phone, status, id')
-      .limit(1000);
-
-    if (!allErr && allUsers && allUsers.length > 0) {
-      console.log('[LOGIN] Fetched', allUsers.length, 'users from user_logins, searching...');
-      const match = allUsers.find(u => u.email && u.email.toLowerCase() === resolvedEmail);
-      if (match) {
-        console.log('[LOGIN] Found via broad search:', match.email);
-        if (match.password === cleanPass) {
-          if (requestedRole && !rolesMatch(match.role, requestedRole) && match.role !== ROLES.ADMIN) {
-            return {
-              success: false,
-              error: `Your account is registered as "${match.role}". Please switch to the ${match.role} tab.`
-            };
-          }
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(match));
-          return { success: true, user: match };
-        } else {
-          return { success: false, error: 'Incorrect password. Please try again.' };
-        }
-      }
-      console.log('[LOGIN] Email not found in', allUsers.length, 'records');
-    } else {
-      console.log('[LOGIN] Broad fetch failed or empty:', allErr?.message || 'no data');
     }
   } catch (err) {
     console.error('[LOGIN] Supabase exception:', err);
   }
 
-  // ──────── Strategy 3: Local fallback (DEFAULT_USERS + cache) ────────
-  console.log('[LOGIN] Falling back to local DEFAULT_USERS...');
+  // ──────── Strategy 3: Local fallback (ALL_SEED_USERS + cache) ────────
+  console.log('[LOGIN] Falling back to local credentials store...');
   const users = getCachedUsers();
-  const matchedUser = users.find(
-    u => u.email && u.email.toLowerCase() === resolvedEmail && u.password === cleanPass
+  const accountByEmail = users.find(
+    u => u.email && u.email.toLowerCase() === resolvedEmail
   );
 
-  if (matchedUser) {
-    if (requestedRole && !rolesMatch(matchedUser.role, requestedRole) && matchedUser.role !== ROLES.ADMIN) {
-      return {
-        success: false,
-        error: `Your account is registered as "${matchedUser.role}". Please select the ${matchedUser.role} tab.`
-      };
+  if (accountByEmail) {
+    if (String(accountByEmail.password).trim() === cleanPass) {
+      if (requestedRole && !rolesMatch(accountByEmail.role, requestedRole) && accountByEmail.role !== ROLES.ADMIN) {
+        return {
+          success: false,
+          error: `Your account is registered as "${accountByEmail.role}". Please switch to the ${accountByEmail.role} tab.`
+        };
+      }
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(accountByEmail));
+      return { success: true, user: accountByEmail, isFallback: true };
+    } else {
+      return { success: false, error: 'Incorrect password. Please try again.' };
     }
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(matchedUser));
-    return { success: true, user: matchedUser, isFallback: true };
   }
 
-  return { success: false, error: 'No account found with this email. Please check your email and make sure the SQL insert has been run in Supabase.' };
+  return { 
+    success: false, 
+    error: 'No account found with this email. Please check your email address.' 
+  };
 };
 
 /**

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase Project Credentials
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://nwwchkmbycbgvneauqex.supabase.co';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://nwwchkmbcybgvneauqex.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_1c6YarkkLcbFHvoi5YPtfQ__yaYF5xo';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
