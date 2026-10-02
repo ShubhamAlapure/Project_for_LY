@@ -30,7 +30,8 @@ import {
   UserCheck,
   Check,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { fetchStudentRecords, deleteStudentRecord, updateStudentRecord, uploadStudentDocument, subscribeToStudentRecords } from '../utils/supabaseClient';
@@ -631,111 +632,155 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       {/* KPI Stats Cards */}
       {isStudent ? (
         /* Student Specific Status Cards */
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '1.25rem',
-          marginBottom: '1.75rem'
-        }}>
-          <div className="card" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
-              <span>APPLICATION STATUS</span>
-              <CheckCircle2 size={16} color="#16a34a" />
-            </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#15803d', marginTop: '0.35rem' }}>
-              {filteredRecords.length > 0 ? (filteredRecords[0].status || 'Submitted') : 'Pending Submission'}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
-              {filteredRecords.length > 0 ? 'Record Synchronized' : 'Action Required'}
-            </div>
-          </div>
+        (() => {
+          const currentRec = filteredRecords.length > 0 ? filteredRecords[0] : null;
+          const statusStr = currentRec?.status || 'Submitted';
+          const isAppApproved = ['approved', 'verified', 'completed'].includes(statusStr.toLowerCase());
+          const isAppRejected = statusStr.toLowerCase() === 'rejected';
 
-          <div className="card" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
-              <span>OFFER LETTER</span>
-              <FileCheck2 size={16} color="#2563eb" />
-            </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#1e40af', marginTop: '0.35rem' }}>
-              {filteredRecords.length > 0 && filteredRecords[0].offer_letter_url ? 'Attached (PDF)' : 'Not Uploaded'}
-            </div>
-            <div style={{ marginTop: '0.4rem' }}>
-              {filteredRecords.length > 0 && filteredRecords[0].offer_letter_url ? (
-                <button
-                  type="button"
-                  onClick={() => openDocumentPreview(filteredRecords[0].offer_letter_url, `${filteredRecords[0].full_name} - Offer Letter`, filteredRecords[0].full_name)}
-                  className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem', color: '#15803d', borderColor: '#86efac', backgroundColor: '#f0fdf4', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                >
-                  <Eye size={12} />
-                  Preview Offer Letter
-                </button>
-              ) : (
-                <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600 }}>
-                  Verification Ready
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="card" style={{ padding: '1.25rem', borderLeft: filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? '3px solid #16a34a' : '3px solid #f59e0b' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
-              <span>COMPLETION LETTER</span>
-              <Award size={16} color={filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? '#16a34a' : '#d97706'} />
-            </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? '#15803d' : '#b45309', marginTop: '0.35rem' }}>
-              {filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? 'Attached (PDF)' : 'Pending'}
-            </div>
-            <div style={{ marginTop: '0.4rem' }}>
-              {filteredRecords.length > 0 && filteredRecords[0].completion_letter_url ? (
-                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={() => openDocumentPreview(filteredRecords[0].completion_letter_url, `${filteredRecords[0].full_name} - Completion Certificate`, filteredRecords[0].full_name)}
-                    className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem', color: '#0369a1', borderColor: '#7dd3fc', backgroundColor: '#f0f9ff', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                  >
-                    <Award size={12} />
-                    Preview Certificate
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingCompletionRecord(filteredRecords[0])}
-                    style={{ border: 'none', background: 'none', color: 'var(--purple-600)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                  >
-                    Replace
-                  </button>
+          return (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '1.25rem',
+              marginBottom: '1.75rem'
+            }}>
+              {/* Card 1: Application Status */}
+              <div className="card" style={{ 
+                padding: '1.25rem',
+                borderLeft: `4px solid ${isAppApproved ? '#16a34a' : isAppRejected ? '#dc2626' : '#2563eb'}`
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <span>APPLICATION STATUS</span>
+                  {isAppApproved ? <CheckCircle2 size={18} color="#16a34a" /> : isAppRejected ? <XCircle size={18} color="#dc2626" /> : <Clock size={18} color="#2563eb" />}
                 </div>
-              ) : filteredRecords.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setEditingCompletionRecord(filteredRecords[0])}
-                  className="btn btn-primary btn-sm"
-                  style={{ fontSize: '0.725rem', padding: '0.2rem 0.55rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
-                >
-                  <Plus size={12} />
-                  Upload Letter Now
-                </button>
-              ) : (
-                <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600 }}>
-                  Attach upon tenure
-                </span>
-              )}
-            </div>
-          </div>
+                <div style={{ 
+                  fontSize: '1.35rem', 
+                  fontWeight: 800, 
+                  color: isAppApproved ? '#15803d' : isAppRejected ? '#be123c' : '#1e40af', 
+                  marginTop: '0.35rem' 
+                }}>
+                  {isAppApproved 
+                    ? 'Application Approved' 
+                    : isAppRejected 
+                    ? 'Rejected / Resubmit' 
+                    : currentRec ? 'Submitted' : 'Pending Submission'}
+                </div>
+                <div style={{ 
+                  fontSize: '0.75rem', 
+                  color: isAppApproved ? '#16a34a' : isAppRejected ? '#be123c' : '#2563eb', 
+                  fontWeight: 600, 
+                  marginTop: '0.2rem' 
+                }}>
+                  {isAppApproved 
+                    ? `✓ Approved by ${currentRec?.assigned_coordinator || 'Faculty Coordinator'}` 
+                    : isAppRejected 
+                    ? 'Please review feedback & resubmit' 
+                    : currentRec 
+                    ? `⏳ Waiting for Faculty Approval (${currentRec.assigned_coordinator || 'Assigned Coordinator'})` 
+                    : 'Action Required • Step 1 Form'}
+                </div>
+              </div>
 
-          <div className="card" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
-              <span>OFFICIAL LETTERS</span>
-              <Layers size={16} color="var(--purple-600)" />
+              {/* Card 2: Offer Letter */}
+              <div className="card" style={{ padding: '1.25rem', borderLeft: currentRec?.offer_letter_url ? '4px solid #16a34a' : '4px solid #f59e0b' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <span>OFFER LETTER</span>
+                  <FileCheck2 size={18} color={currentRec?.offer_letter_url ? '#16a34a' : '#d97706'} />
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: currentRec?.offer_letter_url ? '#15803d' : '#b45309', marginTop: '0.35rem' }}>
+                  {currentRec?.offer_letter_url ? 'Attached (PDF)' : 'Not Uploaded'}
+                </div>
+                <div style={{ marginTop: '0.4rem' }}>
+                  {currentRec?.offer_letter_url ? (
+                    <button
+                      type="button"
+                      onClick={() => openDocumentPreview(currentRec.offer_letter_url, `${currentRec.full_name} - Offer Letter`, currentRec.full_name)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem', color: '#15803d', borderColor: '#86efac', backgroundColor: '#f0fdf4', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                    >
+                      <Eye size={12} />
+                      Preview Offer Letter
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600 }}>
+                      Attach in Step 1 Application
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Card 3: Completion Certificate (Explicitly Locked During Active Internship) */}
+              <div className="card" style={{ 
+                padding: '1.25rem', 
+                borderLeft: currentRec?.completion_letter_url ? '4px solid #16a34a' : '4px solid #94a3b8',
+                backgroundColor: currentRec?.completion_letter_url ? '#ffffff' : '#fafafa'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <span>COMPLETION CERTIFICATE</span>
+                  {currentRec?.completion_letter_url ? <Award size={18} color="#16a34a" /> : <Lock size={16} color="var(--slate-400)" />}
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: currentRec?.completion_letter_url ? '#15803d' : 'var(--slate-600)', marginTop: '0.35rem' }}>
+                  {currentRec?.completion_letter_url ? 'Attached (PDF)' : '🔒 Locked for Now'}
+                </div>
+                <div style={{ marginTop: '0.4rem' }}>
+                  {currentRec?.completion_letter_url ? (
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => openDocumentPreview(currentRec.completion_letter_url, `${currentRec.full_name} - Completion Certificate`, currentRec.full_name)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '0.725rem', padding: '0.2rem 0.5rem', color: '#0369a1', borderColor: '#7dd3fc', backgroundColor: '#f0f9ff', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                      >
+                        <Award size={12} />
+                        Preview Certificate
+                      </button>
+                    </div>
+                  ) : (
+                    <span style={{ 
+                      fontSize: '0.725rem', 
+                      color: 'var(--slate-500)', 
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      backgroundColor: '#f1f5f9',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: 'var(--radius-sm)'
+                    }}>
+                      <Lock size={12} /> Post-Internship Only
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Card 4: Official Letters */}
+              <div className="card" style={{ 
+                padding: '1.25rem',
+                borderLeft: `4px solid ${isAppApproved ? '#16a34a' : '#f59e0b'}`,
+                backgroundColor: isAppApproved ? '#ffffff' : '#fafafa'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <span>OFFICIAL LETTERS</span>
+                  {isAppApproved ? <Layers size={18} color="#16a34a" /> : <Lock size={16} color="#d97706" />}
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: isAppApproved ? '#15803d' : 'var(--slate-700)', marginTop: '0.35rem' }}>
+                  Undertaking & NOC
+                </div>
+                <div style={{ 
+                  fontSize: '0.75rem', 
+                  color: isAppApproved ? '#16a34a' : '#b45309', 
+                  fontWeight: 600, 
+                  marginTop: '0.2rem' 
+                }}>
+                  {isAppApproved 
+                    ? '✓ Ready for Download & Print' 
+                    : '🔒 Locked (Awaiting Faculty Approval)'}
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--purple-950)', marginTop: '0.35rem' }}>
-              Undertaking & NOC
-            </div>
-            <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 600, marginTop: '0.2rem' }}>
-              Ready for Download & Print
-            </div>
-          </div>
-        </div>
+          );
+        })()
       ) : (
         /* Faculty / Admin Institutional KPI Cards */
         <div style={{
@@ -1091,33 +1136,38 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                     <td style={{ padding: '1rem 1.25rem' }}>
                       {/* Status Badge */}
                       <div style={{ marginBottom: '0.35rem' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          fontSize: '0.725rem',
-                          fontWeight: 800,
-                          padding: '0.2rem 0.55rem',
-                          borderRadius: 'var(--radius-full)',
-                          backgroundColor: 
-                            r.status === 'Approved' || r.status === 'Verified' ? '#dcfce7' :
-                            r.status === 'Rejected' ? '#ffe4e6' :
-                            r.status === 'Completed' ? '#e0f2fe' :
-                            r.status === 'Under Review' ? '#fef3c7' : '#f3e8ff',
-                          color: 
-                            r.status === 'Approved' || r.status === 'Verified' ? '#15803d' :
-                            r.status === 'Rejected' ? '#be123c' :
-                            r.status === 'Completed' ? '#0369a1' :
-                            r.status === 'Under Review' ? '#b45309' : '#7e22ce',
-                          border: '1px solid',
-                          borderColor: 
-                            r.status === 'Approved' || r.status === 'Verified' ? '#86efac' :
-                            r.status === 'Rejected' ? '#fca5a5' :
-                            r.status === 'Completed' ? '#7dd3fc' :
-                            r.status === 'Under Review' ? '#fde68a' : '#d8b4fe'
-                        }}>
-                          ● {r.status || 'Submitted'}
-                        </span>
+                        {(() => {
+                          const rStatus = r.status || 'Submitted';
+                          const isApprovedRow = ['approved', 'verified', 'completed'].includes(rStatus.toLowerCase());
+                          const isRejectedRow = rStatus.toLowerCase() === 'rejected';
+
+                          return (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              fontSize: '0.725rem',
+                              fontWeight: 800,
+                              padding: '0.2rem 0.6rem',
+                              borderRadius: 'var(--radius-full)',
+                              backgroundColor: 
+                                isApprovedRow ? '#dcfce7' :
+                                isRejectedRow ? '#ffe4e6' : '#eff6ff',
+                              color: 
+                                isApprovedRow ? '#15803d' :
+                                isRejectedRow ? '#be123c' : '#1d4ed8',
+                              border: '1px solid',
+                              borderColor: 
+                                isApprovedRow ? '#86efac' :
+                                isRejectedRow ? '#fca5a5' : '#bfdbfe'
+                            }}>
+                              {isApprovedRow ? <CheckCircle2 size={12} /> : isRejectedRow ? <XCircle size={12} /> : <Clock size={12} />}
+                              {isStudent 
+                                ? (isApprovedRow ? 'Application Approved' : isRejectedRow ? 'Rejected' : 'Submitted (Waiting for Faculty Approval)')
+                                : rStatus}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       <div>
@@ -1190,23 +1240,43 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                               <Award size={13} />
                               Preview Completion PDF
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCompletionRecord(r)}
-                              style={{
-                                border: 'none',
-                                background: 'none',
-                                color: 'var(--purple-600)',
-                                fontSize: '0.675rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                padding: '0 0.2rem',
-                                textAlign: 'left'
-                              }}
-                            >
-                              Replace / Update Certificate
-                            </button>
+                            {!isStudent && (
+                              <button
+                                type="button"
+                                onClick={() => setEditingCompletionRecord(r)}
+                                style={{
+                                  border: 'none',
+                                  background: 'none',
+                                  color: 'var(--purple-600)',
+                                  fontSize: '0.675rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  padding: '0 0.2rem',
+                                  textAlign: 'left'
+                                }}
+                              >
+                                Replace / Update Certificate
+                              </button>
+                            )}
                           </div>
+                        ) : isStudent ? (
+                          /* Locked Completion Option for Student */
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            fontSize: '0.725rem',
+                            color: 'var(--slate-500)',
+                            fontWeight: 600,
+                            backgroundColor: 'var(--slate-100)',
+                            padding: '0.25rem 0.55rem',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--slate-200)',
+                            cursor: 'not-allowed'
+                          }}>
+                            <Lock size={12} color="var(--slate-400)" />
+                            Completion (Locked for Now)
+                          </span>
                         ) : (
                           <button
                             type="button"
@@ -1290,87 +1360,147 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                           </div>
                         )}
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'wrap' }}>
-                          {/* Auto-fill Undertaking */}
-                          <button
-                            onClick={() => {
-                              if (onPrefillDocument) {
-                                onPrefillDocument('undertaking', {
-                                  studentName: r.full_name,
-                                  className: r.class_division || r.semester || 'Semester VIII (Final Year)',
-                                  rollNumber: r.enrolment_no?.slice(-7) || 'CS2022-084',
-                                  enrollmentNumber: r.enrolment_no,
-                                  contactNumber: r.contact_no,
-                                  email: r.email,
-                                  companyName: r.company_name_and_city,
-                                  internshipRole: `Intern - ${r.domain_of_company || 'Engineering'}`,
-                                  startDate: r.start_date,
-                                  endDate: r.end_date,
-                                  duration: r.duration || '6 Months',
-                                  location: r.company_name_and_city,
-                                  department: `Department of ${r.specialization || 'Computer Science & Engineering'}`,
-                                  universityName: 'MIT Art, Design and Technology University, Pune',
-                                  schoolName: 'School of Computing'
-                                });
-                              }
-                            }}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.725rem', padding: '0.3rem 0.55rem', color: 'var(--purple-700)', borderColor: 'var(--purple-200)' }}
-                            title="Generate Undertaking Document from this Record"
-                          >
-                            <FileCheck2 size={12} />
-                            Undertaking
-                          </button>
+                        {/* Student Row Approval Lock vs Unlocked Generator */}
+                        {(() => {
+                          const isRowApproved = ['approved', 'verified', 'completed'].includes((r.status || '').toLowerCase());
+                          
+                          if (isStudent && !isRowApproved) {
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+                                <span style={{
+                                  fontSize: '0.675rem',
+                                  fontWeight: 700,
+                                  color: '#b45309',
+                                  backgroundColor: '#fef3c7',
+                                  padding: '0.15rem 0.5rem',
+                                  borderRadius: 'var(--radius-full)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem'
+                                }}>
+                                  <Clock size={11} /> Waiting for Faculty Approval
+                                </span>
 
-                          {/* Auto-fill NOC */}
-                          <button
-                            onClick={() => {
-                              if (onPrefillDocument) {
-                                onPrefillDocument('noc', {
-                                  studentName: r.full_name,
-                                  rollNumber: r.enrolment_no?.slice(-7) || 'CS2022-084',
-                                  enrollmentNumber: r.enrolment_no,
-                                  course: `B.Tech in ${r.specialization || 'Computer Science & Engineering'}`,
-                                  className: r.class_division || r.semester || 'Final Year (VIII Semester)',
-                                  companyName: r.company_name_and_city.split(',')[0] || r.company_name_and_city,
-                                  companyLocation: r.company_name_and_city.split(',')[1]?.trim() || r.company_name_and_city,
-                                  internshipRole: `Intern - ${r.domain_of_company || 'Engineering'}`,
-                                  startDate: r.start_date,
-                                  endDate: r.end_date,
-                                  duration: r.duration || '6 Months'
-                                });
-                              }
-                            }}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.725rem', padding: '0.3rem 0.55rem', color: '#2563eb', borderColor: '#bfdbfe' }}
-                            title="Generate NOC Certificate from this Record"
-                          >
-                            <Award size={12} />
-                            NOC
-                          </button>
+                                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => alert(`Your application is currently "${r.status || 'Submitted'}". Undertaking will unlock once approved by ${r.assigned_coordinator || 'your Faculty Coordinator'}.`)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: '0.725rem', padding: '0.25rem 0.5rem', color: 'var(--slate-400)', borderColor: 'var(--slate-300)', backgroundColor: 'var(--slate-100)', cursor: 'not-allowed' }}
+                                    title="Locked until Faculty Coordinator approval"
+                                  >
+                                    <Lock size={11} />
+                                    Undertaking
+                                  </button>
 
-                          {/* View Details Drawer */}
-                          <button
-                            onClick={() => setSelectedRecord(r)}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.725rem', padding: '0.3rem 0.45rem' }}
-                            title="View Full Record (18 Fields)"
-                          >
-                            <Eye size={12} />
-                          </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => alert(`Your application is currently "${r.status || 'Submitted'}". NOC letter will unlock once approved by ${r.assigned_coordinator || 'your Faculty Coordinator'}.`)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: '0.725rem', padding: '0.25rem 0.5rem', color: 'var(--slate-400)', borderColor: 'var(--slate-300)', backgroundColor: 'var(--slate-100)', cursor: 'not-allowed' }}
+                                    title="Locked until Faculty Coordinator approval"
+                                  >
+                                    <Lock size={11} />
+                                    NOC
+                                  </button>
 
-                          {/* Delete Record (Faculty/Admin Only - Hidden for Students) */}
-                          {!isStudent && (
-                            <button
-                              onClick={() => handleDelete(r.id, r.full_name)}
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '0.725rem', padding: '0.3rem 0.45rem', color: '#dc2626', borderColor: '#fecaca' }}
-                              title="Delete Record"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          )}
-                        </div>
+                                  <button
+                                    onClick={() => setSelectedRecord(r)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: '0.725rem', padding: '0.25rem 0.45rem' }}
+                                    title="View Full Record (18 Fields)"
+                                  >
+                                    <Eye size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'wrap' }}>
+                              {/* Auto-fill Undertaking */}
+                              <button
+                                onClick={() => {
+                                  if (onPrefillDocument) {
+                                    onPrefillDocument('undertaking', {
+                                      studentName: r.full_name,
+                                      className: r.class_division || r.semester || 'Semester VIII (Final Year)',
+                                      rollNumber: r.enrolment_no?.slice(-7) || 'CS2022-084',
+                                      enrollmentNumber: r.enrolment_no,
+                                      contactNumber: r.contact_no,
+                                      email: r.email,
+                                      companyName: r.company_name_and_city,
+                                      internshipRole: `Intern - ${r.domain_of_company || 'Engineering'}`,
+                                      startDate: r.start_date,
+                                      endDate: r.end_date,
+                                      duration: r.duration || '6 Months',
+                                      location: r.company_name_and_city,
+                                      department: `Department of ${r.specialization || 'Computer Science & Engineering'}`,
+                                      universityName: 'MIT Art, Design and Technology University, Pune',
+                                      schoolName: 'School of Computing'
+                                    });
+                                  }
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: '0.725rem', padding: '0.3rem 0.55rem', color: 'var(--purple-700)', borderColor: 'var(--purple-200)' }}
+                                title="Generate Undertaking Document from this Record"
+                              >
+                                <FileCheck2 size={12} />
+                                Undertaking
+                              </button>
+
+                              {/* Auto-fill NOC */}
+                              <button
+                                onClick={() => {
+                                  if (onPrefillDocument) {
+                                    onPrefillDocument('noc', {
+                                      studentName: r.full_name,
+                                      rollNumber: r.enrolment_no?.slice(-7) || 'CS2022-084',
+                                      enrollmentNumber: r.enrolment_no,
+                                      course: `B.Tech in ${r.specialization || 'Computer Science & Engineering'}`,
+                                      className: r.class_division || r.semester || 'Final Year (VIII Semester)',
+                                      companyName: r.company_name_and_city.split(',')[0] || r.company_name_and_city,
+                                      companyLocation: r.company_name_and_city.split(',')[1]?.trim() || r.company_name_and_city,
+                                      internshipRole: `Intern - ${r.domain_of_company || 'Engineering'}`,
+                                      startDate: r.start_date,
+                                      endDate: r.end_date,
+                                      duration: r.duration || '6 Months'
+                                    });
+                                  }
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: '0.725rem', padding: '0.3rem 0.55rem', color: '#2563eb', borderColor: '#bfdbfe' }}
+                                title="Generate NOC Certificate from this Record"
+                              >
+                                <Award size={12} />
+                                NOC
+                              </button>
+
+                              {/* View Details Drawer */}
+                              <button
+                                onClick={() => setSelectedRecord(r)}
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: '0.725rem', padding: '0.3rem 0.45rem' }}
+                                title="View Full Record (18 Fields)"
+                              >
+                                <Eye size={12} />
+                              </button>
+
+                              {/* Delete Record (Faculty/Admin Only - Hidden for Students) */}
+                              {!isStudent && (
+                                <button
+                                  onClick={() => handleDelete(r.id, r.full_name)}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: '0.725rem', padding: '0.3rem 0.45rem', color: '#dc2626', borderColor: '#fecaca' }}
+                                  title="Delete Record"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>
