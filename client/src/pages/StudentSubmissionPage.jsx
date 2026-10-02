@@ -43,8 +43,10 @@ const INITIAL_FORM = {
   // 6. Gender
   gender: 'Male',
   // 7. Specialization
-  specialization: 'Computer Science & Engineering (CSE)',
-  // 8. Semester
+  specialization: 'CSE-CORE',
+  // 8. Class / Division
+  class_division: '',
+  // 9. Semester
   semester: 'Semester VIII (Final Year)',
   // 9. Source of Internship
   source_of_internship: 'College Placement Cell / Central T&P',
@@ -146,12 +148,17 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser 
 
       // Pre-fill student profile details if new
       if (authUser.role === 'Student') {
+        let detectedClass = '';
+        if (authUser.designation && authUser.designation.includes('(') && authUser.designation.includes(')')) {
+          detectedClass = authUser.designation.split('(')[1].split(')')[0].trim();
+        }
         setFormData(prev => ({
           ...prev,
           full_name: authUser.full_name || '',
           email: authUser.email || '',
           contact_no: authUser.phone || '',
-          enrolment_no: authUser.enrolment_no || ''
+          enrolment_no: authUser.enrolment_no || '',
+          class_division: prev.class_division || detectedClass || ''
         }));
       }
     };
@@ -313,6 +320,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser 
     if (onPrefillDocument) {
       onPrefillDocument('undertaking', {
         studentName: data.full_name,
+        className: data.class_division || data.className || data.semester || 'Semester VIII (Final Year)',
         rollNumber: data.enrolment_no?.slice(-7) || 'CS2022-084',
         enrollmentNumber: data.enrolment_no,
         contactNumber: data.contact_no,
@@ -338,7 +346,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser 
         rollNumber: data.enrolment_no?.slice(-7) || 'CS2022-084',
         enrollmentNumber: data.enrolment_no,
         course: `B.Tech in ${data.specialization || 'Computer Science & Engineering'}`,
-        className: data.semester || 'Final Year (VIII Semester)',
+        department: data.specialization || 'Computer Science & Engineering',
+        className: data.class_division || data.className || data.semester || 'Semester VIII (Final Year)',
         companyName: data.company_name_and_city.split(',')[0] || data.company_name_and_city,
         companyLocation: data.company_name_and_city.split(',')[1]?.trim() || data.company_name_and_city,
         internshipRole: `Intern - ${data.domain_of_company || 'Engineering'}`,
@@ -650,20 +659,41 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser 
                 className="form-select"
                 required
               >
-                <option value="Computer Science & Engineering (CSE)">Computer Science & Engineering (CSE)</option>
-                <option value="Artificial Intelligence & Data Science (AI & DS)">Artificial Intelligence & Data Science (AI & DS)</option>
-                <option value="Information Technology (IT)">Information Technology (IT)</option>
-                <option value="Cyber Security & Forensics">Cyber Security & Forensics</option>
-                <option value="Cloud Computing & DevOps">Cloud Computing & DevOps</option>
-                <option value="Software Engineering">Software Engineering</option>
-                <option value="Electronics & Computer Engineering">Electronics & Computer Engineering</option>
+                <option value="CSE-CORE">CSE-CORE</option>
+                <option value="CSE-BLOCKCHAIN">CSE-BLOCKCHAIN</option>
+                <option value="CSE-AIA">CSE-AIA</option>
+                <option value="CSE-AIEC">CSE-AIEC</option>
+                <option value="CSE-CC">CSE-CC</option>
+                <option value="CSE-BDCE">CSE-BDCE</option>
+                <option value="CSE-CSF">CSE-CSF</option>
+                <option value="IT-CORE">IT-CORE</option>
+                <option value="IT-DATA ANALYTICS">IT-DATA ANALYTICS</option>
+                <option value="IT-SOFTWARE & MOBILE APP">IT-SOFTWARE & MOBILE APP</option>
               </select>
             </div>
 
-            {/* Field 8: Semester */}
+            {/* Field 8: Class / Division */}
+            <div>
+              <label className="form-label" htmlFor="class_division">
+                8. Class / Division <span className="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                id="class_division"
+                name="class_division"
+                placeholder="e.g. LY-AIA-1, TY-CSE-2"
+                value={formData.class_division || ''}
+                onChange={handleChange}
+                className={`form-input ${errors.class_division ? 'is-invalid' : ''}`}
+                required
+              />
+              {errors.class_division && <span className="form-error">{errors.class_division}</span>}
+            </div>
+
+            {/* Field 9: Current Semester */}
             <div>
               <label className="form-label" htmlFor="semester">
-                8. Current Semester <span className="text-danger">*</span>
+                9. Current Semester <span className="text-danger">*</span>
               </label>
               <select
                 id="semester"

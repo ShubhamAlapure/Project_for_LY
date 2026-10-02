@@ -45,6 +45,7 @@ ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS enrolment_no TEX
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS full_name TEXT;
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT 'Male';
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS specialization TEXT;
+ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS class_division TEXT;
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS semester TEXT;
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS source_of_internship TEXT;
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS start_date DATE;

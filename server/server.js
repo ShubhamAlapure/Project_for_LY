@@ -377,6 +377,7 @@ app.post('/api/students', async (req, res) => {
       full_name: payload.full_name.trim(),
       gender: payload.gender || 'Male',
       specialization: payload.specialization.trim(),
+      class_division: payload.class_division?.trim() || payload.className?.trim() || '',
       semester: payload.semester.trim(),
       source_of_internship: payload.source_of_internship?.trim() || 'College Placement Cell',
       start_date: payload.start_date,

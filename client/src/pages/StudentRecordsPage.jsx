@@ -747,10 +747,16 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                 style={{ marginBottom: 0 }}
               >
                 <option value="All">All Specializations</option>
-                <option value="Computer Science & Engineering (CSE)">CSE</option>
-                <option value="Artificial Intelligence & Data Science (AI & DS)">AI & DS</option>
-                <option value="Information Technology (IT)">IT</option>
-                <option value="Cyber Security & Forensics">Cyber Security</option>
+                <option value="CSE-CORE">CSE-CORE</option>
+                <option value="CSE-BLOCKCHAIN">CSE-BLOCKCHAIN</option>
+                <option value="CSE-AIA">CSE-AIA</option>
+                <option value="CSE-AIEC">CSE-AIEC</option>
+                <option value="CSE-CC">CSE-CC</option>
+                <option value="CSE-BDCE">CSE-BDCE</option>
+                <option value="CSE-CSF">CSE-CSF</option>
+                <option value="IT-CORE">IT-CORE</option>
+                <option value="IT-DATA ANALYTICS">IT-DATA ANALYTICS</option>
+                <option value="IT-SOFTWARE & MOBILE APP">IT-SOFTWARE & MOBILE APP</option>
               </select>
             </div>
 
@@ -857,18 +863,31 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
 
                     {/* Enrolment & Specialization */}
                     <td style={{ padding: '1rem 1.25rem' }}>
-                      <span style={{ 
-                        display: 'inline-block',
-                        fontSize: '0.725rem', 
-                        fontWeight: 700, 
-                        backgroundColor: 'var(--purple-100)', 
-                        color: 'var(--purple-800)',
-                        padding: '0.15rem 0.5rem',
-                        borderRadius: 'var(--radius-sm)',
-                        marginBottom: '0.25rem'
-                      }}>
-                        {r.enrolment_no}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+                        <span style={{ 
+                          fontSize: '0.725rem', 
+                          fontWeight: 700, 
+                          backgroundColor: 'var(--purple-100)', 
+                          color: 'var(--purple-800)',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: 'var(--radius-sm)'
+                        }}>
+                          {r.enrolment_no}
+                        </span>
+                        {r.class_division && (
+                          <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            backgroundColor: 'var(--slate-100)',
+                            color: 'var(--slate-700)',
+                            padding: '0.15rem 0.4rem',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--slate-200)'
+                          }}>
+                            {r.class_division}
+                          </span>
+                        )}
+                      </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--slate-700)', fontWeight: 600 }}>
                         {r.specialization}
                       </div>
@@ -1183,7 +1202,8 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
               <DetailItem label="5. Full Name" value={selectedRecord.full_name} />
               <DetailItem label="6. Gender" value={selectedRecord.gender} />
               <DetailItem label="7. Specialization" value={selectedRecord.specialization} />
-              <DetailItem label="8. Semester" value={selectedRecord.semester} />
+              <DetailItem label="8. Class / Division" value={selectedRecord.class_division || 'N/A'} highlight />
+              <DetailItem label="9. Semester" value={selectedRecord.semester} />
               <DetailItem label="9. Source of Internship" value={selectedRecord.source_of_internship} />
               <DetailItem label="10. Start Date" value={selectedRecord.start_date} />
               <DetailItem label="11. End Date" value={selectedRecord.end_date} />
