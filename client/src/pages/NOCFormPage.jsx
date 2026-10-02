@@ -20,7 +20,6 @@ import { FormTextarea } from '../components/common/FormTextarea';
 import { StepIndicator } from '../components/common/StepIndicator';
 import { validateNOCForm } from '../utils/validation';
 import { saveFormData, loadFormData, clearFormData } from '../utils/storage';
-import { SAMPLE_DATA } from '../data/sampleData';
 import { calculateInternshipDuration } from '../utils/supabaseClient';
 
 import { ROLES } from '../utils/auth';
@@ -118,13 +117,6 @@ export const NOCFormPage = ({
     }
   };
 
-  const handleLoadSample = () => {
-    setFormData(SAMPLE_DATA.noc);
-    setErrors({});
-    setSaveStatus('NOC sample data loaded successfully!');
-    setTimeout(() => setSaveStatus(''), 3000);
-  };
-
   const handleReset = () => {
     if (window.confirm("Are you sure you want to reset all fields in the NOC form?")) {
       setFormData(INITIAL_STATE);
@@ -220,20 +212,6 @@ export const NOCFormPage = ({
           </button>
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button
-              type="button"
-              onClick={handleLoadSample}
-              className="btn btn-secondary btn-sm"
-              style={{
-                backgroundColor: 'var(--primary-50)',
-                color: 'var(--primary-700)',
-                borderColor: 'var(--primary-200)'
-              }}
-            >
-              <Sparkles size={15} />
-              Load Sample Data
-            </button>
-
             <button
               type="button"
               onClick={handleReset}

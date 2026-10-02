@@ -19,7 +19,6 @@ import { FormSelect } from '../components/common/FormSelect';
 import { StepIndicator } from '../components/common/StepIndicator';
 import { validateUndertakingForm } from '../utils/validation';
 import { saveFormData, loadFormData, clearFormData } from '../utils/storage';
-import { SAMPLE_DATA } from '../data/sampleData';
 import { calculateInternshipDuration } from '../utils/supabaseClient';
 
 import { ROLES } from '../utils/auth';
@@ -101,13 +100,6 @@ export const UndertakingFormPage = ({
         return next;
       });
     }
-  };
-
-  const handleLoadSample = () => {
-    setFormData(SAMPLE_DATA.undertaking);
-    setErrors({});
-    setSaveStatus('Sample data loaded successfully!');
-    setTimeout(() => setSaveStatus(''), 3000);
   };
 
   const handleReset = () => {
@@ -206,20 +198,6 @@ export const UndertakingFormPage = ({
           </button>
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button
-              type="button"
-              onClick={handleLoadSample}
-              className="btn btn-secondary btn-sm"
-              style={{
-                backgroundColor: 'var(--primary-50)',
-                color: 'var(--primary-700)',
-                borderColor: 'var(--primary-200)'
-              }}
-            >
-              <Sparkles size={15} />
-              Load Sample Data
-            </button>
-
             <button
               type="button"
               onClick={handleReset}

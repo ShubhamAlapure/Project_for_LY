@@ -29,9 +29,6 @@ import { calculateInternshipDuration, insertStudentRecord, uploadStudentDocument
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
 import { getFacultyCoordinators } from '../utils/auth';
 
-// Sample Valid Base64 PDF Data for demo testing
-const SAMPLE_OFFER_LETTER_PDF = "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjQgMCBvYmoKPDwgL0xlbmd0aCA1IDAgUiAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJwrVAgwsjI1MTcw1TMBcQwNzCwsTS0M9IwNDM0sgEw9Awv9gILk1FwFfQWwZGBgAABWkgmXCgplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKNzgKZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAzIDAgUiAvUmVzb3VyY2VzIDYgMCBSIC9Db250ZW50cyA0IDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSA+PgplbmRvYmoKNiAwIG9iago8PCAvUHJvY1NldCBbIC9QREYgL1RleHQgXSA+PgplbmRvYmoKMyAwIG9iago8PCAvVHlwZSAvUGFnZXMgL0tpZHMgWyAyIDAgUiBdIC9Db3VudCAxID4+CmVuZG9iagoxIDAgb2JqCjw8IC9UeXBlIC9DYXRhbG9nIC9QYWdlcyAzIDAgUiA+PgplbmRvYmoKMAp0cmFpbGVyCjw8IC9Sb290IDEgMCBSID4+CiUlRU9G";
-
 const INITIAL_FORM = {
   // 1. Date of entry/submission
   submission_date: new Date().toISOString().split('T')[0],
@@ -75,30 +72,6 @@ const INITIAL_FORM = {
   assigned_coordinator: 'Prof. Vaibhav Sawalkar',
   assigned_faculty_email: 'vaibhav.sawalkar@mituniversity.edu.in',
   notes: ''
-};
-
-const SAMPLE_STUDENT_RECORD = {
-  submission_date: new Date().toISOString().split('T')[0],
-  email: 'shubham.alapure@mitadt.edu.in',
-  contact_no: '9876543210',
-  enrolment_no: 'MITADT2022CS084',
-  full_name: 'Shubham Santosh Alapure',
-  gender: 'Male',
-  specialization: 'Computer Science & Engineering (CSE)',
-  semester: 'Semester VIII (Final Year)',
-  source_of_internship: 'College Placement Cell / Central T&P',
-  start_date: '2026-01-05',
-  end_date: '2026-06-30',
-  duration: '6 Months (176 Days)',
-  company_name_and_city: 'Google Cloud Platform, Bangalore',
-  mode_of_internship: 'Hybrid',
-  domain_of_company: 'Cloud Computing & Artificial Intelligence',
-  is_ppo_offer: 'Yes (PPO Possibility)',
-  offer_letter_url: SAMPLE_OFFER_LETTER_PDF,
-  completion_letter_url: '',
-  assigned_coordinator: 'Prof. Vaibhav Sawalkar',
-  assigned_faculty_email: 'vaibhav.sawalkar@mituniversity.edu.in',
-  notes: 'Eligible for 8th semester credits after completion evaluation.'
 };
 
 export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser, onApplicationSubmitted }) => {
@@ -256,14 +229,6 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
       setNotification({ type: 'error', message: 'Upload failed: ' + (uploadRes.error || 'Please try again') });
       setTimeout(() => setNotification(null), 4000);
     }
-  };
-
-  const handleLoadSample = () => {
-    setFormData(SAMPLE_STUDENT_RECORD);
-    setOfferFileName('Google_Offer_Letter_2026.pdf');
-    setErrors({});
-    setNotification({ type: 'success', message: 'Sample student record loaded with Offer Letter PDF!' });
-    setTimeout(() => setNotification(null), 3000);
   };
 
   const handleReset = () => {
@@ -461,15 +426,6 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={handleLoadSample}
-            className="btn btn-secondary btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            <Sparkles size={15} color="var(--purple-600)" />
-            Load Sample Record
-          </button>
           <button
             type="button"
             onClick={() => onNavigate('student-records')}
