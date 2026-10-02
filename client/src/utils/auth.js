@@ -267,7 +267,6 @@ const rolesMatch = (roleA, roleB) => {
 
 /**
  * Shorthand aliases that map simple identifiers to full email addresses.
- * This lets users type "admin" instead of "admin@mitadt.edu.in".
  */
 const EMAIL_ALIASES = {
   'admin': 'admin@mitadt.edu.in',
@@ -279,55 +278,88 @@ const EMAIL_ALIASES = {
 
 /**
  * Resolves a user-typed identifier to a valid email address.
- * Supports:
- *   1. Full email addresses (returned as-is)
- *   2. Shorthand aliases like "admin", "student", etc.
- *   3. Email prefix matching against the DEFAULT_USERS list
  */
 const resolveEmail = (identifier) => {
   if (!identifier) return '';
   const clean = identifier.trim().toLowerCase();
-
-  // Already a full email address
   if (clean.includes('@')) return clean;
-
-  // Check shorthand alias map
   if (EMAIL_ALIASES[clean]) return EMAIL_ALIASES[clean];
-
-  // Try matching the identifier as the prefix part of any known email
   const prefixMatch = DEFAULT_USERS.find(u => {
     if (!u.email) return false;
-    const prefix = u.email.split('@')[0].toLowerCase();
-    return prefix === clean;
+    return u.email.split('@')[0].toLowerCase() === clean;
   });
   if (prefixMatch) return prefixMatch.email.toLowerCase();
-
-  // Return as-is (will fail gracefully if it's not a valid email)
   return clean;
 };
 
 /**
- * Authenticate user by Email (or alias) and Password.
- * Queries Supabase `user_logins` table first, then falls back to local seed data.
+ * Authenticate user by Email and Password.
+ * Strategy order:
+ *   1. Server API (/api/login) — works locally with service role key
+ *   2. Direct Supabase client query — works on Vercel with anon key
+ *   3. Local fallback (DEFAULT_USERS + cached users)
  */
 export const loginUser = async (emailInput, passwordInput, requestedRole = null) => {
   const resolvedEmail = resolveEmail(emailInput);
   const cleanPass = (passwordInput || '').trim();
 
+  console.log('[LOGIN] Attempting login for:', resolvedEmail);
+
   if (!resolvedEmail || !cleanPass) {
     return { success: false, error: 'Please enter both Email and Password.' };
   }
 
-  // ---------- 1. Query Supabase cloud database by Email ----------
+  // ──────── Strategy 1: Server API (works locally) ────────
   try {
+    const apiRes = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: resolvedEmail, password: cleanPass })
+    });
+    const apiData = await apiRes.json();
+    console.log('[LOGIN] Server API response:', apiData.success, apiData.error || '');
+
+    if (apiData.success && apiData.user) {
+      const user = apiData.user;
+      if (requestedRole && !rolesMatch(user.role, requestedRole) && user.role !== ROLES.ADMIN) {
+        return {
+          success: false,
+          error: `Your account is registered as "${user.role}". Please switch to the ${user.role} tab.`
+        };
+      }
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+      return { success: true, user };
+    }
+
+    // If server says "incorrect password" or "no account", return that directly
+    if (apiRes.status === 401) {
+      return { success: false, error: apiData.error };
+    }
+  } catch (apiErr) {
+    console.log('[LOGIN] Server API not available, trying Supabase directly:', apiErr.message);
+  }
+
+  // ──────── Strategy 2: Direct Supabase query (works on Vercel) ────────
+  try {
+    console.log('[LOGIN] Querying Supabase user_logins for:', resolvedEmail);
+
     const { data, error } = await supabase
       .from('user_logins')
       .select('*')
       .ilike('email', resolvedEmail)
-      .limit(1);
+      .limit(5);
 
-    if (!error && data && data.length > 0) {
-      const user = data[0];
+    console.log('[LOGIN] Supabase response - data:', data?.length || 0, 'error:', error?.message || 'none');
+
+    if (error) {
+      console.error('[LOGIN] Supabase query error:', error);
+    }
+
+    if (data && data.length > 0) {
+      // Find exact email match (case-insensitive)
+      const user = data.find(u => u.email.toLowerCase() === resolvedEmail) || data[0];
+      console.log('[LOGIN] Found user:', user.email, 'role:', user.role);
+
       if (user.password === cleanPass) {
         if (requestedRole && !rolesMatch(user.role, requestedRole) && user.role !== ROLES.ADMIN) {
           return {
@@ -338,14 +370,46 @@ export const loginUser = async (emailInput, passwordInput, requestedRole = null)
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
         return { success: true, user };
       } else {
+        console.log('[LOGIN] Password mismatch. Expected:', user.password, 'Got:', cleanPass);
         return { success: false, error: 'Incorrect password. Please try again.' };
       }
     }
+
+    // If ilike returned nothing, try a broader approach: fetch ALL and filter in JS
+    console.log('[LOGIN] ilike returned no results, trying broader fetch...');
+    const { data: allUsers, error: allErr } = await supabase
+      .from('user_logins')
+      .select('email, password, full_name, role, department, designation, enrolment_no, phone, status, id')
+      .limit(1000);
+
+    if (!allErr && allUsers && allUsers.length > 0) {
+      console.log('[LOGIN] Fetched', allUsers.length, 'users from user_logins, searching...');
+      const match = allUsers.find(u => u.email && u.email.toLowerCase() === resolvedEmail);
+      if (match) {
+        console.log('[LOGIN] Found via broad search:', match.email);
+        if (match.password === cleanPass) {
+          if (requestedRole && !rolesMatch(match.role, requestedRole) && match.role !== ROLES.ADMIN) {
+            return {
+              success: false,
+              error: `Your account is registered as "${match.role}". Please switch to the ${match.role} tab.`
+            };
+          }
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(match));
+          return { success: true, user: match };
+        } else {
+          return { success: false, error: 'Incorrect password. Please try again.' };
+        }
+      }
+      console.log('[LOGIN] Email not found in', allUsers.length, 'records');
+    } else {
+      console.log('[LOGIN] Broad fetch failed or empty:', allErr?.message || 'no data');
+    }
   } catch (err) {
-    console.warn('Supabase query note, falling back to local credentials:', err);
+    console.error('[LOGIN] Supabase exception:', err);
   }
 
-  // ---------- 2. Fallback to local seed / cached user database ----------
+  // ──────── Strategy 3: Local fallback (DEFAULT_USERS + cache) ────────
+  console.log('[LOGIN] Falling back to local DEFAULT_USERS...');
   const users = getCachedUsers();
   const matchedUser = users.find(
     u => u.email && u.email.toLowerCase() === resolvedEmail && u.password === cleanPass
@@ -362,7 +426,7 @@ export const loginUser = async (emailInput, passwordInput, requestedRole = null)
     return { success: true, user: matchedUser, isFallback: true };
   }
 
-  return { success: false, error: 'Invalid email or password. Please verify your credentials.' };
+  return { success: false, error: 'No account found with this email. Please check your email and make sure the SQL insert has been run in Supabase.' };
 };
 
 /**

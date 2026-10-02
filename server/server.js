@@ -510,6 +510,70 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+// ==============================================================================
+// LOGIN / AUTHENTICATION ENDPOINT
+// ==============================================================================
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter both Email and Password.'
+      });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    // Query user_logins table (service role key bypasses RLS)
+    const { data, error } = await supabaseAdmin
+      .from('user_logins')
+      .select('*')
+      .ilike('email', cleanEmail)
+      .limit(1);
+
+    if (error) {
+      console.error('Login DB error:', error.message);
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection error. Please try again.'
+      });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(401).json({
+        success: false,
+        error: 'No account found with this email. Please check your email address.'
+      });
+    }
+
+    const user = data[0];
+
+    if (user.password !== cleanPass) {
+      return res.status(401).json({
+        success: false,
+        error: 'Incorrect password. Please try again.'
+      });
+    }
+
+    // Success — return user (strip password from response)
+    const { password: _, ...safeUser } = user;
+    res.json({
+      success: true,
+      user: { ...safeUser, password: cleanPass } // keep password for client-side session
+    });
+
+  } catch (err) {
+    console.error('Login exception:', err.message);
+    res.status(500).json({
+      success: false,
+      error: 'Server error during authentication. Please try again.'
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 InternDocs Backend Server running on http://localhost:${PORT}`);
   console.log(`📡 Supabase Connected: ${process.env.SUPABASE_URL || 'https://nwwchkmbycbgvneauqex.supabase.co'}`);
