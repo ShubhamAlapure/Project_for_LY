@@ -1,5 +1,29 @@
 [
   {
+    "id": "ly_adt23socb1000",
+    "email": "ananya.deshmukh@mituniversity.edu.in",
+    "password": "9812345678",
+    "full_name": "ANANYA DESHMUKH",
+    "role": "Student",
+    "department": "School of Computing",
+    "designation": "B.Tech Final Year Student (LY)",
+    "enrolment_no": "ADT23SOCB1000",
+    "phone": "9812345678",
+    "status": "Active"
+  },
+  {
+    "id": "ly_adt23socb0999",
+    "email": "rohit.sharma@mituniversity.edu.in",
+    "password": "9876501234",
+    "full_name": "ROHIT SHARMA",
+    "role": "Student",
+    "department": "School of Computing",
+    "designation": "B.Tech Final Year Student (LY)",
+    "enrolment_no": "ADT23SOCB0999",
+    "phone": "9876501234",
+    "status": "Active"
+  },
+  {
     "id": "ly_adt23socb0019",
     "email": "upadhyayabhigyan76@gmaul.com",
     "password": "7704990618",
