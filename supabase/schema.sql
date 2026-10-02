@@ -57,6 +57,8 @@ ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS domain_of_compan
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS is_ppo_offer TEXT DEFAULT 'No';
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS offer_letter_url TEXT;
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS completion_letter_url TEXT;
+ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS assigned_coordinator TEXT DEFAULT 'Prof. Vaibhav Sawalkar';
+ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS assigned_faculty_email TEXT DEFAULT 'vaibhav.sawalkar@mituniversity.edu.in';
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Submitted';
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS notes TEXT;
 ALTER TABLE public.student_internships ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());

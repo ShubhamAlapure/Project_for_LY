@@ -26,12 +26,16 @@ import {
   X,
   GraduationCap,
   ShieldAlert,
-  FileSpreadsheet
+  FileSpreadsheet,
+  UserCheck,
+  Check,
+  XCircle,
+  AlertTriangle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { fetchStudentRecords, deleteStudentRecord, updateStudentRecord, uploadStudentDocument, subscribeToStudentRecords } from '../utils/supabaseClient';
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
-import { ROLES } from '../utils/auth';
+import { ROLES, getFacultyCoordinators } from '../utils/auth';
 
 export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) => {
   const [records, setRecords] = useState([]);
@@ -41,6 +45,9 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
   const [semesterFilter, setSemesterFilter] = useState('All');
   const [modeFilter, setModeFilter] = useState('All');
   const [ppoFilter, setPpoFilter] = useState('All');
+  const [coordinatorFilter, setCoordinatorFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [facultyCoordinators, setFacultyCoordinators] = useState([]);
   const [isFallback, setIsFallback] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [editingCompletionRecord, setEditingCompletionRecord] = useState(null);
@@ -71,6 +78,10 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
   useEffect(() => {
     loadRecords(true);
 
+    getFacultyCoordinators().then(list => {
+      if (list && list.length > 0) setFacultyCoordinators(list);
+    });
+
     // Subscribe to Supabase Realtime DB changes for instant multi-client live sync
     const unsubscribe = subscribeToStudentRecords(() => {
       loadRecords(false);
@@ -80,6 +91,33 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       if (unsubscribe) unsubscribe();
     };
   }, []);
+
+  // Quick Approval / Rejection / Review Handler for Faculty & Admin
+  const handleStatusUpdate = async (record, newStatus) => {
+    const updated = {
+      ...record,
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    };
+
+    // Instant local state update
+    setRecords(prev => prev.map(r => (r.id === record.id || (record.enrolment_no && r.enrolment_no === record.enrolment_no)) ? { ...r, status: newStatus } : r));
+    if (selectedRecord && (selectedRecord.id === record.id || selectedRecord.enrolment_no === record.enrolment_no)) {
+      setSelectedRecord(prev => ({ ...prev, status: newStatus }));
+    }
+
+    const res = await updateStudentRecord(record.id, updated);
+    if (res.success) {
+      setNotification({
+        type: newStatus === 'Rejected' ? 'error' : 'success',
+        message: `Application for ${record.full_name} marked as "${newStatus}"!`
+      });
+      setTimeout(() => setNotification(null), 3500);
+    } else {
+      setNotification({ type: 'error', message: 'Failed to update status: ' + (res.error || 'Please try again') });
+      setTimeout(() => setNotification(null), 4000);
+    }
+  };
 
   const handleDelete = async (id, name) => {
     if (window.confirm(`Are you sure you want to delete the internship record for ${name}?`)) {
@@ -164,6 +202,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       "Submission Date",
       "Enrolment No",
       "Full Name",
+      "Class / Division",
       "Email ID",
       "Contact No",
       "Gender",
@@ -177,6 +216,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       "Duration",
       "Mode",
       "PPO Offer",
+      "Assigned Faculty Coordinator",
       "Offer Letter URL",
       "Completion Letter URL",
       "Status"
@@ -186,6 +226,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       `"${r.submission_date || ''}"`,
       `"${r.enrolment_no || ''}"`,
       `"${r.full_name || ''}"`,
+      `"${r.class_division || ''}"`,
       `"${r.email || ''}"`,
       `"${r.contact_no || ''}"`,
       `"${r.gender || ''}"`,
@@ -199,6 +240,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       `"${r.duration || ''}"`,
       `"${r.mode_of_internship || ''}"`,
       `"${r.is_ppo_offer || ''}"`,
+      `"${r.assigned_coordinator || 'Prof. Vaibhav Sawalkar'}"`,
       `"${r.offer_letter_url || ''}"`,
       `"${r.completion_letter_url || ''}"`,
       `"${r.status || 'Submitted'}"`
@@ -226,6 +268,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
         "Submission Date": r.submission_date || '',
         "Enrolment No": r.enrolment_no || '',
         "Full Name": r.full_name || '',
+        "Class / Division": r.class_division || '',
         "Email ID": r.email || '',
         "Contact No": r.contact_no || '',
         "Gender": r.gender || '',
@@ -239,6 +282,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
         "Duration": r.duration || '',
         "Mode of Internship": r.mode_of_internship || '',
         "PPO Offer": r.is_ppo_offer || '',
+        "Assigned Coordinator": r.assigned_coordinator || 'Prof. Vaibhav Sawalkar',
         "Offer Letter URL": r.offer_letter_url || '',
         "Completion Letter URL": r.completion_letter_url || '',
         "Status": r.status || 'Submitted'
@@ -252,6 +296,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
         { wch: 15 }, // Submission Date
         { wch: 18 }, // Enrolment No
         { wch: 25 }, // Full Name
+        { wch: 16 }, // Class / Division
         { wch: 28 }, // Email
         { wch: 15 }, // Contact
         { wch: 10 }, // Gender
@@ -265,6 +310,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
         { wch: 18 }, // Duration
         { wch: 15 }, // Mode
         { wch: 15 }, // PPO
+        { wch: 28 }, // Assigned Coordinator
         { wch: 35 }, // Offer Letter URL
         { wch: 35 }, // Completion Letter URL
         { wch: 14 }  // Status
@@ -412,7 +458,9 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       !s ||
       (r.full_name && r.full_name.toLowerCase().includes(s)) ||
       (r.enrolment_no && r.enrolment_no.toLowerCase().includes(s)) ||
+      (r.class_division && r.class_division.toLowerCase().includes(s)) ||
       (r.email && r.email.toLowerCase().includes(s)) ||
+      (r.assigned_coordinator && r.assigned_coordinator.toLowerCase().includes(s)) ||
       (r.company_name_and_city && r.company_name_and_city.toLowerCase().includes(s)) ||
       (r.domain_of_company && r.domain_of_company.toLowerCase().includes(s));
 
@@ -420,8 +468,10 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
     const matchesSem = semesterFilter === 'All' || r.semester === semesterFilter;
     const matchesMode = modeFilter === 'All' || r.mode_of_internship === modeFilter;
     const matchesPpo = ppoFilter === 'All' || (r.is_ppo_offer && r.is_ppo_offer.includes(ppoFilter));
+    const matchesCoord = coordinatorFilter === 'All' || (r.assigned_coordinator && r.assigned_coordinator.toLowerCase().includes(coordinatorFilter.toLowerCase()));
+    const matchesStatus = statusFilter === 'All' || (r.status && r.status.toLowerCase() === statusFilter.toLowerCase());
 
-    return matchesSearch && matchesSpec && matchesSem && matchesMode && matchesPpo;
+    return matchesSearch && matchesSpec && matchesSem && matchesMode && matchesPpo && matchesCoord && matchesStatus;
   });
 
   // Calculate statistics
@@ -724,18 +774,53 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
       {/* Filter Toolbar (Hidden for Students) */}
       {!isStudent && (
         <div className="card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'center' }}>
             {/* Search Box */}
             <div style={{ position: 'relative', gridColumn: 'span 2' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
               <input
                 type="text"
-                placeholder="Search by student name, enrollment, email, company, domain..."
+                placeholder="Search student, enrollment, coordinator, company..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="form-input"
                 style={{ paddingLeft: '36px', marginBottom: 0 }}
               />
+            </div>
+
+            {/* Coordinator Filter */}
+            <div>
+              <select
+                value={coordinatorFilter}
+                onChange={(e) => setCoordinatorFilter(e.target.value)}
+                className="form-select"
+                style={{ marginBottom: 0, fontWeight: 600, color: coordinatorFilter !== 'All' ? 'var(--purple-800)' : 'inherit' }}
+              >
+                <option value="All">All Faculty Coordinators</option>
+                <option value="Prof. Vaibhav Sawalkar">Prof. Vaibhav Sawalkar</option>
+                <option value="Prof. Aniket Verma">Prof. Aniket Verma</option>
+                <option value="Dr. Sneha Deshmukh">Dr. Sneha Deshmukh</option>
+                <option value="Prof. Dr. Jayashree Prasad">Prof. Dr. Jayashree Prasad</option>
+                <option value="Prof. Dr. Swati More">Prof. Dr. Swati More</option>
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="form-select"
+                style={{ marginBottom: 0 }}
+              >
+                <option value="All">All Verification Statuses</option>
+                <option value="Submitted">Submitted (Pending)</option>
+                <option value="Under Review">Under Review</option>
+                <option value="Approved">Approved</option>
+                <option value="Verified">Verified</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Completed">Completed</option>
+              </select>
             </div>
 
             {/* Specialization Filter */}
@@ -774,22 +859,33 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                 <option value="Online">Online</option>
               </select>
             </div>
-
-            {/* PPO Filter */}
-            <div>
-              <select
-                value={ppoFilter}
-                onChange={(e) => setPpoFilter(e.target.value)}
-                className="form-select"
-                style={{ marginBottom: 0 }}
-              >
-                <option value="All">All PPO Types</option>
-                <option value="Yes">PPO Possibility</option>
-                <option value="Performance">Performance Based</option>
-                <option value="No">Internship Only</option>
-              </select>
-            </div>
           </div>
+
+          {/* Quick "Assigned to Me" Filter for Faculty */}
+          {authUser && (authUser.role === ROLES.FACULTY || authUser.role === ROLES.HOD) && (
+            <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px solid var(--slate-100)', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600 }}>Quick Filter:</span>
+              <button
+                type="button"
+                onClick={() => setCoordinatorFilter(authUser.full_name || 'Vaibhav Sawalkar')}
+                className={`btn btn-sm ${coordinatorFilter === (authUser.full_name || 'Vaibhav Sawalkar') ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}
+              >
+                <UserCheck size={13} />
+                Applications Assigned to Me ({authUser.full_name})
+              </button>
+              {coordinatorFilter !== 'All' && (
+                <button
+                  type="button"
+                  onClick={() => setCoordinatorFilter('All')}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}
+                >
+                  Clear Filter (Show All)
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -800,12 +896,12 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
             <thead>
               <tr style={{ backgroundColor: 'var(--slate-50)', borderBottom: '1px solid var(--slate-200)', color: 'var(--slate-600)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Date & Student</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Enrolment & Branch</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Company & Domain</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Enrolment & Class</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Company & Coordinator</th>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Tenure & Duration</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Mode & PPO</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Status & Mode</th>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Uploaded Documents</th>
-                <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Document Actions</th>
+                <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Actions & Decision</th>
               </tr>
             </thead>
             <tbody>
@@ -825,7 +921,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                     </h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '1.25rem' }}>
                       {isStudent 
-                        ? 'Please submit your internship registration (17 Fields) and upload your offer letter to track your status.' 
+                        ? 'Please submit your internship registration (18 Fields) and upload your offer letter to track your status.' 
                         : 'Submit your first student internship record to store it in Supabase.'}
                     </p>
                     <button
@@ -861,7 +957,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                       </div>
                     </td>
 
-                    {/* Enrolment & Specialization */}
+                    {/* Enrolment & Specialization & Class */}
                     <td style={{ padding: '1rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
                         <span style={{ 
@@ -896,7 +992,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                       </div>
                     </td>
 
-                    {/* Company & Domain */}
+                    {/* Company & Assigned Coordinator */}
                     <td style={{ padding: '1rem 1.25rem' }}>
                       <div style={{ fontWeight: 700, color: 'var(--slate-800)' }}>
                         {r.company_name_and_city}
@@ -904,8 +1000,22 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                       <div style={{ fontSize: '0.75rem', color: 'var(--purple-700)', fontWeight: 600 }}>
                         {r.domain_of_company || 'Information Technology'}
                       </div>
-                      <div style={{ fontSize: '0.725rem', color: 'var(--slate-400)' }}>
-                        Source: {r.source_of_internship || 'Placement Cell'}
+                      <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          fontSize: '0.725rem',
+                          fontWeight: 700,
+                          backgroundColor: '#f5f3ff',
+                          color: '#6d28d9',
+                          border: '1px solid #ddd6fe',
+                          padding: '0.15rem 0.45rem',
+                          borderRadius: 'var(--radius-sm)'
+                        }} title={`Assigned Faculty Coordinator: ${r.assigned_coordinator || 'Prof. Vaibhav Sawalkar'}`}>
+                          <UserCheck size={11} />
+                          {r.assigned_coordinator || 'Prof. Vaibhav Sawalkar'}
+                        </span>
                       </div>
                     </td>
 
@@ -920,30 +1030,49 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                       </div>
                     </td>
 
-                    {/* Mode & PPO */}
+                    {/* Status & Mode */}
                     <td style={{ padding: '1rem 1.25rem' }}>
-                      <div style={{ marginBottom: '0.3rem' }}>
+                      {/* Status Badge */}
+                      <div style={{ marginBottom: '0.35rem' }}>
                         <span style={{
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          padding: '0.15rem 0.45rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          fontSize: '0.725rem',
+                          fontWeight: 800,
+                          padding: '0.2rem 0.55rem',
                           borderRadius: 'var(--radius-full)',
-                          backgroundColor: r.mode_of_internship === 'Offline' ? '#ecfdf5' : r.mode_of_internship === 'Hybrid' ? '#eff6ff' : '#fef3c7',
-                          color: r.mode_of_internship === 'Offline' ? '#047857' : r.mode_of_internship === 'Hybrid' ? '#1d4ed8' : '#b45309'
+                          backgroundColor: 
+                            r.status === 'Approved' || r.status === 'Verified' ? '#dcfce7' :
+                            r.status === 'Rejected' ? '#ffe4e6' :
+                            r.status === 'Completed' ? '#e0f2fe' :
+                            r.status === 'Under Review' ? '#fef3c7' : '#f3e8ff',
+                          color: 
+                            r.status === 'Approved' || r.status === 'Verified' ? '#15803d' :
+                            r.status === 'Rejected' ? '#be123c' :
+                            r.status === 'Completed' ? '#0369a1' :
+                            r.status === 'Under Review' ? '#b45309' : '#7e22ce',
+                          border: '1px solid',
+                          borderColor: 
+                            r.status === 'Approved' || r.status === 'Verified' ? '#86efac' :
+                            r.status === 'Rejected' ? '#fca5a5' :
+                            r.status === 'Completed' ? '#7dd3fc' :
+                            r.status === 'Under Review' ? '#fde68a' : '#d8b4fe'
                         }}>
-                          {r.mode_of_internship}
+                          ● {r.status || 'Submitted'}
                         </span>
                       </div>
+
                       <div>
                         <span style={{
                           fontSize: '0.7rem',
-                          fontWeight: 700,
-                          padding: '0.15rem 0.45rem',
-                          borderRadius: 'var(--radius-full)',
-                          backgroundColor: r.is_ppo_offer?.includes('Yes') ? '#fdf2f8' : '#f1f5f9',
-                          color: r.is_ppo_offer?.includes('Yes') ? '#be185d' : '#475569'
+                          fontWeight: 600,
+                          padding: '0.1rem 0.4rem',
+                          borderRadius: 'var(--radius-sm)',
+                          backgroundColor: r.mode_of_internship === 'Offline' ? '#f0fdf4' : r.mode_of_internship === 'Hybrid' ? '#f0f9ff' : '#fffbeb',
+                          color: 'var(--slate-700)'
                         }}>
-                          {r.is_ppo_offer?.includes('Yes') ? '★ PPO Opportunity' : 'Internship'}
+                          {r.mode_of_internship} • {r.is_ppo_offer?.includes('Yes') ? 'PPO' : 'Intern'}
                         </span>
                       </div>
                     </td>
@@ -1048,87 +1177,143 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                       </div>
                     </td>
 
-                    {/* Instant Document Generation Actions */}
+                    {/* Instant Document Generation & Approval Actions */}
                     <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        {/* Auto-fill Undertaking */}
-                        <button
-                          onClick={() => {
-                            if (onPrefillDocument) {
-                              onPrefillDocument('undertaking', {
-                                studentName: r.full_name,
-                                rollNumber: r.enrolment_no?.slice(-7) || 'CS2022-084',
-                                enrollmentNumber: r.enrolment_no,
-                                contactNumber: r.contact_no,
-                                email: r.email,
-                                companyName: r.company_name_and_city,
-                                internshipRole: `Intern - ${r.domain_of_company || 'Engineering'}`,
-                                startDate: r.start_date,
-                                endDate: r.end_date,
-                                duration: r.duration || '6 Months',
-                                location: r.company_name_and_city,
-                                department: `Department of ${r.specialization || 'Computer Science & Engineering'}`,
-                                universityName: 'MIT Art, Design and Technology University, Pune',
-                                schoolName: 'School of Computing'
-                              });
-                            }
-                          }}
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem', color: 'var(--purple-700)', borderColor: 'var(--purple-200)' }}
-                          title="Generate Undertaking Document from this Record"
-                        >
-                          <FileCheck2 size={13} />
-                          Undertaking
-                        </button>
-
-                        {/* Auto-fill NOC */}
-                        <button
-                          onClick={() => {
-                            if (onPrefillDocument) {
-                              onPrefillDocument('noc', {
-                                studentName: r.full_name,
-                                rollNumber: r.enrolment_no?.slice(-7) || 'CS2022-084',
-                                enrollmentNumber: r.enrolment_no,
-                                course: `B.Tech in ${r.specialization || 'Computer Science & Engineering'}`,
-                                className: r.semester || 'Final Year (VIII Semester)',
-                                companyName: r.company_name_and_city.split(',')[0] || r.company_name_and_city,
-                                companyLocation: r.company_name_and_city.split(',')[1]?.trim() || r.company_name_and_city,
-                                internshipRole: `Intern - ${r.domain_of_company || 'Engineering'}`,
-                                startDate: r.start_date,
-                                endDate: r.end_date,
-                                duration: r.duration || '6 Months'
-                              });
-                            }
-                          }}
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem', color: '#2563eb', borderColor: '#bfdbfe' }}
-                          title="Generate NOC Certificate from this Record"
-                        >
-                          <Award size={13} />
-                          NOC
-                        </button>
-
-                        {/* View Details Drawer */}
-                        <button
-                          onClick={() => setSelectedRecord(r)}
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}
-                          title="View Full Record (17 Fields)"
-                        >
-                          <Eye size={13} />
-                        </button>
-
-                        {/* Delete Record (Faculty/Admin Only - Hidden for Students) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
+                        {/* Faculty / Coordinator Approval Quick Actions */}
                         {!isStudent && (
-                          <button
-                            onClick={() => handleDelete(r.id, r.full_name)}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.75rem', padding: '0.35rem 0.5rem', color: '#dc2626', borderColor: '#fecaca' }}
-                            title="Delete Record"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.25rem' }}>
+                            {r.status !== 'Approved' && r.status !== 'Verified' && (
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(r, 'Approved')}
+                                className="btn btn-sm"
+                                style={{
+                                  fontSize: '0.725rem',
+                                  padding: '0.2rem 0.55rem',
+                                  backgroundColor: '#dcfce7',
+                                  color: '#15803d',
+                                  borderColor: '#86efac',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem'
+                                }}
+                                title="Approve Student Internship Application"
+                              >
+                                <Check size={12} />
+                                Approve
+                              </button>
+                            )}
+
+                            {r.status !== 'Rejected' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (window.confirm(`Reject internship application for ${r.full_name}?`)) {
+                                    handleStatusUpdate(r, 'Rejected');
+                                  }
+                                }}
+                                className="btn btn-sm"
+                                style={{
+                                  fontSize: '0.725rem',
+                                  padding: '0.2rem 0.55rem',
+                                  backgroundColor: '#ffe4e6',
+                                  color: '#be123c',
+                                  borderColor: '#fca5a5',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem'
+                                }}
+                                title="Reject Student Internship Application"
+                              >
+                                <XCircle size={12} />
+                                Reject
+                              </button>
+                            )}
+                          </div>
                         )}
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'wrap' }}>
+                          {/* Auto-fill Undertaking */}
+                          <button
+                            onClick={() => {
+                              if (onPrefillDocument) {
+                                onPrefillDocument('undertaking', {
+                                  studentName: r.full_name,
+                                  className: r.class_division || r.semester || 'Semester VIII (Final Year)',
+                                  rollNumber: r.enrolment_no?.slice(-7) || 'CS2022-084',
+                                  enrollmentNumber: r.enrolment_no,
+                                  contactNumber: r.contact_no,
+                                  email: r.email,
+                                  companyName: r.company_name_and_city,
+                                  internshipRole: `Intern - ${r.domain_of_company || 'Engineering'}`,
+                                  startDate: r.start_date,
+                                  endDate: r.end_date,
+                                  duration: r.duration || '6 Months',
+                                  location: r.company_name_and_city,
+                                  department: `Department of ${r.specialization || 'Computer Science & Engineering'}`,
+                                  universityName: 'MIT Art, Design and Technology University, Pune',
+                                  schoolName: 'School of Computing'
+                                });
+                              }
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.725rem', padding: '0.3rem 0.55rem', color: 'var(--purple-700)', borderColor: 'var(--purple-200)' }}
+                            title="Generate Undertaking Document from this Record"
+                          >
+                            <FileCheck2 size={12} />
+                            Undertaking
+                          </button>
+
+                          {/* Auto-fill NOC */}
+                          <button
+                            onClick={() => {
+                              if (onPrefillDocument) {
+                                onPrefillDocument('noc', {
+                                  studentName: r.full_name,
+                                  rollNumber: r.enrolment_no?.slice(-7) || 'CS2022-084',
+                                  enrollmentNumber: r.enrolment_no,
+                                  course: `B.Tech in ${r.specialization || 'Computer Science & Engineering'}`,
+                                  className: r.class_division || r.semester || 'Final Year (VIII Semester)',
+                                  companyName: r.company_name_and_city.split(',')[0] || r.company_name_and_city,
+                                  companyLocation: r.company_name_and_city.split(',')[1]?.trim() || r.company_name_and_city,
+                                  internshipRole: `Intern - ${r.domain_of_company || 'Engineering'}`,
+                                  startDate: r.start_date,
+                                  endDate: r.end_date,
+                                  duration: r.duration || '6 Months'
+                                });
+                              }
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.725rem', padding: '0.3rem 0.55rem', color: '#2563eb', borderColor: '#bfdbfe' }}
+                            title="Generate NOC Certificate from this Record"
+                          >
+                            <Award size={12} />
+                            NOC
+                          </button>
+
+                          {/* View Details Drawer */}
+                          <button
+                            onClick={() => setSelectedRecord(r)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.725rem', padding: '0.3rem 0.45rem' }}
+                            title="View Full Record (18 Fields)"
+                          >
+                            <Eye size={12} />
+                          </button>
+
+                          {/* Delete Record (Faculty/Admin Only - Hidden for Students) */}
+                          {!isStudent && (
+                            <button
+                              onClick={() => handleDelete(r.id, r.full_name)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.725rem', padding: '0.3rem 0.45rem', color: '#dc2626', borderColor: '#fecaca' }}
+                              title="Delete Record"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -1193,7 +1378,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
               {selectedRecord.full_name}
             </h2>
 
-            {/* 17 Fields Breakdown */}
+            {/* 18 Fields Breakdown */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
               <DetailItem label="1. Date of Entry" value={selectedRecord.submission_date} />
               <DetailItem label="2. Email ID" value={selectedRecord.email} />
@@ -1212,7 +1397,71 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
               <DetailItem label="13. Mode of Internship" value={selectedRecord.mode_of_internship} />
               <DetailItem label="14. Domain of Company" value={selectedRecord.domain_of_company} />
               <DetailItem label="15. Whether Offer/PPO" value={selectedRecord.is_ppo_offer} />
+              <DetailItem label="18. Assigned Faculty Coordinator" value={selectedRecord.assigned_coordinator || 'Prof. Vaibhav Sawalkar'} highlight />
             </div>
+
+            {/* Faculty Decision & Status Control Box */}
+            {!isStudent && (
+              <div style={{ padding: '1.25rem', backgroundColor: '#faf5ff', border: '1px solid #ddd6fe', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ fontWeight: 800, color: 'var(--purple-950)', fontSize: '0.95rem' }}>
+                    Faculty Verification & Decision:
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    padding: '0.2rem 0.65rem',
+                    borderRadius: 'var(--radius-full)',
+                    backgroundColor: 
+                      selectedRecord.status === 'Approved' || selectedRecord.status === 'Verified' ? '#dcfce7' :
+                      selectedRecord.status === 'Rejected' ? '#ffe4e6' :
+                      selectedRecord.status === 'Completed' ? '#e0f2fe' :
+                      selectedRecord.status === 'Under Review' ? '#fef3c7' : '#f3e8ff',
+                    color: 
+                      selectedRecord.status === 'Approved' || selectedRecord.status === 'Verified' ? '#15803d' :
+                      selectedRecord.status === 'Rejected' ? '#be123c' :
+                      selectedRecord.status === 'Completed' ? '#0369a1' :
+                      selectedRecord.status === 'Under Review' ? '#b45309' : '#7e22ce'
+                  }}>
+                    Current Status: {selectedRecord.status || 'Submitted'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleStatusUpdate(selectedRecord, 'Approved')}
+                    className="btn btn-sm"
+                    style={{ backgroundColor: '#16a34a', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Check size={14} />
+                    Approve Application
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStatusUpdate(selectedRecord, 'Under Review')}
+                    className="btn btn-sm"
+                    style={{ backgroundColor: '#f59e0b', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Clock size={14} />
+                    Mark Under Review
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`Reject application for ${selectedRecord.full_name}?`)) {
+                        handleStatusUpdate(selectedRecord, 'Rejected');
+                      }
+                    }}
+                    className="btn btn-sm"
+                    style={{ backgroundColor: '#dc2626', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <XCircle size={14} />
+                    Reject Application
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Document Links with Direct PDF Preview Trigger */}
             <div style={{ padding: '1.25rem', backgroundColor: 'var(--purple-50)', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem' }}>

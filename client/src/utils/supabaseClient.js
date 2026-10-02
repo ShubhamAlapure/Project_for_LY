@@ -74,6 +74,8 @@ const DEFAULT_INITIAL_RECORDS = [
     is_ppo_offer: 'No',
     offer_letter_url: SAMPLE_GOOGLE_OFFER_PDF,
     completion_letter_url: null,
+    assigned_coordinator: 'Prof. Vaibhav Sawalkar',
+    assigned_faculty_email: 'vaibhav.sawalkar@mituniversity.edu.in',
     status: 'Verified'
   },
   {
@@ -96,6 +98,8 @@ const DEFAULT_INITIAL_RECORDS = [
     is_ppo_offer: 'Yes',
     offer_letter_url: SAMPLE_MICROSOFT_OFFER_PDF,
     completion_letter_url: null,
+    assigned_coordinator: 'Prof. Aniket Verma',
+    assigned_faculty_email: 'aniket.verma@mituniversity.edu.in',
     status: 'Verified'
   },
   {
@@ -118,6 +122,8 @@ const DEFAULT_INITIAL_RECORDS = [
     is_ppo_offer: 'Yes',
     offer_letter_url: SAMPLE_GOOGLE_OFFER_PDF,
     completion_letter_url: null,
+    assigned_coordinator: 'Dr. Sneha Deshmukh',
+    assigned_faculty_email: 'sneha.deshmukh@mituniversity.edu.in',
     status: 'Verified'
   }
 ];
@@ -395,6 +401,8 @@ export const insertStudentRecord = async (recordData) => {
     is_ppo_offer: recordData.is_ppo_offer || 'No',
     offer_letter_url: recordData.offer_letter_url || null,
     completion_letter_url: recordData.completion_letter_url || null,
+    assigned_coordinator: recordData.assigned_coordinator?.trim() || 'Prof. Vaibhav Sawalkar',
+    assigned_faculty_email: recordData.assigned_faculty_email?.trim() || 'vaibhav.sawalkar@mituniversity.edu.in',
     status: recordData.status || (recordData.completion_letter_url ? 'Completed' : 'Submitted'),
     notes: recordData.notes || ''
   };
@@ -521,7 +529,9 @@ export const updateStudentRecord = async (id, updateFields) => {
       is_ppo_offer: mergedUpdate.is_ppo_offer || 'No',
       offer_letter_url: mergedUpdate.offer_letter_url || null,
       completion_letter_url: mergedUpdate.completion_letter_url || null,
-      status: mergedUpdate.status || 'Completed',
+      assigned_coordinator: mergedUpdate.assigned_coordinator || 'Prof. Vaibhav Sawalkar',
+      assigned_faculty_email: mergedUpdate.assigned_faculty_email || 'vaibhav.sawalkar@mituniversity.edu.in',
+      status: mergedUpdate.status || 'Submitted',
       notes: mergedUpdate.notes || '',
       updated_at: new Date().toISOString()
     };

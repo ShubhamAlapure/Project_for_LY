@@ -389,6 +389,8 @@ app.post('/api/students', async (req, res) => {
       is_ppo_offer: payload.is_ppo_offer || 'No',
       offer_letter_url: payload.offer_letter_url || null,
       completion_letter_url: payload.completion_letter_url || null,
+      assigned_coordinator: payload.assigned_coordinator?.trim() || 'Prof. Vaibhav Sawalkar',
+      assigned_faculty_email: payload.assigned_faculty_email?.trim() || 'vaibhav.sawalkar@mituniversity.edu.in',
       status: payload.status || 'Submitted',
       notes: payload.notes || ''
     };

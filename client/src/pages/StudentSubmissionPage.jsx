@@ -21,10 +21,12 @@ import {
   ExternalLink,
   Eye,
   Trash2,
-  Database
+  Database,
+  UserCheck
 } from 'lucide-react';
 import { calculateInternshipDuration, insertStudentRecord, uploadStudentDocument, fetchStudentRecords } from '../utils/supabaseClient';
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
+import { getFacultyCoordinators } from '../utils/auth';
 
 // Sample Valid Base64 PDF Data for demo testing
 const SAMPLE_OFFER_LETTER_PDF = "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjQgMCBvYmoKPDwgL0xlbmd0aCA1IDAgUiAvRmlsdGVyIC9GbGF0ZURlY29kZSA+PgpzdHJlYW0KeJwrVAgwsjI1MTcw1TMBcQwNzCwsTS0M9IwNDM0sgEw9Awv9gILk1FwFfQWwZGBgAABWkgmXCgplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKNzgKZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAzIDAgUiAvUmVzb3VyY2VzIDYgMCBSIC9Db250ZW50cyA0IDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSA+PgplbmRvYmoKNiAwIG9iago8PCAvUHJvY1NldCBbIC9QREYgL1RleHQgXSA+PgplbmRvYmoKMyAwIG9iago8PCAvVHlwZSAvUGFnZXMgL0tpZHMgWyAyIDAgUiBdIC9Db3VudCAxID4+CmVuZG9iagoxIDAgb2JqCjw8IC9UeXBlIC9DYXRhbG9nIC9QYWdlcyAzIDAgUiA+PgplbmRvYmoKMAp0cmFpbGVyCjw8IC9Sb290IDEgMCBSID4+CiUlRU9G";
@@ -68,6 +70,9 @@ const INITIAL_FORM = {
   offer_letter_url: '',
   // 17. Internship Completion Letter
   completion_letter_url: '',
+  // 18. Assigned Faculty Coordinator
+  assigned_coordinator: 'Prof. Vaibhav Sawalkar',
+  assigned_faculty_email: 'vaibhav.sawalkar@mituniversity.edu.in',
   notes: ''
 };
 
@@ -90,11 +95,14 @@ const SAMPLE_STUDENT_RECORD = {
   is_ppo_offer: 'Yes (PPO Possibility)',
   offer_letter_url: SAMPLE_OFFER_LETTER_PDF,
   completion_letter_url: '',
+  assigned_coordinator: 'Prof. Vaibhav Sawalkar',
+  assigned_faculty_email: 'vaibhav.sawalkar@mituniversity.edu.in',
   notes: 'Eligible for 8th semester credits after completion evaluation.'
 };
 
 export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser }) => {
   const [formData, setFormData] = useState(INITIAL_FORM);
+  const [facultyList, setFacultyList] = useState([]);
   const [offerFile, setOfferFile] = useState(null);
   const [completionFile, setCompletionFile] = useState(null);
   const [offerFileName, setOfferFileName] = useState('');
@@ -165,6 +173,22 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser 
 
     loadStudentExistingData();
   }, [authUser]);
+
+  // Load faculty coordinators list on component mount
+  useEffect(() => {
+    const loadFaculty = async () => {
+      const list = await getFacultyCoordinators();
+      if (list && list.length > 0) {
+        setFacultyList(list);
+        setFormData(prev => ({
+          ...prev,
+          assigned_coordinator: prev.assigned_coordinator || list[0].full_name,
+          assigned_faculty_email: prev.assigned_faculty_email || list[0].email
+        }));
+      }
+    };
+    loadFaculty();
+  }, []);
 
   // Recalculate duration automatically whenever start_date or end_date changes
   useEffect(() => {
@@ -277,6 +301,9 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser 
     if (!formData.end_date) errs.end_date = "Internship End Date is required.";
     if (formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date)) {
       errs.end_date = "End date cannot be earlier than start date.";
+    }
+    if (!formData.assigned_coordinator?.trim()) {
+      errs.assigned_coordinator = "Please select a Faculty Coordinator to review your application.";
     }
 
     setErrors(errs);
@@ -1057,6 +1084,99 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser 
                 )}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* ==================================================================== */}
+        {/* SECTION 5: Select Faculty Coordinator / Reviewer */}
+        {/* ==================================================================== */}
+        <div className="card" style={{ padding: '2rem', marginBottom: '2rem', border: '1.5px solid var(--purple-200)', backgroundColor: '#faf5ff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--purple-100)', paddingBottom: '0.75rem' }}>
+            <UserCheck size={22} color="var(--purple-700)" />
+            <div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
+                5. Select Faculty Coordinator / Reviewer
+              </h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--slate-600)', margin: '0.2rem 0 0 0' }}>
+                Assigned faculty coordinator will receive this application to review, approve, or reject.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+            <div>
+              <label className="form-label" htmlFor="assigned_coordinator" style={{ fontWeight: 700 }}>
+                Faculty Coordinator <span className="text-danger">*</span>
+              </label>
+              <select
+                id="assigned_coordinator"
+                name="assigned_coordinator"
+                value={formData.assigned_coordinator}
+                onChange={(e) => {
+                  const selectedName = e.target.value;
+                  const matched = facultyList.find(f => f.full_name === selectedName);
+                  setFormData(prev => ({
+                    ...prev,
+                    assigned_coordinator: selectedName,
+                    assigned_faculty_email: matched ? matched.email : prev.assigned_faculty_email
+                  }));
+                  if (errors.assigned_coordinator) {
+                    setErrors(prev => {
+                      const next = { ...prev };
+                      delete next.assigned_coordinator;
+                      return next;
+                    });
+                  }
+                }}
+                className={`form-select ${errors.assigned_coordinator ? 'is-invalid' : ''}`}
+                style={{ fontSize: '0.95rem', fontWeight: 600, padding: '0.65rem 0.85rem' }}
+                required
+              >
+                {facultyList && facultyList.length > 0 ? (
+                  facultyList.map(f => (
+                    <option key={f.id || f.email} value={f.full_name}>
+                      {f.full_name} — {f.designation || f.role} ({f.department || 'School of Computing'})
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Prof. Vaibhav Sawalkar">Prof. Vaibhav Sawalkar — Internship Coordinator & Assistant Professor</option>
+                    <option value="Prof. Aniket Verma">Prof. Aniket Verma — Head - Industry Internship Cell</option>
+                    <option value="Dr. Sneha Deshmukh">Dr. Sneha Deshmukh — Head of Department (CSE)</option>
+                    <option value="Prof. Dr. Jayashree Prasad">Prof. Dr. Jayashree Prasad — Head of Department (CSE-AIA)</option>
+                    <option value="Prof. Dr. Swati More">Prof. Dr. Swati More — Director, Central T&P</option>
+                  </>
+                )}
+              </select>
+              {errors.assigned_coordinator && <span className="form-error">{errors.assigned_coordinator}</span>}
+              <p style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.35rem' }}>
+                📌 Your verification status (Under Review / Approved / Rejected) will be managed by this coordinator.
+              </p>
+            </div>
+
+            {/* Selected Faculty Details Card */}
+            {formData.assigned_coordinator && (
+              <div style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid var(--purple-200)',
+                borderRadius: 'var(--radius-md)',
+                padding: '1rem 1.25rem',
+                boxShadow: 'var(--shadow-xs)'
+              }}>
+                <div style={{ fontSize: '0.725rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--purple-700)', fontWeight: 700, marginBottom: '0.35rem' }}>
+                  Assigned Reviewer Details
+                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--purple-950)' }}>
+                  {formData.assigned_coordinator}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--slate-600)', marginTop: '0.2rem' }}>
+                  {facultyList.find(f => f.full_name === formData.assigned_coordinator)?.designation || 'Internship Coordinator / Faculty Reviewer'}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.2rem' }}>
+                  📧 {formData.assigned_faculty_email || 'coordinator@mitadt.edu.in'}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

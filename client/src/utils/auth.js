@@ -156,6 +156,28 @@ export const DEFAULT_USERS = [
     phone: '9665368452',
     status: 'Active'
   },
+  {
+    id: 'usr_faculty_03',
+    email: 'aniket.verma@mituniversity.edu.in',
+    password: 'faculty123',
+    full_name: 'Prof. Aniket Verma',
+    role: ROLES.FACULTY,
+    department: 'Department of Computer Science & Engineering',
+    designation: 'Head - Industry Internship Cell & Assistant Professor',
+    phone: '9876543211',
+    status: 'Active'
+  },
+  {
+    id: 'usr_faculty_04',
+    email: 'sneha.deshmukh@mituniversity.edu.in',
+    password: 'faculty123',
+    full_name: 'Dr. Sneha Deshmukh',
+    role: ROLES.FACULTY,
+    department: 'Department of Computer Science & Engineering',
+    designation: 'Head of Department (CSE)',
+    phone: '9876543212',
+    status: 'Active'
+  },
 
   // 4. Central T&P Accounts
   {
@@ -205,6 +227,37 @@ export const DEFAULT_USERS = [
     status: 'Active'
   }
 ];
+
+export const getFacultyCoordinators = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('user_logins')
+      .select('id, full_name, email, role, department, designation, phone')
+      .or('role.ilike.%faculty%,role.ilike.%coordinator%,role.ilike.%hod%')
+      .order('full_name', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      return data;
+    }
+  } catch (err) {
+    console.warn('Could not fetch faculty from Supabase, using local list:', err);
+  }
+
+  // Fallback to local default users with Faculty or HOD role
+  const localFaculty = DEFAULT_USERS.filter(u => 
+    u.role === ROLES.FACULTY || u.role === ROLES.HOD || u.role === ROLES.CENTRAL_TP
+  );
+  
+  // De-duplicate by name/email
+  const unique = [];
+  localFaculty.forEach(f => {
+    if (!unique.some(u => u.full_name === f.full_name)) {
+      unique.push(f);
+    }
+  });
+
+  return unique;
+};
 
 const AUTH_STORAGE_KEY = 'mit_interndocs_auth_user';
 const USERS_CACHE_KEY = 'mit_interndocs_users_cache';
