@@ -24,7 +24,7 @@ import headerImg from '../assets/letterhead_header.png';
 
 export const LoginPage = ({ onLoginSuccess, onGuestExplore }) => {
   const [selectedRole, setSelectedRole] = useState(ROLES.ADMIN); // Default to Admin as requested
-  const [identifier, setIdentifier] = useState('admin');
+  const [identifier, setIdentifier] = useState('admin@mitadt.edu.in');
   const [password, setPassword] = useState('admin123');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,7 +37,7 @@ export const LoginPage = ({ onLoginSuccess, onGuestExplore }) => {
     setError('');
     const defaultAccount = DEFAULT_USERS.find(u => u.role === role);
     if (defaultAccount) {
-      setIdentifier(defaultAccount.username);
+      setIdentifier(defaultAccount.email);
       setPassword(defaultAccount.password);
     }
   };
@@ -267,7 +267,7 @@ export const LoginPage = ({ onLoginSuccess, onGuestExplore }) => {
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '1.25rem' }}>
                 <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                  Username or Institutional Email
+                  Email Address
                 </label>
                 <div style={{ position: 'relative' }}>
                   <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
@@ -275,7 +275,7 @@ export const LoginPage = ({ onLoginSuccess, onGuestExplore }) => {
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="e.g. admin or student@mitadt.edu.in"
+                    placeholder="e.g. admin@mitadt.edu.in or student email"
                     className="form-input"
                     style={{ paddingLeft: '38px', marginBottom: 0 }}
                     required
@@ -289,7 +289,7 @@ export const LoginPage = ({ onLoginSuccess, onGuestExplore }) => {
                     Password
                   </label>
                   <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>
-                    Default: <code>admin123</code> / <code>student123</code>
+                    Students: use your contact number
                   </span>
                 </div>
                 <div style={{ position: 'relative' }}>

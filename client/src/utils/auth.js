@@ -266,22 +266,64 @@ const rolesMatch = (roleA, roleB) => {
 };
 
 /**
- * Authenticate user strictly by Email and Password (No other fields permitted)
+ * Shorthand aliases that map simple identifiers to full email addresses.
+ * This lets users type "admin" instead of "admin@mitadt.edu.in".
+ */
+const EMAIL_ALIASES = {
+  'admin': 'admin@mitadt.edu.in',
+  'student': 'student@mitadt.edu.in',
+  'faculty': 'faculty@mitadt.edu.in',
+  'tp': 'tp@mitadt.edu.in',
+  'hod': 'hod@mitadt.edu.in',
+};
+
+/**
+ * Resolves a user-typed identifier to a valid email address.
+ * Supports:
+ *   1. Full email addresses (returned as-is)
+ *   2. Shorthand aliases like "admin", "student", etc.
+ *   3. Email prefix matching against the DEFAULT_USERS list
+ */
+const resolveEmail = (identifier) => {
+  if (!identifier) return '';
+  const clean = identifier.trim().toLowerCase();
+
+  // Already a full email address
+  if (clean.includes('@')) return clean;
+
+  // Check shorthand alias map
+  if (EMAIL_ALIASES[clean]) return EMAIL_ALIASES[clean];
+
+  // Try matching the identifier as the prefix part of any known email
+  const prefixMatch = DEFAULT_USERS.find(u => {
+    if (!u.email) return false;
+    const prefix = u.email.split('@')[0].toLowerCase();
+    return prefix === clean;
+  });
+  if (prefixMatch) return prefixMatch.email.toLowerCase();
+
+  // Return as-is (will fail gracefully if it's not a valid email)
+  return clean;
+};
+
+/**
+ * Authenticate user by Email (or alias) and Password.
+ * Queries Supabase `user_logins` table first, then falls back to local seed data.
  */
 export const loginUser = async (emailInput, passwordInput, requestedRole = null) => {
-  const cleanEmail = (emailInput || '').trim().toLowerCase();
+  const resolvedEmail = resolveEmail(emailInput);
   const cleanPass = (passwordInput || '').trim();
 
-  if (!cleanEmail || !cleanPass) {
+  if (!resolvedEmail || !cleanPass) {
     return { success: false, error: 'Please enter both Email and Password.' };
   }
 
-  // 1. Query Supabase cloud database strictly by Email
+  // ---------- 1. Query Supabase cloud database by Email ----------
   try {
     const { data, error } = await supabase
       .from('user_logins')
       .select('*')
-      .ilike('email', cleanEmail)
+      .ilike('email', resolvedEmail)
       .limit(1);
 
     if (!error && data && data.length > 0) {
@@ -290,7 +332,7 @@ export const loginUser = async (emailInput, passwordInput, requestedRole = null)
         if (requestedRole && !rolesMatch(user.role, requestedRole) && user.role !== ROLES.ADMIN) {
           return {
             success: false,
-            error: `Your account is registered as ${user.role}. Please switch to the ${user.role} tab.`
+            error: `Your account is registered as "${user.role}". Please switch to the ${user.role} tab.`
           };
         }
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
@@ -303,17 +345,17 @@ export const loginUser = async (emailInput, passwordInput, requestedRole = null)
     console.warn('Supabase query note, falling back to local credentials:', err);
   }
 
-  // 2. Fallback to cached / default seed user database strictly by Email
+  // ---------- 2. Fallback to local seed / cached user database ----------
   const users = getCachedUsers();
   const matchedUser = users.find(
-    u => u.email && u.email.toLowerCase() === cleanEmail && u.password === cleanPass
+    u => u.email && u.email.toLowerCase() === resolvedEmail && u.password === cleanPass
   );
 
   if (matchedUser) {
     if (requestedRole && !rolesMatch(matchedUser.role, requestedRole) && matchedUser.role !== ROLES.ADMIN) {
       return {
         success: false,
-        error: `Your account is registered as ${matchedUser.role}. Please select the ${matchedUser.role} tab.`
+        error: `Your account is registered as "${matchedUser.role}". Please select the ${matchedUser.role} tab.`
       };
     }
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(matchedUser));
@@ -321,6 +363,19 @@ export const loginUser = async (emailInput, passwordInput, requestedRole = null)
   }
 
   return { success: false, error: 'Invalid email or password. Please verify your credentials.' };
+};
+
+/**
+ * Quick demo login — bypasses Supabase and logs in with the first
+ * DEFAULT_USERS entry that matches the requested role.
+ */
+export const quickDemoLogin = (role) => {
+  const demoUser = DEFAULT_USERS.find(u => u.role === role);
+  if (!demoUser) {
+    return { success: false, error: `No demo account configured for role "${role}".` };
+  }
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(demoUser));
+  return { success: true, user: demoUser };
 };
 
 /**
