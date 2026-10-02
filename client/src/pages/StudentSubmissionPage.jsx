@@ -22,7 +22,8 @@ import {
   Eye,
   Trash2,
   Database,
-  UserCheck
+  UserCheck,
+  Lock
 } from 'lucide-react';
 import { calculateInternshipDuration, insertStudentRecord, uploadStudentDocument, fetchStudentRecords } from '../utils/supabaseClient';
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
@@ -100,7 +101,7 @@ const SAMPLE_STUDENT_RECORD = {
   notes: 'Eligible for 8th semester credits after completion evaluation.'
 };
 
-export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser }) => {
+export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser, onApplicationSubmitted }) => {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [facultyList, setFacultyList] = useState([]);
   const [offerFile, setOfferFile] = useState(null);
@@ -329,11 +330,12 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser 
       const created = res.data && res.data[0] ? res.data[0] : formData;
       setSubmittedRecord(created);
       setIsEditingExisting(true);
+      if (onApplicationSubmitted) {
+        onApplicationSubmitted(created);
+      }
       setNotification({ 
         type: 'success', 
-        message: formData.completion_letter_url 
-          ? 'Internship record and Completion Letter successfully stored & synced!' 
-          : 'Student record successfully stored in Supabase database!' 
+        message: `Application submitted & routed to ${formData.assigned_coordinator || 'your Faculty Coordinator'}!` 
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -491,61 +493,62 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser 
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
             <div style={{
-              width: '44px',
-              height: '44px',
+              width: '46px',
+              height: '46px',
               borderRadius: '50%',
-              backgroundColor: '#22c55e',
+              backgroundColor: '#16a34a',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <CheckCircle2 size={24} />
+              <CheckCircle2 size={26} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#166534', margin: 0 }}>
-                  Record Successfully Stored in Supabase!
+                  Application Submitted & Routed to Faculty Coordinator!
                 </h3>
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#dcfce7', color: '#15803d', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)' }}>
-                  ID: {submittedRecord.id?.slice(0, 16) || 'SAVED'}
+                  Status: Submitted (Pending Verification)
                 </span>
               </div>
               
-              <p style={{ fontSize: '0.875rem', color: '#166534', marginTop: '0.4rem', marginBottom: '1.25rem', lineHeight: 1.5 }}>
-                <strong>{submittedRecord.full_name}</strong> ({submittedRecord.enrolment_no}) at <strong>{submittedRecord.company_name_and_city}</strong> for <strong>{submittedRecord.duration}</strong>.
+              <p style={{ fontSize: '0.9rem', color: '#166534', marginTop: '0.4rem', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                Your internship details for <strong>{submittedRecord.company_name_and_city}</strong> have been saved to Supabase and forwarded to <strong>{submittedRecord.assigned_coordinator || 'your assigned Faculty Coordinator'}</strong> for review, approval, or rejection. Other portal modules (Submission Status, Undertaking, NOC) are now unlocked for you!
               </p>
 
               {/* Quick Action Buttons to Generate Documents */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <button
                   type="button"
-                  onClick={handleGenerateUndertaking}
+                  onClick={() => onNavigate('student-records')}
                   className="btn btn-primary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: 'var(--purple-700)' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#15803d' }}
+                >
+                  <Database size={15} />
+                  View My Application Status
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateUndertaking}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                 >
                   <FileCheck2 size={16} />
-                  Auto-fill & Generate Undertaking
+                  Auto-fill Undertaking
                 </button>
 
                 <button
                   type="button"
                   onClick={handleGenerateNOC}
-                  className="btn btn-primary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#2563eb' }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                 >
                   <Award size={16} />
-                  Auto-fill & Generate NOC Letter
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onNavigate('student-records')}
-                  className="btn btn-secondary btn-sm"
-                >
-                  Go to Records Table
-                  <ArrowRight size={14} />
+                  Auto-fill NOC Letter
                 </button>
               </div>
             </div>
@@ -1012,77 +1015,117 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser 
               </div>
             </div>
 
-            {/* Field 17: Internship Completion Letter */}
+            {/* Field 17: Internship Completion Letter (Locked during initial application) */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                 <label className="form-label" style={{ fontWeight: 700, margin: 0 }}>
                   17. Internship Completion Letter (Certificate)
                 </label>
-                {formData.completion_letter_url && (
+                {formData.completion_letter_url ? (
                   <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0369a1', backgroundColor: '#e0f2fe', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)' }}>
                     ✓ Attached & Synced
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--slate-500)', backgroundColor: 'var(--slate-100)', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)' }}>
+                    🔒 Post-Internship Only
                   </span>
                 )}
               </div>
 
-              <div style={{
-                border: '2px dashed',
-                borderColor: formData.completion_letter_url ? '#7dd3fc' : 'var(--slate-300)',
-                backgroundColor: formData.completion_letter_url ? '#f0f9ff' : 'var(--slate-50)',
-                borderRadius: 'var(--radius-md)',
-                padding: '1.5rem',
-                textAlign: 'center',
-                position: 'relative'
-              }}>
-                <Award size={32} color={formData.completion_letter_url ? '#0284c7' : 'var(--slate-500)'} style={{ margin: '0 auto 0.5rem auto' }} />
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: formData.completion_letter_url ? '#0369a1' : 'var(--slate-800)' }}>
-                  {completionFileName ? completionFileName : formData.completion_letter_url ? 'Completion Certificate Attached' : 'Upload Completion Letter (Post-Internship)'}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                  {formData.completion_letter_url ? 'Click below to preview or select a new file to update' : 'Attach upon completing internship tenure (PDF / JPG)'}
-                </div>
-
-                <input
-                  type="file"
-                  id="completion_file"
-                  accept=".pdf,image/*"
-                  onChange={handleCompletionFileChange}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
-                    cursor: 'pointer'
-                  }}
-                />
-
-                {uploadingCompletion && (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--purple-700)', fontWeight: 600 }}>
-                    Uploading & Preparing PDF Preview...
+              {/* If existing record has completion letter, show active preview/update. Otherwise show LOCKED card for initial application */}
+              {isEditingExisting && formData.completion_letter_url ? (
+                <div style={{
+                  border: '2px dashed #7dd3fc',
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                  position: 'relative'
+                }}>
+                  <Award size={32} color="#0284c7" style={{ margin: '0 auto 0.5rem auto' }} />
+                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0369a1' }}>
+                    {completionFileName ? completionFileName : 'Completion Certificate Attached'}
                   </div>
-                )}
-
-                {formData.completion_letter_url && !uploadingCompletion && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '0.75rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewingDoc({
-                        isOpen: true,
-                        url: formData.completion_letter_url,
-                        title: completionFileName || `${formData.full_name} - Completion Certificate PDF`,
-                        studentName: formData.full_name
-                      })}
-                      className="btn btn-secondary btn-sm"
-                      style={{ color: '#0369a1', borderColor: '#7dd3fc', backgroundColor: '#e0f2fe', fontSize: '0.775rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                    >
-                      <Award size={13} />
-                      Preview Completion Letter PDF
-                    </button>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
+                    Click below to preview or select a new file to update
                   </div>
-                )}
-              </div>
+
+                  <input
+                    type="file"
+                    id="completion_file"
+                    accept=".pdf,image/*"
+                    onChange={handleCompletionFileChange}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
+                  />
+
+                  {uploadingCompletion && (
+                    <div style={{ fontSize: '0.8rem', color: 'var(--purple-700)', fontWeight: 600 }}>
+                      Uploading & Preparing PDF Preview...
+                    </div>
+                  )}
+
+                  {!uploadingCompletion && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '0.75rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewingDoc({
+                          isOpen: true,
+                          url: formData.completion_letter_url,
+                          title: completionFileName || `${formData.full_name} - Completion Certificate PDF`,
+                          studentName: formData.full_name
+                        })}
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#0369a1', borderColor: '#7dd3fc', backgroundColor: '#e0f2fe', fontSize: '0.775rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <Award size={13} />
+                        Preview Completion Letter PDF
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{
+                  border: '2px dashed var(--slate-300)',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--slate-200)',
+                    color: 'var(--slate-500)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 0.5rem auto'
+                  }}>
+                    <Lock size={20} />
+                  </div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--slate-700)' }}>
+                    Locked During Initial Application
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                    Completion certificate can only be submitted post-internship upon concluding your 6-month tenure. Only the <strong>Offer Letter</strong> is required right now.
+                  </div>
+                  <div style={{ marginTop: '0.65rem' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: 'var(--slate-200)', color: 'var(--slate-600)', padding: '0.2rem 0.55rem', borderRadius: 'var(--radius-full)' }}>
+                      🔒 Unlocks After Internship Period
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -48,6 +48,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
   const [coordinatorFilter, setCoordinatorFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [facultyCoordinators, setFacultyCoordinators] = useState([]);
+  const [facultyTab, setFacultyTab] = useState('assigned');
   const [isFallback, setIsFallback] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [editingCompletionRecord, setEditingCompletionRecord] = useState(null);
@@ -56,6 +57,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
   const [notification, setNotification] = useState(null);
 
   const isStudent = authUser?.role === ROLES.STUDENT;
+  const isFaculty = authUser?.role === ROLES.FACULTY || authUser?.role === ROLES.HOD;
 
   // PDF / Document Viewer Modal State
   const [previewingDoc, setPreviewingDoc] = useState({
@@ -435,7 +437,8 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
 
   // Role-Based Filtering:
   // If Student: Only show records belonging to the student
-  // If Faculty / Coordinator / HOD / T&P / Admin: Show all records with full search & filters
+  // If Faculty and on 'assigned' tab: Show records assigned to this faculty coordinator
+  // If All/Admin: Show all records
   const visibleRecords = isStudent 
     ? records.filter(r => {
         const studentEmail = authUser?.email?.toLowerCase();
@@ -446,6 +449,19 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
           (r.enrolment_no && studentEnroll && r.enrolment_no.toLowerCase() === studentEnroll) ||
           (r.full_name && studentName && r.full_name.toLowerCase().includes(studentName)) ||
           records.length === 1 // If only 1 demo record, allow viewing
+        );
+      })
+    : (isFaculty && facultyTab === 'assigned')
+    ? records.filter(r => {
+        const fName = authUser?.full_name?.toLowerCase();
+        const fEmail = authUser?.email?.toLowerCase();
+        return (
+          (r.assigned_coordinator && fName && r.assigned_coordinator.toLowerCase().includes(fName)) ||
+          (r.assigned_faculty_email && fEmail && r.assigned_faculty_email.toLowerCase() === fEmail) ||
+          // Fallback if demo matching by last name
+          (r.assigned_coordinator && fName && fName.includes('sawalkar') && r.assigned_coordinator.toLowerCase().includes('sawalkar')) ||
+          (r.assigned_coordinator && fName && fName.includes('verma') && r.assigned_coordinator.toLowerCase().includes('verma')) ||
+          (r.assigned_coordinator && fName && fName.includes('deshmukh') && r.assigned_coordinator.toLowerCase().includes('deshmukh'))
         );
       })
     : records;
@@ -476,6 +492,15 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
 
   // Calculate statistics
   const totalCount = records.length;
+  const assignedCount = records.filter(r => {
+    const fName = authUser?.full_name?.toLowerCase();
+    return r.assigned_coordinator && fName && (r.assigned_coordinator.toLowerCase().includes(fName) || (fName.includes('sawalkar') && r.assigned_coordinator.toLowerCase().includes('sawalkar')));
+  }).length;
+  const pendingReviewCount = records.filter(r => {
+    const fName = authUser?.full_name?.toLowerCase();
+    const isAssigned = r.assigned_coordinator && fName && (r.assigned_coordinator.toLowerCase().includes(fName) || (fName.includes('sawalkar') && r.assigned_coordinator.toLowerCase().includes('sawalkar')));
+    return isAssigned && (r.status === 'Submitted' || r.status === 'Under Review' || !r.status);
+  }).length;
   const ppoCount = records.filter(r => r.is_ppo_offer && r.is_ppo_offer.toLowerCase().includes('yes')).length;
   const completedCount = records.filter(r => r.status === 'Completed' || r.completion_letter_url).length;
   const offlineCount = records.filter(r => r.mode_of_internship === 'Offline').length;
@@ -530,20 +555,22 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
             <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-              {isStudent ? <GraduationCap size={14} /> : <Database size={12} />}
-              {isStudent ? 'Student Application Desk' : 'Supabase Database'}
+              {isStudent ? <GraduationCap size={14} /> : isFaculty ? <UserCheck size={14} /> : <Database size={12} />}
+              {isStudent ? 'Student Application Desk' : isFaculty ? 'Faculty Review & Approval Desk' : 'Supabase Database'}
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--slate-400)', fontWeight: 600 }}>
-              {isStudent ? 'Personal Application Tracking' : 'Live Synchronization'}
+              {isStudent ? 'Personal Application Tracking' : isFaculty ? `Reviewer: ${authUser.full_name}` : 'Live Synchronization'}
             </span>
           </div>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
-            {isStudent ? 'My Internship Application & Status' : 'Student Internship Records Database'}
+            {isStudent ? 'My Internship Application & Status' : isFaculty ? 'Manage Student Internship Applications' : 'Student Internship Records Database'}
           </h1>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             {isStudent 
               ? 'Track your registered industrial training record, preview attached offer/completion letters, and generate official documents.' 
-              : 'Central repository of MIT-ADT School of Computing student industrial internships (17 Fields).'}
+              : isFaculty
+              ? `Review student applications assigned to you, inspect offer letters, and approve or reject submissions.`
+              : 'Central repository of MIT-ADT School of Computing student industrial internships (18 Fields).'}
           </p>
         </div>
 
@@ -768,6 +795,36 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
               Corporate Workstations
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Faculty Application Queue Tabs */}
+      {isFaculty && (
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setFacultyTab('assigned')}
+            className={`btn ${facultyTab === 'assigned' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '0.85rem', padding: '0.55rem 1.15rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}
+          >
+            <UserCheck size={16} />
+            My Assigned Student Applications ({assignedCount})
+            {pendingReviewCount > 0 && (
+              <span style={{ backgroundColor: '#ef4444', color: 'white', fontSize: '0.675rem', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)', fontWeight: 800 }}>
+                {pendingReviewCount} Action Needed
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFacultyTab('all')}
+            className={`btn ${facultyTab === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '0.85rem', padding: '0.55rem 1.15rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}
+          >
+            <Database size={16} />
+            All Department Applications ({totalCount})
+          </button>
         </div>
       )}
 

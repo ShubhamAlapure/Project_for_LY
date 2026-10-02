@@ -11,6 +11,7 @@ import { StudentRecordsPage } from './pages/StudentRecordsPage';
 import { LandingPage } from './pages/LandingPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { getCurrentUser, logoutUser, ROLES, ROLE_CONFIG } from './utils/auth';
+import { fetchStudentRecords } from './utils/supabaseClient';
 import { Shield, CheckCircle2, ArrowRight } from 'lucide-react';
 import './index.css';
 import './print.css';
@@ -25,6 +26,31 @@ export const App = () => {
   const [previewData, setPreviewData] = useState(null);
   const [undertakingPrefill, setUndertakingPrefill] = useState(null);
   const [nocPrefill, setNocPrefill] = useState(null);
+  const [hasSubmittedApp, setHasSubmittedApp] = useState(false);
+
+  // Check if active student already has submitted application
+  useEffect(() => {
+    const checkSubmission = async () => {
+      if (!authUser) return;
+      if (authUser.role === ROLES.STUDENT) {
+        const { data } = await fetchStudentRecords();
+        if (data && data.length > 0) {
+          const userEmail = authUser.email?.toLowerCase();
+          const userEnroll = authUser.enrolment_no?.toLowerCase();
+          const userName = authUser.full_name?.toLowerCase();
+          const hasApp = data.some(r => 
+            (r.email && userEmail && r.email.toLowerCase() === userEmail) ||
+            (r.enrolment_no && userEnroll && r.enrolment_no.toLowerCase() === userEnroll) ||
+            (r.full_name && userName && r.full_name.toLowerCase().includes(userName))
+          );
+          setHasSubmittedApp(hasApp);
+        }
+      } else {
+        setHasSubmittedApp(true);
+      }
+    };
+    checkSubmission();
+  }, [authUser]);
 
   const handleNavigate = (route) => {
     setCurrentRoute(route);
@@ -116,6 +142,7 @@ export const App = () => {
           currentRoute={currentRoute} 
           onNavigate={handleNavigate}
           authUser={authUser}
+          hasSubmittedApp={hasSubmittedApp}
         />
 
         {/* Content Area */}
@@ -125,6 +152,7 @@ export const App = () => {
               onNavigate={handleNavigate} 
               onSelectDocument={handleSelectDocument}
               authUser={authUser}
+              hasSubmittedApp={hasSubmittedApp}
             />
           )}
 
@@ -133,6 +161,9 @@ export const App = () => {
               onNavigate={handleNavigate}
               onPrefillDocument={handlePrefillDocument}
               authUser={authUser}
+              onApplicationSubmitted={(record) => {
+                setHasSubmittedApp(true);
+              }}
             />
           )}
 

@@ -6,84 +6,170 @@ import {
   PlusCircle, 
   FileCheck2, 
   Award, 
-  Layers,
-  Shield,
-  GraduationCap,
-  UserCheck,
-  Building2,
-  Users,
-  KeyRound
+  Layers, 
+  Shield, 
+  GraduationCap, 
+  UserCheck, 
+  Building2, 
+  Users, 
+  KeyRound,
+  Lock,
+  CheckCircle2
 } from 'lucide-react';
 import { ROLES, ROLE_CONFIG } from '../../utils/auth';
 
-export const Sidebar = ({ currentRoute, onNavigate, authUser }) => {
+export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp }) => {
   const userRole = authUser ? authUser.role : ROLES.ADMIN;
-  const roleConfig = ROLE_CONFIG[userRole] || ROLE_CONFIG[ROLES.ADMIN];
+  const isStudent = userRole === ROLES.STUDENT;
 
-  const allMenuItems = [
-    {
-      id: 'home',
-      label: 'Portal Overview',
-      icon: LayoutDashboard,
-      route: 'home',
-      roles: [ROLES.ADMIN, ROLES.FACULTY, ROLES.CENTRAL_TP, ROLES.HOD, ROLES.STUDENT]
-    },
-    {
-      id: 'student-form',
-      label: userRole === ROLES.STUDENT ? 'My Internship Application' : 'Submit Student Record',
-      icon: PlusCircle,
-      route: 'student-form',
-      badge: '17 Fields',
-      roles: [ROLES.ADMIN, ROLES.STUDENT, ROLES.FACULTY]
-    },
-    {
-      id: 'student-records',
-      label: userRole === ROLES.STUDENT ? 'My Submission Status' : 'Student Records DB',
-      icon: Database,
-      route: 'student-records',
-      badge: 'Live Supabase',
-      roles: [ROLES.ADMIN, ROLES.FACULTY, ROLES.CENTRAL_TP, ROLES.HOD, ROLES.STUDENT]
-    },
-    {
-      id: 'documents',
-      label: 'Document Hub',
-      icon: Layers,
-      route: 'documents',
-      badge: '2 Letters',
-      roles: [ROLES.ADMIN, ROLES.FACULTY, ROLES.CENTRAL_TP, ROLES.HOD, ROLES.STUDENT]
-    },
-    {
-      id: 'undertaking',
-      label: 'Internship Undertaking',
-      icon: FileCheck2,
-      route: 'undertaking',
-      roles: [ROLES.ADMIN, ROLES.FACULTY, ROLES.STUDENT]
-    },
-    {
-      id: 'noc',
-      label: 'No Objection Certificate',
-      icon: Award,
-      route: 'noc',
-      roles: [ROLES.ADMIN, ROLES.FACULTY, ROLES.HOD, ROLES.CENTRAL_TP, ROLES.STUDENT]
-    },
-    {
-      id: 'change-password',
-      label: 'Change Password',
-      icon: KeyRound,
-      route: 'change-password',
-      badge: 'Security',
-      roles: [ROLES.ADMIN, ROLES.FACULTY, ROLES.CENTRAL_TP, ROLES.HOD, ROLES.STUDENT]
-    },
-    {
-      id: 'about',
-      label: 'Institutional Norms',
-      icon: FileText,
-      route: 'about',
-      roles: [ROLES.ADMIN, ROLES.FACULTY, ROLES.CENTRAL_TP, ROLES.HOD, ROLES.STUDENT]
+  // Define dynamic menu items tailored to user role and student submission progress
+  const getMenuItems = () => {
+    if (isStudent) {
+      return [
+        {
+          id: 'home',
+          label: 'Portal Overview',
+          icon: LayoutDashboard,
+          route: 'home',
+          isLocked: false
+        },
+        {
+          id: 'student-form',
+          label: hasSubmittedApp ? '1. My Application' : '1. My Application',
+          icon: hasSubmittedApp ? CheckCircle2 : PlusCircle,
+          route: 'student-form',
+          badge: hasSubmittedApp ? '✓ Submitted' : 'Step 1 • Required',
+          badgeColor: hasSubmittedApp ? '#dcfce7' : '#fef08a',
+          badgeTextColor: hasSubmittedApp ? '#15803d' : '#854d0e',
+          isLocked: false
+        },
+        {
+          id: 'student-records',
+          label: '2. Application Status',
+          icon: Database,
+          route: 'student-records',
+          badge: !hasSubmittedApp ? '🔒 Locked' : 'Track Status',
+          badgeColor: !hasSubmittedApp ? '#f1f5f9' : '#e0f2fe',
+          badgeTextColor: !hasSubmittedApp ? '#64748b' : '#0369a1',
+          isLocked: !hasSubmittedApp,
+          lockReason: 'Complete Step 1 (Internship Application) to unlock status tracking.'
+        },
+        {
+          id: 'documents',
+          label: 'Document Hub',
+          icon: Layers,
+          route: 'documents',
+          badge: !hasSubmittedApp ? '🔒 Locked' : '2 Letters',
+          badgeColor: !hasSubmittedApp ? '#f1f5f9' : '#f3e8ff',
+          badgeTextColor: !hasSubmittedApp ? '#64748b' : '#7e22ce',
+          isLocked: !hasSubmittedApp,
+          lockReason: 'Complete Step 1 (Internship Application) to unlock official letters.'
+        },
+        {
+          id: 'undertaking',
+          label: 'Internship Undertaking',
+          icon: FileCheck2,
+          route: 'undertaking',
+          badge: !hasSubmittedApp ? '🔒 Locked' : '',
+          isLocked: !hasSubmittedApp,
+          lockReason: 'Submit internship details first to auto-fill Undertaking.'
+        },
+        {
+          id: 'noc',
+          label: 'No Objection Certificate',
+          icon: Award,
+          route: 'noc',
+          badge: !hasSubmittedApp ? '🔒 Locked' : '',
+          isLocked: !hasSubmittedApp,
+          lockReason: 'Submit internship details first to generate official NOC.'
+        },
+        {
+          id: 'change-password',
+          label: 'Change Password',
+          icon: KeyRound,
+          route: 'change-password',
+          badge: 'Security',
+          isLocked: false
+        },
+        {
+          id: 'about',
+          label: 'Institutional Norms',
+          icon: FileText,
+          route: 'about',
+          isLocked: false
+        }
+      ];
     }
-  ];
 
-  const visibleMenuItems = allMenuItems.filter(item => item.roles.includes(userRole));
+    // Menu for Faculty, HOD, Central T&P, Admin
+    return [
+      {
+        id: 'home',
+        label: 'Portal Overview',
+        icon: LayoutDashboard,
+        route: 'home'
+      },
+      {
+        id: 'student-records',
+        label: userRole === ROLES.FACULTY ? 'Manage Applications' : 'Student Records DB',
+        icon: userRole === ROLES.FACULTY ? UserCheck : Database,
+        route: 'student-records',
+        badge: userRole === ROLES.FACULTY ? 'Review Desk' : 'Live DB',
+        badgeColor: '#dcfce7',
+        badgeTextColor: '#15803d'
+      },
+      {
+        id: 'student-form',
+        label: 'Register Record',
+        icon: PlusCircle,
+        route: 'student-form',
+        badge: '18 Fields'
+      },
+      {
+        id: 'documents',
+        label: 'Document Hub',
+        icon: Layers,
+        route: 'documents',
+        badge: 'Templates'
+      },
+      {
+        id: 'undertaking',
+        label: 'Internship Undertaking',
+        icon: FileCheck2,
+        route: 'undertaking'
+      },
+      {
+        id: 'noc',
+        label: 'No Objection Certificate',
+        icon: Award,
+        route: 'noc'
+      },
+      {
+        id: 'change-password',
+        label: 'Change Password',
+        icon: KeyRound,
+        route: 'change-password',
+        badge: 'Security'
+      },
+      {
+        id: 'about',
+        label: 'Institutional Norms',
+        icon: FileText,
+        route: 'about'
+      }
+    ];
+  };
+
+  const menuItems = getMenuItems();
+
+  const handleItemClick = (item) => {
+    if (item.isLocked) {
+      alert(item.lockReason || 'Please complete Step 1: Submit My Internship Application first.');
+      onNavigate('student-form');
+      return;
+    }
+    onNavigate(item.route);
+  };
 
   return (
     <aside className="portal-sidebar non-printable">
@@ -93,14 +179,14 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser }) => {
           <div style={{
             margin: '0.5rem 0.75rem 1.25rem 0.75rem',
             padding: '0.85rem',
-            backgroundColor: userRole === ROLES.ADMIN ? '#faf5ff' : '#f8fafc',
-            border: `1.5px solid ${userRole === ROLES.ADMIN ? '#d8b4fe' : '#e2e8f0'}`,
+            backgroundColor: userRole === ROLES.ADMIN ? '#faf5ff' : userRole === ROLES.FACULTY ? '#eff6ff' : '#f8fafc',
+            border: `1.5px solid ${userRole === ROLES.ADMIN ? '#d8b4fe' : userRole === ROLES.FACULTY ? '#bfdbfe' : '#e2e8f0'}`,
             borderRadius: 'var(--radius-md)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--slate-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <span>ACTIVE ROLE:</span>
             </div>
-            <div style={{ fontSize: '0.925rem', fontWeight: 800, color: userRole === ROLES.ADMIN ? '#7e22ce' : '#1e293b', marginTop: '0.2rem' }}>
+            <div style={{ fontSize: '0.925rem', fontWeight: 800, color: userRole === ROLES.ADMIN ? '#7e22ce' : userRole === ROLES.FACULTY ? '#1e40af' : '#1e293b', marginTop: '0.2rem' }}>
               {authUser.role}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--slate-600)', marginTop: '0.15rem' }}>
@@ -117,30 +203,36 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser }) => {
           textTransform: 'uppercase',
           letterSpacing: '0.06em'
         }}>
-          Portal Modules
+          {isStudent ? 'Application Steps' : 'Portal Modules'}
         </div>
 
         <ul className="sidebar-nav-list">
-          {visibleMenuItems.map((item) => {
+          {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentRoute === item.route;
+            const isItemLocked = item.isLocked;
 
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => onNavigate(item.route)}
+                  onClick={() => handleItemClick(item)}
                   className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                  style={{
+                    opacity: isItemLocked ? 0.6 : 1,
+                    cursor: isItemLocked ? 'not-allowed' : 'pointer'
+                  }}
+                  title={isItemLocked ? item.lockReason : item.label}
                 >
                   <div className="sidebar-nav-item-left">
-                    <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                    <span>{item.label}</span>
+                    {isItemLocked ? <Lock size={16} color="var(--slate-400)" /> : <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />}
+                    <span style={{ color: isItemLocked ? 'var(--slate-400)' : 'inherit' }}>{item.label}</span>
                   </div>
 
                   {item.badge && (
                     <span 
                       style={{
-                        backgroundColor: isActive ? 'var(--purple-600)' : item.id === 'student-records' ? '#dcfce7' : 'var(--purple-100)',
-                        color: isActive ? '#ffffff' : item.id === 'student-records' ? '#15803d' : 'var(--purple-700)',
+                        backgroundColor: isActive ? 'var(--purple-600)' : (item.badgeColor || 'var(--purple-100)'),
+                        color: isActive ? '#ffffff' : (item.badgeTextColor || 'var(--purple-700)'),
                         fontSize: '0.65rem',
                         fontWeight: 700,
                         padding: '0.15rem 0.45rem',
