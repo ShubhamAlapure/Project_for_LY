@@ -36,6 +36,7 @@ import {
 import * as XLSX from 'xlsx';
 import { fetchStudentRecords, deleteStudentRecord, updateStudentRecord, uploadStudentDocument, subscribeToStudentRecords } from '../utils/supabaseClient';
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
+import { clearGeneratedDocument } from '../utils/storage';
 import { ROLES, getFacultyCoordinators } from '../utils/auth';
 
 export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) => {
@@ -97,6 +98,15 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
 
   // Quick Approval / Rejection / Review Handler for Faculty & Admin
   const handleStatusUpdate = async (record, newStatus) => {
+    const isRevoked = ['under review', 'rejected', 'submitted'].includes(newStatus.toLowerCase());
+    if (isRevoked) {
+      const studentKey = (record.enrolment_no || record.email || record.id || 'default')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '_');
+      clearGeneratedDocument('undertaking', studentKey);
+      clearGeneratedDocument('noc', studentKey);
+    }
+
     const updated = {
       ...record,
       status: newStatus,
@@ -1474,19 +1484,24 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                                 </span>
                                 <button
                                   type="button"
-                                  onClick={() => handleStatusUpdate(r, 'Under Review')}
+                                  onClick={() => {
+                                    if (window.confirm(`Are you sure you want to revoke approval for ${r.full_name}? This will immediately lock their NOC & Undertaking generation and remove generated documents in their portal.`)) {
+                                      handleStatusUpdate(r, 'Under Review');
+                                    }
+                                  }}
                                   style={{
                                     border: 'none',
                                     background: 'none',
-                                    color: '#64748b',
+                                    color: '#b45309',
                                     fontSize: '0.7rem',
+                                    fontWeight: 700,
                                     textDecoration: 'underline',
                                     cursor: 'pointer',
                                     padding: '0.1rem 0.3rem'
                                   }}
-                                  title="Change status back to Under Review"
+                                  title="Revoke approval and lock student documents"
                                 >
-                                  Change / Revoke
+                                  Revoke Approval
                                 </button>
                               </div>
                             );
@@ -1863,17 +1878,21 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleStatusUpdate(selectedRecord, 'Under Review')}
+                    onClick={() => {
+                      if (window.confirm(`Revoke approval for ${selectedRecord.full_name}? This will immediately lock NOC & Undertaking generation and clear documents in their portal.`)) {
+                        handleStatusUpdate(selectedRecord, 'Under Review');
+                      }
+                    }}
                     className="btn btn-sm"
                     style={{ backgroundColor: '#f59e0b', color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                   >
                     <Clock size={14} />
-                    Mark Under Review
+                    Revoke Approval (Under Review)
                   </button>
                   <button
                     type="button"
                     onClick={() => {
-                      if (window.confirm(`Reject application for ${selectedRecord.full_name}?`)) {
+                      if (window.confirm(`Reject application for ${selectedRecord.full_name}? This will lock document generation and notify the student.`)) {
                         handleStatusUpdate(selectedRecord, 'Rejected');
                       }
                     }}

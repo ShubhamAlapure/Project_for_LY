@@ -74,15 +74,25 @@ export const UndertakingFormPage = ({
   authUser, 
   hasSubmittedApp, 
   isApproved, 
+  studentStatus,
   onNavigate 
 }) => {
   const isStudent = authUser?.role === ROLES.STUDENT;
   const studentKey = getStudentStorageKey(authUser);
 
-  const [generatedDoc, setGeneratedDoc] = useState(() => loadGeneratedDocument('undertaking', studentKey));
+  const [generatedDoc, setGeneratedDoc] = useState(() => (isStudent && !isApproved ? null : loadGeneratedDocument('undertaking', studentKey)));
   const [isEditing, setIsEditing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // If approval is revoked or not active for a student, immediately purge generated doc
+  useEffect(() => {
+    if (isStudent && !isApproved) {
+      clearGeneratedDocument('undertaking', studentKey);
+      setGeneratedDoc(null);
+      setIsEditing(false);
+    }
+  }, [isStudent, isApproved, studentKey]);
 
   const [formData, setFormData] = useState(() => {
     const savedGen = loadGeneratedDocument('undertaking', studentKey);
@@ -189,37 +199,63 @@ export const UndertakingFormPage = ({
   };
 
   if (isStudent && !isApproved) {
+    const isRejected = (studentStatus || '').toLowerCase() === 'rejected';
+    const isUnderReview = hasSubmittedApp;
+
     return (
       <div className="animate-fade-in" style={{ padding: '3rem 0 5rem 0' }}>
         <div className="container container-narrow">
-          <div className="card" style={{ padding: '2.5rem', textAlign: 'center' }}>
+          <div className="card" style={{ 
+            padding: '2.75rem 2rem', 
+            textAlign: 'center',
+            border: isRejected ? '2px solid #fca5a5' : '1.5px solid #fed7aa',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
+          }}>
             <div style={{
-              width: '60px',
-              height: '60px',
+              width: '64px',
+              height: '64px',
               borderRadius: '50%',
-              backgroundColor: '#eff6ff',
-              color: '#2563eb',
+              backgroundColor: isRejected ? '#fee2e2' : '#fff7ed',
+              color: isRejected ? '#dc2626' : '#ea580c',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 1.5rem auto'
             }}>
-              <FileText size={30} />
+              {isRejected ? <AlertCircle size={34} /> : <Clock size={34} />}
             </div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.75rem' }}>
+
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              padding: '0.25rem 0.75rem',
+              borderRadius: 'var(--radius-full)',
+              backgroundColor: isRejected ? '#ffe4e6' : '#ffedd5',
+              color: isRejected ? '#be123c' : '#c2410c',
+              marginBottom: '0.75rem'
+            }}>
+              {isRejected ? 'APPLICATION REJECTED' : 'APPROVAL REVOKED / UNDER REVIEW'}
+            </span>
+
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.75rem' }}>
               🔒 Undertaking Generation Locked
             </h2>
-            <p style={{ color: 'var(--slate-600)', maxWidth: '500px', margin: '0 auto 1.75rem auto', lineHeight: 1.6 }}>
-              {hasSubmittedApp 
-                ? 'Your internship application is currently under review with your assigned Faculty Coordinator. Official Undertaking letters can be generated once approved.'
+            <p style={{ color: 'var(--slate-600)', maxWidth: '520px', margin: '0 auto 1.75rem auto', lineHeight: 1.6, fontSize: '0.95rem' }}>
+              {isRejected 
+                ? 'Your internship application was rejected by the Faculty Coordinator. Any previously generated documents have been revoked. Please review feedback, make required edits, and resubmit your application.'
+                : hasSubmittedApp 
+                ? 'Your application approval is not active or has been revoked for review by your Faculty Coordinator. All generated Undertaking records have been cleared until approval is reinstated.'
                 : 'You must submit your Internship Application (Step 1) and receive Faculty Coordinator approval before generating the official Undertaking.'}
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <button
-                onClick={() => onNavigate(hasSubmittedApp ? 'student-records' : 'student-form')}
+                onClick={() => onNavigate(isRejected ? 'student-form' : hasSubmittedApp ? 'student-records' : 'student-form')}
                 className="btn btn-primary"
               >
-                {hasSubmittedApp ? 'Track Application Status' : 'Go to Step 1 Application'}
+                {isRejected ? 'Update & Resubmit Application' : hasSubmittedApp ? 'Track Application Status' : 'Go to Step 1 Application'}
               </button>
               <button
                 onClick={() => onNavigate('home')}

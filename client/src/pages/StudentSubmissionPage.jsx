@@ -25,7 +25,7 @@ import {
   UserCheck,
   Lock
 } from 'lucide-react';
-import { calculateInternshipDuration, insertStudentRecord, uploadStudentDocument, fetchStudentRecords } from '../utils/supabaseClient';
+import { calculateInternshipDuration, insertStudentRecord, uploadStudentDocument, fetchStudentRecords, subscribeToStudentRecords } from '../utils/supabaseClient';
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
 import { getFacultyCoordinators } from '../utils/auth';
 
@@ -146,6 +146,21 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
     };
 
     loadStudentExistingData();
+
+    // Live sync for instantaneous update when faculty changes/revokes status
+    const unsubscribe = subscribeToStudentRecords(() => {
+      loadStudentExistingData();
+    });
+
+    const handleFocus = () => {
+      loadStudentExistingData();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [authUser]);
 
   // Derived state for Student Application freeze & reject conditions

@@ -12,6 +12,7 @@ import { LandingPage } from './pages/LandingPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { getCurrentUser, logoutUser, ROLES, ROLE_CONFIG } from './utils/auth';
 import { fetchStudentRecords, subscribeToStudentRecords } from './utils/supabaseClient';
+import { getStudentStorageKey, clearGeneratedDocument } from './utils/storage';
 import { Shield, CheckCircle2, ArrowRight } from 'lucide-react';
 import './index.css';
 import './print.css';
@@ -37,6 +38,7 @@ export const App = () => {
       if (authUser.role === ROLES.STUDENT) {
         try {
           const { data } = await fetchStudentRecords();
+          const studentKey = getStudentStorageKey(authUser);
           if (data && data.length > 0) {
             const userEmail = authUser.email?.toLowerCase();
             const userEnroll = authUser.enrolment_no?.toLowerCase();
@@ -52,15 +54,31 @@ export const App = () => {
               setStudentStatus(status);
               const approved = ['approved', 'verified', 'completed'].includes(status.toLowerCase());
               setIsApproved(approved);
+
+              // If approval is revoked or rejected by faculty, immediately wipe generated docs & exit preview
+              if (!approved) {
+                clearGeneratedDocument('undertaking', studentKey);
+                clearGeneratedDocument('noc', studentKey);
+                setCurrentRoute(prev => (prev === 'preview' ? 'home' : prev));
+                setPreviewData(null);
+              }
             } else {
               setHasSubmittedApp(false);
               setStudentStatus(null);
               setIsApproved(false);
+              clearGeneratedDocument('undertaking', studentKey);
+              clearGeneratedDocument('noc', studentKey);
+              setCurrentRoute(prev => (prev === 'preview' ? 'home' : prev));
+              setPreviewData(null);
             }
           } else {
             setHasSubmittedApp(false);
             setStudentStatus(null);
             setIsApproved(false);
+            clearGeneratedDocument('undertaking', studentKey);
+            clearGeneratedDocument('noc', studentKey);
+            setCurrentRoute(prev => (prev === 'preview' ? 'home' : prev));
+            setPreviewData(null);
           }
         } catch (err) {
           console.error('Error checking student submission status:', err);
@@ -242,6 +260,7 @@ export const App = () => {
               authUser={authUser}
               hasSubmittedApp={hasSubmittedApp}
               isApproved={isApproved}
+              studentStatus={studentStatus}
               onNavigate={handleNavigate}
             />
           )}
@@ -254,6 +273,7 @@ export const App = () => {
               authUser={authUser}
               hasSubmittedApp={hasSubmittedApp}
               isApproved={isApproved}
+              studentStatus={studentStatus}
               onNavigate={handleNavigate}
             />
           )}
