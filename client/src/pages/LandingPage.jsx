@@ -1109,7 +1109,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
               </ul>
             </div>
 
-            {/* Column 5: EliteVibeCoders & CodeCrush Credits */}
+            {/* Column 5: Terminal W & CodeCrush Credits */}
             <div style={{
               backgroundColor: 'rgba(0, 0, 0, 0.16)',
               borderRadius: '16px',
@@ -1134,7 +1134,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
                   lineHeight: 1.1,
                   whiteSpace: 'nowrap'
                 }}>
-                  EliteVibeCoders
+                  Terminal W
                 </span>
               </div>
 
