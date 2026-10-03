@@ -83,10 +83,39 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
     return s === 'rejected';
   });
 
-  const ppoRecords = records.filter(r => {
-    const ppo = (r.is_ppo_offer || r.ppo_offered || r.is_ppo || '').toString().toLowerCase();
-    return ppo === 'yes' || ppo === 'true' || ppo === '1';
-  });
+  const isPPORecord = (r) => {
+    if (!r) return false;
+    const ppo = (
+      r.is_ppo_offer || 
+      r.ppo_offered || 
+      r.is_ppo || 
+      r.ppo || 
+      (r.notes && r.notes.toLowerCase().includes('ppo') ? 'yes' : '') || 
+      ''
+    ).toString().trim().toLowerCase();
+    
+    if (!ppo || ppo === 'no' || ppo === 'no (internship only)' || ppo === 'none' || ppo === 'false' || ppo === '0') {
+      return false;
+    }
+    
+    if (
+      ppo.includes('yes') || 
+      ppo.includes('ppo') || 
+      ppo.includes('performance') || 
+      ppo.includes('full-time') || 
+      ppo.includes('direct') || 
+      ppo.includes('conversion') ||
+      ppo.includes('offer') ||
+      ppo === 'true' || 
+      ppo === '1'
+    ) {
+      return true;
+    }
+    
+    return true;
+  };
+
+  const ppoRecords = records.filter(isPPORecord);
 
   // Undertaking & NOC counts
   const undertakingGeneratedRecords = records.filter(r => {
