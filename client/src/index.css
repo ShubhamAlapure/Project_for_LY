@@ -47,10 +47,11 @@
   --danger-500: #ef4444;
   --danger-600: #dc2626;
 
-  /* Typography */
-  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Typography: Modern Formal Outfit + Plus Jakarta Sans */
+  --font-sans: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Outfit', 'Plus Jakarta Sans', -apple-system, sans-serif;
   --font-doc-serif: 'Times New Roman', Times, 'Lora', serif;
-  --font-doc-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-doc-sans: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Shadows */
   --shadow-xs: 0 1px 2px 0 rgba(46, 18, 99, 0.04);
@@ -85,6 +86,15 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.015em;
+}
+
+button, input, select, textarea {
+  font-family: var(--font-sans);
 }
 
 /* Main Layout Structure (Portal Topbar + Sidebar + Main Canvas) */
