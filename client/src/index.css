@@ -109,6 +109,31 @@ body {
   flex-direction: column;
   justify-content: space-between;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Authentic University Certificate Style Background Watermark Texture (Small repeating MIT logos) */
+.portal-sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/mit_texture_logo_transparent.png');
+  background-size: 52px 27px;
+  background-repeat: repeat;
+  background-position: 0 0;
+  opacity: 0.068;
+  filter: blur(0.35px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.portal-sidebar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .portal-main-area {
@@ -140,6 +165,28 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  overflow: hidden;
+}
+
+.portal-topbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/mit_texture_logo_white.png');
+  background-size: 48px 25px;
+  background-repeat: repeat;
+  opacity: 0.045;
+  filter: blur(0.35px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.portal-topbar > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Sidebar Nav Items */
