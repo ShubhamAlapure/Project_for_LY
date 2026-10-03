@@ -11,7 +11,7 @@ import { StudentRecordsPage } from './pages/StudentRecordsPage';
 import { LandingPage } from './pages/LandingPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { getCurrentUser, logoutUser, ROLES, ROLE_CONFIG } from './utils/auth';
-import { fetchStudentRecords } from './utils/supabaseClient';
+import { fetchStudentRecords, subscribeToStudentRecords } from './utils/supabaseClient';
 import { Shield, CheckCircle2, ArrowRight } from 'lucide-react';
 import './index.css';
 import './print.css';
@@ -30,7 +30,7 @@ export const App = () => {
   const [studentStatus, setStudentStatus] = useState(null);
   const [isApproved, setIsApproved] = useState(false);
 
-  // Check if active student already has submitted application and get approval status
+  // Check if active student already has submitted application and get approval status with real-time sync
   useEffect(() => {
     const checkSubmission = async () => {
       if (!authUser) return;
@@ -71,7 +71,23 @@ export const App = () => {
         setStudentStatus('Approved');
       }
     };
+
     checkSubmission();
+
+    // Live multi-browser / multi-device realtime synchronization
+    const unsubscribe = subscribeToStudentRecords(() => {
+      checkSubmission();
+    });
+
+    const handleFocus = () => {
+      checkSubmission();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [authUser]);
 
   const handleNavigate = (route) => {
