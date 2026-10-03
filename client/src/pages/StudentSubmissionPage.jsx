@@ -148,6 +148,12 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
     loadStudentExistingData();
   }, [authUser]);
 
+  // Derived state for Student Application freeze & reject conditions
+  const isStudent = authUser?.role === 'Student';
+  const currentStatus = (formData.status || '').toLowerCase();
+  const isApplicationApproved = isStudent && isEditingExisting && ['approved', 'verified', 'completed'].includes(currentStatus);
+  const isApplicationRejected = isStudent && isEditingExisting && currentStatus === 'rejected';
+
   // Load faculty coordinators list on component mount
   useEffect(() => {
     const loadFaculty = async () => {
@@ -278,6 +284,11 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isApplicationApproved) {
+      setNotification({ type: 'info', message: 'This application is approved and frozen. Modifications are not allowed.' });
+      setTimeout(() => setNotification(null), 3500);
+      return;
+    }
     if (!validateForm()) {
       const firstField = Object.keys(errors)[0] || 'full_name';
       const el = document.getElementById(firstField);
@@ -288,19 +299,26 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
     }
 
     setIsSubmitting(true);
-    const res = await insertStudentRecord(formData);
+    const submissionPayload = {
+      ...formData,
+      status: isApplicationRejected ? 'Submitted' : (formData.status || 'Submitted')
+    };
+    const res = await insertStudentRecord(submissionPayload);
     setIsSubmitting(false);
 
     if (res.success) {
-      const created = res.data && res.data[0] ? res.data[0] : formData;
+      const created = res.data && res.data[0] ? res.data[0] : submissionPayload;
       setSubmittedRecord(created);
+      setFormData(created);
       setIsEditingExisting(true);
       if (onApplicationSubmitted) {
         onApplicationSubmitted(created);
       }
       setNotification({ 
         type: 'success', 
-        message: `Application submitted & routed to ${formData.assigned_coordinator || 'your Faculty Coordinator'}!` 
+        message: isApplicationRejected 
+          ? `Application updated & resubmitted to ${formData.assigned_coordinator || 'Faculty Coordinator'} for re-verification!`
+          : `Application submitted & routed to ${formData.assigned_coordinator || 'your Faculty Coordinator'}!` 
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -363,7 +381,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
           zIndex: 9999,
           padding: '0.85rem 1.25rem',
           borderRadius: 'var(--radius-md)',
-          backgroundColor: notification.type === 'error' ? '#ef4444' : '#10b981',
+          backgroundColor: notification.type === 'error' ? '#ef4444' : notification.type === 'info' ? '#0284c7' : '#10b981',
           color: 'white',
           fontWeight: 600,
           boxShadow: 'var(--shadow-lg)',
@@ -372,7 +390,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
           gap: '0.6rem',
           animation: 'fadeIn 0.3s ease'
         }}>
-          {notification.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+          {notification.type === 'error' ? <AlertCircle size={18} /> : notification.type === 'info' ? <Lock size={18} /> : <CheckCircle2 size={18} />}
           <span>{notification.message}</span>
         </div>
       )}
@@ -406,9 +424,23 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
               <Database size={12} />
               Portal Database Connected
             </span>
-            {isEditingExisting && (
-              <span style={{ fontSize: '0.75rem', color: '#15803d', backgroundColor: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
-                ● Editing Registered Record
+            {isApplicationApproved ? (
+              <span style={{ fontSize: '0.75rem', color: '#15803d', backgroundColor: '#dcfce7', padding: '0.15rem 0.6rem', borderRadius: 'var(--radius-full)', fontWeight: 800, border: '1px solid #86efac', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Lock size={12} />
+                Application Approved & Freezed
+              </span>
+            ) : isApplicationRejected ? (
+              <span style={{ fontSize: '0.75rem', color: '#be123c', backgroundColor: '#ffe4e6', padding: '0.15rem 0.6rem', borderRadius: 'var(--radius-full)', fontWeight: 800, border: '1px solid #fca5a5', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <AlertCircle size={12} />
+                Application Rejected (Action Required)
+              </span>
+            ) : isEditingExisting ? (
+              <span style={{ fontSize: '0.75rem', color: '#1d4ed8', backgroundColor: '#eff6ff', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                ● Registered Record
+              </span>
+            ) : (
+              <span style={{ fontSize: '0.75rem', color: '#854d0e', backgroundColor: '#fef08a', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                Step 1 • Required
               </span>
             )}
             <span style={{ fontSize: '0.75rem', color: 'var(--slate-400)', fontWeight: 600 }}>
@@ -416,10 +448,20 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
             </span>
           </div>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
-            {isEditingExisting ? 'Update Internship Application & Documents' : 'Student Internship Registration'}
+            {isApplicationApproved 
+              ? '🔒 Internship Application (Approved & Freezed)' 
+              : isApplicationRejected
+              ? '⚠️ Update & Resubmit Internship Application'
+              : isEditingExisting 
+              ? 'Update Internship Application & Documents' 
+              : 'Student Internship Registration'}
           </h1>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.9rem', marginTop: '0.35rem' }}>
-            {isEditingExisting 
+            {isApplicationApproved 
+              ? `Your application has been verified and approved by ${formData.assigned_coordinator || 'your Faculty Coordinator'}. All details and uploaded offer letters are frozen and locked.` 
+              : isApplicationRejected
+              ? `Your application was rejected by ${formData.assigned_coordinator || 'your Faculty Coordinator'}. Please edit the required details or offer letter and resubmit for approval.`
+              : isEditingExisting 
               ? 'Update your industrial training details, attach completion certificate, or replace your offer letter.' 
               : 'Submit and store complete student industrial training records with offer verification in the institutional database.'}
           </p>
@@ -433,13 +475,127 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
             <Database size={15} />
-            View All DB Records
+            {isStudent ? 'View Application Status' : 'View All DB Records'}
           </button>
         </div>
       </div>
 
+      {/* Prominent Application Approved & Freezed Notice Banner */}
+      {isApplicationApproved && (
+        <div className="card animate-fade-in" style={{
+          padding: '1.5rem 1.75rem',
+          backgroundColor: '#f0fdf4',
+          border: '2px solid #86efac',
+          borderRadius: 'var(--radius-lg)',
+          marginBottom: '2rem',
+          boxShadow: '0 2px 6px rgba(22, 163, 74, 0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', flex: 1, minWidth: '280px' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '50%',
+                backgroundColor: '#16a34a',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Lock size={24} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#166534', margin: 0 }}>
+                    Application Approved & Freezed
+                  </h3>
+                  <span style={{ fontSize: '0.725rem', fontWeight: 700, backgroundColor: '#dcfce7', color: '#15803d', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)', border: '1px solid #86efac' }}>
+                    ✓ Approved by {formData.assigned_coordinator || 'Faculty Coordinator'}
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.885rem', color: '#166534', marginTop: '0.4rem', marginBottom: 0, lineHeight: 1.5 }}>
+                  Your internship application is verified & approved. All form inputs, organization details, dates, and uploaded offer documents have been <strong>permanently locked and freezed</strong> to prevent unauthorized modifications. You can now generate your official <strong>Undertaking</strong> and <strong>NOC</strong> below.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignSelf: 'center' }}>
+              <button
+                type="button"
+                onClick={() => onNavigate('student-records')}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', backgroundColor: '#ffffff', color: '#166534', borderColor: '#86efac', fontWeight: 700 }}
+              >
+                <Database size={14} />
+                Track Status
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateUndertaking}
+                className="btn btn-primary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', backgroundColor: '#15803d', borderColor: '#166534', fontWeight: 700 }}
+              >
+                <FileCheck2 size={14} />
+                Undertaking
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateNOC}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', backgroundColor: '#ffffff', color: '#15803d', borderColor: '#86efac', fontWeight: 700 }}
+              >
+                <Award size={14} />
+                NOC Letter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Prominent Application Rejected Banner */}
+      {isApplicationRejected && (
+        <div className="card animate-fade-in" style={{
+          padding: '1.5rem 1.75rem',
+          backgroundColor: '#fef2f2',
+          border: '2px solid #f87171',
+          borderRadius: 'var(--radius-lg)',
+          marginBottom: '2rem',
+          boxShadow: '0 2px 6px rgba(220, 38, 38, 0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '50%',
+              backgroundColor: '#dc2626',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <AlertCircle size={24} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#991b1b', margin: 0 }}>
+                  Application Rejected by Faculty Reviewer
+                </h3>
+                <span style={{ fontSize: '0.725rem', fontWeight: 700, backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)', border: '1px solid #fca5a5' }}>
+                  Action Required • Updation Enabled
+                </span>
+              </div>
+              <p style={{ fontSize: '0.885rem', color: '#991b1b', marginTop: '0.4rem', marginBottom: 0, lineHeight: 1.5 }}>
+                Your application was marked as <strong>Rejected</strong> by <strong>{formData.assigned_coordinator || 'your Faculty Coordinator'}</strong>. Form editing has been unlocked for you. Please inspect your company details, tenure dates, or re-upload a clear offer letter below, and click <strong>"Resubmit Application for Approval"</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Submission Success Box */}
-      {submittedRecord && (
+      {submittedRecord && !isApplicationApproved && !isApplicationRejected && (
         <div className="card animate-fade-in" style={{
           padding: '1.75rem',
           backgroundColor: '#f0fdf4',
@@ -517,12 +673,19 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
         {/* ==================================================================== */}
         {/* SECTION 1: Student Academic & Contact Details (Fields 1 to 8) */}
         {/* ==================================================================== */}
-        <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--slate-100)', paddingBottom: '0.75rem' }}>
-            <User size={20} color="var(--purple-600)" />
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
-              1. Student Academic & Contact Details
-            </h2>
+        <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem', opacity: isApplicationApproved ? 0.95 : 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid var(--slate-100)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <User size={20} color="var(--purple-600)" />
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
+                1. Student Academic & Contact Details
+              </h2>
+            </div>
+            {isApplicationApproved && (
+              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#15803d', backgroundColor: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Lock size={11} /> Locked & Freezed
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
@@ -537,6 +700,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 name="submission_date"
                 value={formData.submission_date}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className="form-input"
                 required
               />
@@ -554,6 +719,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 placeholder="e.g. Shubham Santosh Alapure"
                 value={formData.full_name}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className={`form-input ${errors.full_name ? 'is-invalid' : ''}`}
                 required
               />
@@ -572,6 +739,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 placeholder="e.g. MITADT2022CS084"
                 value={formData.enrolment_no}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className={`form-input ${errors.enrolment_no ? 'is-invalid' : ''}`}
                 required
               />
@@ -590,6 +759,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 placeholder="student@mitadt.edu.in"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className={`form-input ${errors.email ? 'is-invalid' : ''}`}
                 required
               />
@@ -608,6 +779,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 placeholder="e.g. 9876543210"
                 value={formData.contact_no}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className={`form-input ${errors.contact_no ? 'is-invalid' : ''}`}
                 required
               />
@@ -624,6 +797,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className="form-select"
               >
                 <option value="Male">Male</option>
@@ -642,6 +817,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 name="specialization"
                 value={formData.specialization}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className="form-select"
                 required
               >
@@ -670,6 +847,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 placeholder="e.g. LY-AIA-1, TY-CSE-2"
                 value={formData.class_division || ''}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className={`form-input ${errors.class_division ? 'is-invalid' : ''}`}
                 required
               />
@@ -686,6 +865,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 name="semester"
                 value={formData.semester}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className="form-select"
                 required
               >
@@ -701,12 +882,19 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
         {/* ==================================================================== */}
         {/* SECTION 2: Internship & Company Information (Fields 9, 12, 13, 14, 15) */}
         {/* ==================================================================== */}
-        <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--slate-100)', paddingBottom: '0.75rem' }}>
-            <Building size={20} color="var(--purple-600)" />
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
-              2. Internship & Organization Profile
-            </h2>
+        <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem', opacity: isApplicationApproved ? 0.95 : 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid var(--slate-100)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <Building size={20} color="var(--purple-600)" />
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
+                2. Internship & Organization Profile
+              </h2>
+            </div>
+            {isApplicationApproved && (
+              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#15803d', backgroundColor: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Lock size={11} /> Locked & Freezed
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
@@ -722,6 +910,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 placeholder="e.g. Google India Private Limited, Bangalore OR TCS, Pune"
                 value={formData.company_name_and_city}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className={`form-input ${errors.company_name_and_city ? 'is-invalid' : ''}`}
                 required
               />
@@ -738,6 +928,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 name="domain_of_company"
                 value={formData.domain_of_company}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className="form-select"
               >
                 <option value="Information Technology (IT) / Software">Information Technology (IT) / Software</option>
@@ -762,6 +954,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 name="source_of_internship"
                 value={formData.source_of_internship}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className="form-select"
               >
                 <option value="College Placement Cell / Central T&P">College Placement Cell / Central T&P</option>
@@ -784,6 +978,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 name="mode_of_internship"
                 value={formData.mode_of_internship}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className="form-select"
               >
                 <option value="Offline">Offline (On-Site / Office)</option>
@@ -802,6 +998,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 name="is_ppo_offer"
                 value={formData.is_ppo_offer}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className="form-select"
               >
                 <option value="Yes (PPO Possibility)">Yes (Comes with Pre-Placement Offer possibility)</option>
@@ -816,12 +1014,19 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
         {/* ==================================================================== */}
         {/* SECTION 3: Tenure & Automatic Duration (Fields 10, 11 + Duration) */}
         {/* ==================================================================== */}
-        <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--slate-100)', paddingBottom: '0.75rem' }}>
-            <Calendar size={20} color="var(--purple-600)" />
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
-              3. Internship Tenure & Duration Calculation
-            </h2>
+        <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem', opacity: isApplicationApproved ? 0.95 : 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid var(--slate-100)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <Calendar size={20} color="var(--purple-600)" />
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
+                3. Internship Tenure & Duration Calculation
+              </h2>
+            </div>
+            {isApplicationApproved && (
+              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#15803d', backgroundColor: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Lock size={11} /> Locked & Freezed
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', alignItems: 'flex-start' }}>
@@ -836,6 +1041,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 name="start_date"
                 value={formData.start_date}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className={`form-input ${errors.start_date ? 'is-invalid' : ''}`}
                 required
               />
@@ -853,6 +1060,8 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 name="end_date"
                 value={formData.end_date}
                 onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
                 className={`form-input ${errors.end_date ? 'is-invalid' : ''}`}
                 required
               />
@@ -891,11 +1100,18 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
         {/* SECTION 4: Document Uploads & Verification (Fields 16 & 17) */}
         {/* ==================================================================== */}
         <div className="card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--slate-100)', paddingBottom: '0.75rem' }}>
-            <UploadCloud size={20} color="var(--purple-600)" />
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
-              4. Document Uploads & Storage Verification
-            </h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid var(--slate-100)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <UploadCloud size={20} color="var(--purple-600)" />
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
+                4. Document Uploads & Storage Verification
+              </h2>
+            </div>
+            {isApplicationApproved && (
+              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#15803d', backgroundColor: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Lock size={11} /> Documents Freezed
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
@@ -907,14 +1123,14 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 </label>
                 {formData.offer_letter_url && (
                   <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#15803d', backgroundColor: '#dcfce7', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)' }}>
-                    ✓ Attached
+                    {isApplicationApproved ? '🔒 Verified & Freezed' : '✓ Attached'}
                   </span>
                 )}
               </div>
 
               <div style={{
-                border: '2px dashed var(--purple-300)',
-                backgroundColor: formData.offer_letter_url ? '#f0fdf4' : 'var(--purple-50)',
+                border: isApplicationApproved ? '2px solid #86efac' : '2px dashed var(--purple-300)',
+                backgroundColor: isApplicationApproved ? '#f0fdf4' : formData.offer_letter_url ? '#f0fdf4' : 'var(--purple-50)',
                 borderRadius: 'var(--radius-md)',
                 padding: '1.5rem',
                 textAlign: 'center',
@@ -922,27 +1138,33 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
               }}>
                 <UploadCloud size={32} color={formData.offer_letter_url ? '#16a34a' : 'var(--purple-600)'} style={{ margin: '0 auto 0.5rem auto' }} />
                 <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--purple-950)' }}>
-                  {offerFileName ? offerFileName : formData.offer_letter_url ? 'Offer Letter File Attached' : 'Select or drop Offer Letter PDF / Image'}
+                  {isApplicationApproved 
+                    ? 'Official Offer Letter Verified & Freezed'
+                    : (offerFileName ? offerFileName : formData.offer_letter_url ? 'Offer Letter File Attached' : 'Select or drop Offer Letter PDF / Image')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                  {formData.offer_letter_url ? 'Click below to preview or select a new file to replace' : 'Supported formats: PDF, PNG, JPG (Encrypted & Stored)'}
+                  {isApplicationApproved 
+                    ? 'Approved document is locked. Click below to inspect verified PDF.'
+                    : (formData.offer_letter_url ? 'Click below to preview or select a new file to replace' : 'Supported formats: PDF, PNG, JPG (Encrypted & Stored)')}
                 </div>
 
-                <input
-                  type="file"
-                  id="offer_file"
-                  accept=".pdf,image/*"
-                  onChange={handleOfferFileChange}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
-                    cursor: 'pointer'
-                  }}
-                />
+                {!isApplicationApproved && (
+                  <input
+                    type="file"
+                    id="offer_file"
+                    accept=".pdf,image/*"
+                    onChange={handleOfferFileChange}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
+                  />
+                )}
 
                 {uploadingOffer && (
                   <div style={{ fontSize: '0.8rem', color: 'var(--purple-700)', fontWeight: 600 }}>
@@ -971,7 +1193,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
               </div>
             </div>
 
-            {/* Field 17: Internship Completion Letter (Locked during initial application) */}
+            {/* Field 17: Internship Completion Letter */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                 <label className="form-label" style={{ fontWeight: 700, margin: 0 }}>
@@ -1089,17 +1311,24 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
         {/* ==================================================================== */}
         {/* SECTION 5: Select Faculty Coordinator / Reviewer */}
         {/* ==================================================================== */}
-        <div className="card" style={{ padding: '2rem', marginBottom: '2rem', border: '1.5px solid var(--purple-200)', backgroundColor: '#faf5ff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--purple-100)', paddingBottom: '0.75rem' }}>
-            <UserCheck size={22} color="var(--purple-700)" />
-            <div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
-                5. Select Faculty Coordinator / Reviewer
-              </h2>
-              <p style={{ fontSize: '0.8rem', color: 'var(--slate-600)', margin: '0.2rem 0 0 0' }}>
-                Assigned faculty coordinator will receive this application to review, approve, or reject.
-              </p>
+        <div className="card" style={{ padding: '2rem', marginBottom: '2rem', border: '1.5px solid var(--purple-200)', backgroundColor: '#faf5ff', opacity: isApplicationApproved ? 0.95 : 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid var(--purple-100)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <UserCheck size={22} color="var(--purple-700)" />
+              <div>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
+                  5. Select Faculty Coordinator / Reviewer
+                </h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--slate-600)', margin: '0.2rem 0 0 0' }}>
+                  Assigned faculty coordinator will receive this application to review, approve, or reject.
+                </p>
+              </div>
             </div>
+            {isApplicationApproved && (
+              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#15803d', backgroundColor: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <CheckCircle2 size={12} /> Assigned & Verified
+              </span>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
@@ -1111,6 +1340,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 id="assigned_coordinator"
                 name="assigned_coordinator"
                 value={formData.assigned_coordinator}
+                disabled={isApplicationApproved}
                 onChange={(e) => {
                   const selectedName = e.target.value;
                   const matched = facultyList.find(f => f.full_name === selectedName);
@@ -1128,7 +1358,12 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                   }
                 }}
                 className={`form-select ${errors.assigned_coordinator ? 'is-invalid' : ''}`}
-                style={{ fontSize: '0.95rem', fontWeight: 600, padding: '0.65rem 0.85rem' }}
+                style={{
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  padding: '0.65rem 0.85rem',
+                  ...(isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {})
+                }}
                 required
               >
                 {facultyList && facultyList.length > 0 ? (
@@ -1149,7 +1384,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
               </select>
               {errors.assigned_coordinator && <span className="form-error">{errors.assigned_coordinator}</span>}
               <p style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.35rem' }}>
-                📌 Your verification status (Under Review / Approved / Rejected) will be managed by this coordinator.
+                📌 Your verification status (Under Review / Approved / Rejected) is managed by this coordinator.
               </p>
             </div>
 
@@ -1179,48 +1414,138 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
           </div>
         </div>
 
-        {/* Submit & Reset Bar */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          backgroundColor: 'white',
-          padding: '1.25rem 2rem',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--sidebar-border)',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            <RotateCcw size={16} />
-            Reset Form
-          </button>
+        {/* Submit & Reset / Frozen Action Bar */}
+        {isApplicationApproved ? (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            backgroundColor: '#f0fdf4',
+            padding: '1.25rem 2rem',
+            borderRadius: 'var(--radius-lg)',
+            border: '1.5px solid #86efac',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#166534', fontWeight: 800, fontSize: '0.95rem' }}>
+              <Lock size={20} color="#16a34a" />
+              <span>🔒 Application Approved & Freezed (Modifications Locked)</span>
+            </div>
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => onNavigate('student-records')}
+                className="btn btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#ffffff', color: '#166534', borderColor: '#86efac', fontWeight: 700 }}
+              >
+                <Database size={16} />
+                Track Status
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateUndertaking}
+                className="btn btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#15803d', borderColor: '#166534', fontWeight: 700 }}
+              >
+                <FileCheck2 size={16} />
+                Auto-fill Undertaking
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateNOC}
+                className="btn btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#ffffff', color: '#15803d', borderColor: '#86efac', fontWeight: 700 }}
+              >
+                <Award size={16} />
+                Auto-fill NOC
+              </button>
+            </div>
+          </div>
+        ) : isApplicationRejected ? (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            backgroundColor: '#fef2f2',
+            padding: '1.25rem 2rem',
+            borderRadius: 'var(--radius-lg)',
+            border: '1.5px solid #fca5a5',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <RotateCcw size={16} />
+              Reset Form
+            </button>
+
             <button
               type="submit"
               disabled={isSubmitting}
               className="btn btn-primary btn-lg"
-              style={{ minWidth: '220px', justifyContent: 'center' }}
+              style={{ minWidth: '260px', justifyContent: 'center', backgroundColor: '#dc2626', borderColor: '#b91c1c' }}
             >
               {isSubmitting ? (
-                <>Saving Application...</>
+                <>Resubmitting Application...</>
               ) : (
                 <>
-                  <Database size={18} />
-                  Submit My Internship Application
+                  <RotateCcw size={18} />
+                  Resubmit Application for Approval
                 </>
               )}
             </button>
           </div>
-        </div>
+        ) : (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            backgroundColor: 'white',
+            padding: '1.25rem 2rem',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--sidebar-border)',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <RotateCcw size={16} />
+              Reset Form
+            </button>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn btn-primary btn-lg"
+                style={{ minWidth: '220px', justifyContent: 'center' }}
+              >
+                {isSubmitting ? (
+                  <>Saving Application...</>
+                ) : (
+                  <>
+                    <Database size={18} />
+                    Submit My Internship Application
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );
 };
+

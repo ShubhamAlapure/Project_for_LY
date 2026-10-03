@@ -91,26 +91,30 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
               width: '42px',
               height: '42px',
               borderRadius: '50%',
-              backgroundColor: isApproved ? '#16a34a' : hasSubmittedApp ? '#2563eb' : '#ca8a04',
+              backgroundColor: isApproved ? '#16a34a' : (studentStatus?.toLowerCase() === 'rejected') ? '#dc2626' : hasSubmittedApp ? '#2563eb' : '#ca8a04',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              {isApproved ? <CheckCircle2 size={24} /> : hasSubmittedApp ? <Clock size={22} /> : <PlusCircle size={22} />}
+              {isApproved ? <CheckCircle2 size={24} /> : (studentStatus?.toLowerCase() === 'rejected') ? <AlertCircle size={22} /> : hasSubmittedApp ? <Clock size={22} /> : <PlusCircle size={22} />}
             </div>
             <div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: isApproved ? '#166534' : hasSubmittedApp ? '#1e40af' : '#854d0e' }}>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: isApproved ? '#166534' : (studentStatus?.toLowerCase() === 'rejected') ? '#991b1b' : hasSubmittedApp ? '#1e40af' : '#854d0e' }}>
                 {isApproved 
-                  ? '🎉 Application Approved! Undertaking & NOC are now fully unlocked.' 
+                  ? '🎉 Application Approved & Freezed! Undertaking & NOC are now fully unlocked.' 
+                  : (studentStatus?.toLowerCase() === 'rejected')
+                  ? '⚠️ Application Rejected by Faculty Coordinator • Action Required'
                   : hasSubmittedApp 
                   ? `Application Submitted • Status: ${studentStatus || 'Under Review'}` 
                   : 'Action Required • Step 1: Submit Your Internship Application'}
               </div>
-              <p style={{ fontSize: '0.825rem', color: isApproved ? '#15803d' : hasSubmittedApp ? '#3b82f6' : '#a16207', margin: '0.2rem 0 0 0' }}>
+              <p style={{ fontSize: '0.825rem', color: isApproved ? '#15803d' : (studentStatus?.toLowerCase() === 'rejected') ? '#b91c1c' : hasSubmittedApp ? '#3b82f6' : '#a16207', margin: '0.2rem 0 0 0' }}>
                 {isApproved 
-                  ? 'Your Faculty Coordinator has verified your offer letter. You can now generate your official Undertaking & NOC letters.' 
+                  ? 'Your Faculty Coordinator has verified and approved your application. You can now generate your official Undertaking & NOC letters.' 
+                  : (studentStatus?.toLowerCase() === 'rejected')
+                  ? 'Your application was rejected. Please review feedback, edit your details or re-upload your offer letter, and resubmit for approval.'
                   : hasSubmittedApp 
                   ? 'Your application has been forwarded to your Faculty Coordinator for review. Once approved, Undertaking & NOC will unlock.' 
                   : 'Please complete your internship registration and attach your Offer Letter PDF. Other modules remain locked until submitted & approved.'}
@@ -119,11 +123,11 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
           </div>
 
           <button
-            onClick={() => onNavigate(hasSubmittedApp ? 'student-records' : 'student-form')}
+            onClick={() => onNavigate((studentStatus?.toLowerCase() === 'rejected') ? 'student-form' : (hasSubmittedApp ? 'student-records' : 'student-form'))}
             className={`btn btn-sm ${isApproved ? 'btn-secondary' : 'btn-primary'}`}
-            style={{ fontSize: '0.825rem', fontWeight: 700 }}
+            style={{ fontSize: '0.825rem', fontWeight: 700, ...(studentStatus?.toLowerCase() === 'rejected' ? { backgroundColor: '#dc2626', borderColor: '#b91c1c' } : {}) }}
           >
-            {hasSubmittedApp ? 'Track Review Status' : 'Start Application Now'}
+            {(studentStatus?.toLowerCase() === 'rejected') ? 'Update & Resubmit Now' : hasSubmittedApp ? 'Track Review Status' : 'Start Application Now'}
             <ArrowRight size={14} />
           </button>
         </div>
@@ -153,14 +157,34 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
             </div>
 
             <span style={{
-              backgroundColor: (isStudent && hasSubmittedApp) ? '#dcfce7' : '#fef08a',
-              color: (isStudent && hasSubmittedApp) ? '#15803d' : '#854d0e',
+              backgroundColor: (isStudent && isApproved) 
+                ? '#dcfce7' 
+                : (isStudent && studentStatus?.toLowerCase() === 'rejected')
+                ? '#fee2e2'
+                : (isStudent && hasSubmittedApp) 
+                ? '#eff6ff' 
+                : '#fef08a',
+              color: (isStudent && isApproved) 
+                ? '#15803d' 
+                : (isStudent && studentStatus?.toLowerCase() === 'rejected')
+                ? '#b91c1c'
+                : (isStudent && hasSubmittedApp) 
+                ? '#1d4ed8' 
+                : '#854d0e',
               fontSize: '0.725rem',
               fontWeight: 700,
               padding: '0.2rem 0.65rem',
               borderRadius: 'var(--radius-full)'
             }}>
-              {isStudent ? (hasSubmittedApp ? '✓ Step 1 Submitted' : 'Step 1 • Required') : '18 Fields • Uploads'}
+              {isStudent 
+                ? (isApproved 
+                    ? '🔒 Approved & Freezed' 
+                    : (studentStatus?.toLowerCase() === 'rejected')
+                    ? '⚠️ Action Required'
+                    : hasSubmittedApp 
+                    ? '✓ Step 1 Submitted' 
+                    : 'Step 1 • Required') 
+                : '18 Fields • Uploads'}
             </span>
           </div>
 
@@ -176,9 +200,21 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
           <button
             onClick={() => onNavigate('student-form')}
             className="btn btn-primary btn-sm"
-            style={{ width: '100%', justifyContent: 'center' }}
+            style={{ 
+              width: '100%', 
+              justifyContent: 'center',
+              ...(isStudent && studentStatus?.toLowerCase() === 'rejected' ? { backgroundColor: '#dc2626', borderColor: '#b91c1c' } : {})
+            }}
           >
-            {isStudent ? (hasSubmittedApp ? 'Edit / View Application' : 'Open My Application') : 'Open Submission Form'}
+            {isStudent 
+              ? (isApproved 
+                  ? 'View Freezed Application' 
+                  : (studentStatus?.toLowerCase() === 'rejected')
+                  ? 'Update & Resubmit Application'
+                  : hasSubmittedApp 
+                  ? 'View / Edit Application' 
+                  : 'Open My Application') 
+              : 'Open Submission Form'}
             <ArrowRight size={15} />
           </button>
         </div>

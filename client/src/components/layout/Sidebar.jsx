@@ -36,11 +36,29 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp, i
         {
           id: 'student-form',
           label: '1. My Application',
-          icon: hasSubmittedApp ? CheckCircle2 : PlusCircle,
+          icon: isApproved ? Lock : hasSubmittedApp ? CheckCircle2 : PlusCircle,
           route: 'student-form',
-          badge: hasSubmittedApp ? '✓ Submitted' : 'Step 1 • Required',
-          badgeColor: hasSubmittedApp ? '#dcfce7' : '#fef08a',
-          badgeTextColor: hasSubmittedApp ? '#15803d' : '#854d0e',
+          badge: isApproved 
+            ? '🔒 Approved & Freezed' 
+            : (studentStatus?.toLowerCase() === 'rejected') 
+            ? '⚠️ Rejected (Edit & Resubmit)' 
+            : hasSubmittedApp 
+            ? '✓ Submitted' 
+            : 'Step 1 • Required',
+          badgeColor: isApproved 
+            ? '#dcfce7' 
+            : (studentStatus?.toLowerCase() === 'rejected') 
+            ? '#fee2e2' 
+            : hasSubmittedApp 
+            ? '#eff6ff' 
+            : '#fef08a',
+          badgeTextColor: isApproved 
+            ? '#15803d' 
+            : (studentStatus?.toLowerCase() === 'rejected') 
+            ? '#b91c1c' 
+            : hasSubmittedApp 
+            ? '#1d4ed8' 
+            : '#854d0e',
           isLocked: false
         },
         {

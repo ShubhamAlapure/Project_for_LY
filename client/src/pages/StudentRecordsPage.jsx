@@ -618,14 +618,88 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
             </>
           )}
 
-          <button
-            onClick={() => onNavigate('student-form')}
-            className="btn btn-primary btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-          >
-            <Plus size={15} />
-            {isStudent ? 'Update My Application' : 'Add Student Record'}
-          </button>
+          {isStudent ? (
+            (() => {
+              const currentRec = filteredRecords.length > 0 ? filteredRecords[0] : null;
+              const statusStr = currentRec?.status || 'Submitted';
+              const isAppApproved = ['approved', 'verified', 'completed'].includes(statusStr.toLowerCase());
+              const isAppRejected = statusStr.toLowerCase() === 'rejected';
+
+              if (isAppApproved) {
+                return (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: '#dcfce7',
+                    color: '#15803d',
+                    border: '1.5px solid #86efac',
+                    fontWeight: 800,
+                    fontSize: '0.825rem'
+                  }}>
+                    <Lock size={14} color="#16a34a" />
+                    <span>Application Approved & Freezed</span>
+                  </div>
+                );
+              }
+
+              if (isAppRejected) {
+                return (
+                  <button
+                    onClick={() => onNavigate('student-form')}
+                    className="btn btn-sm"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      backgroundColor: '#dc2626',
+                      color: '#ffffff',
+                      borderColor: '#b91c1c',
+                      fontWeight: 700
+                    }}
+                  >
+                    <RotateCcw size={15} />
+                    Update & Resubmit Application
+                  </button>
+                );
+              }
+
+              if (!currentRec) {
+                return (
+                  <button
+                    onClick={() => onNavigate('student-form')}
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Plus size={15} />
+                    Submit My Application
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  onClick={() => onNavigate('student-form')}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Eye size={14} />
+                  View / Edit Application
+                </button>
+              );
+            })()
+          ) : (
+            <button
+              onClick={() => onNavigate('student-form')}
+              className="btn btn-primary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Plus size={15} />
+              Add Student Record
+            </button>
+          )}
         </div>
       </div>
 
