@@ -121,12 +121,12 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url('/mit_texture_logo_transparent.png');
-  background-size: 52px 27px;
+  background-image: url('/mit_texture_logo_blue.png');
+  background-size: 50px 26px;
   background-repeat: repeat;
   background-position: 0 0;
-  opacity: 0.068;
-  filter: blur(0.35px);
+  opacity: 0.125; /* Enhanced rich blue visibility */
+  filter: saturate(140%) contrast(110%);
   pointer-events: none;
   z-index: 0;
 }
@@ -175,11 +175,10 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url('/mit_texture_logo_white.png');
-  background-size: 48px 25px;
+  background-image: url('/mit_texture_logo_topbar_blue.png');
+  background-size: 46px 24px;
   background-repeat: repeat;
-  opacity: 0.045;
-  filter: blur(0.35px);
+  opacity: 0.085; /* Soft blue watermark on topbar */
   pointer-events: none;
   z-index: 0;
 }
