@@ -222,7 +222,7 @@ const hydrateWithIndexedDB = async (recordsList) => {
       ...r,
       completion_letter_url: completionUrl || null,
       offer_letter_url: offerUrl || r.offer_letter_url,
-      status: completionUrl ? 'Completed' : (r.status || 'Submitted')
+      status: r.status || 'Submitted'
     };
   }));
   return hydrated;
@@ -307,7 +307,7 @@ const mergeRecords = (supabaseData, cachedData) => {
         ...merged[matchIndex],
         completion_letter_url: completionUrl || null,
         offer_letter_url: offerUrl || null,
-        status: completionUrl ? 'Completed' : (merged[matchIndex].status || cachedItem.status),
+        status: merged[matchIndex].status || cachedItem.status || 'Submitted',
         notes: cachedItem.notes || merged[matchIndex].notes
       };
     } else {
@@ -411,7 +411,7 @@ const prepareDbPayload = (recordData) => {
     is_ppo_offer: recordData.is_ppo_offer || 'No',
     offer_letter_url: recordData.offer_letter_url || null,
     completion_letter_url: recordData.completion_letter_url || null,
-    status: recordData.status || (recordData.completion_letter_url ? 'Completed' : 'Submitted'),
+    status: recordData.status || 'Submitted',
     notes: typeof notesStr === 'string' ? notesStr : JSON.stringify(notesStr)
   };
 };
@@ -527,12 +527,15 @@ export const updateStudentRecord = async (id, updateFields) => {
     updated_at: new Date().toISOString()
   });
 
-  // If completion letter is attached, ensure status is Completed
-  if (mergedUpdate.completion_letter_url) {
-    mergedUpdate.status = updateFields.status || 'Completed';
-    if (effectiveEnrolment) {
-      persistDocumentOffline(`completion_${effectiveEnrolment.toLowerCase()}`, mergedUpdate.completion_letter_url);
-    }
+  // If completion letter is attached and no explicit status is provided, default to Completed
+  if (mergedUpdate.completion_letter_url && !updateFields.status) {
+    mergedUpdate.status = targetRecord.status || 'Completed';
+  }
+  if (updateFields.status) {
+    mergedUpdate.status = updateFields.status;
+  }
+  if (mergedUpdate.completion_letter_url && effectiveEnrolment) {
+    persistDocumentOffline(`completion_${effectiveEnrolment.toLowerCase()}`, mergedUpdate.completion_letter_url);
   }
   if (mergedUpdate.offer_letter_url && effectiveEnrolment) {
     persistDocumentOffline(`offer_${effectiveEnrolment.toLowerCase()}`, mergedUpdate.offer_letter_url);
