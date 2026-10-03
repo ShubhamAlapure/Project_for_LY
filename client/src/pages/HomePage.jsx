@@ -205,26 +205,26 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
             </div>
 
             <span style={{
-              backgroundColor: (isStudent && !hasSubmittedApp) ? '#f1f5f9' : '#eff6ff',
-              color: (isStudent && !hasSubmittedApp) ? '#64748b' : '#1d4ed8',
+              backgroundColor: (isStudent && !hasSubmittedApp) ? '#f1f5f9' : (isStudent ? '#eff6ff' : '#dcfce7'),
+              color: (isStudent && !hasSubmittedApp) ? '#64748b' : (isStudent ? '#1d4ed8' : '#15803d'),
               fontSize: '0.725rem',
               fontWeight: 700,
               padding: '0.2rem 0.65rem',
               borderRadius: 'var(--radius-full)'
             }}>
-              {isStudent ? (!hasSubmittedApp ? '🔒 Step 2 Locked' : `Status: ${studentStatus || 'Submitted'}`) : 'Live Database'}
+              {isStudent ? (!hasSubmittedApp ? '🔒 Step 2 Locked' : `Status: ${studentStatus || 'Submitted'}`) : 'Review & Approval Desk'}
             </span>
           </div>
 
           <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: (isStudent && !hasSubmittedApp) ? 'var(--slate-600)' : 'var(--purple-950)', marginBottom: '0.4rem' }}>
-            {isStudent ? '2. My Application Status' : 'Manage Student Applications'}
+            {isStudent ? '2. My Application Status' : 'Review & Approve Student Applications'}
           </h3>
           <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
             {isStudent 
               ? (!hasSubmittedApp 
                 ? '🔒 Submit Step 1 (Internship Application) to unlock tracking and review progress with your coordinator.' 
                 : 'Review your verified internship details, preview uploaded offer letter, and track faculty coordinator approval.')
-              : 'Browse, filter, review student applications, inspect offer letters, and issue one-click approval or rejection.'}
+              : 'Inspect student offer letters, verify internship criteria, and issue instant 1-click Approval or Rejection decisions.'}
           </p>
 
           <button
@@ -236,16 +236,16 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
               }
               onNavigate('student-records');
             }}
-            className="btn btn-secondary btn-sm"
+            className={`btn ${!isStudent ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             style={{ 
               width: '100%', 
               justifyContent: 'center', 
-              color: (isStudent && !hasSubmittedApp) ? 'var(--slate-500)' : '#2563eb', 
-              borderColor: (isStudent && !hasSubmittedApp) ? 'var(--slate-300)' : '#bfdbfe',
-              backgroundColor: (isStudent && !hasSubmittedApp) ? 'var(--slate-100)' : 'transparent'
+              color: isStudent ? ((!hasSubmittedApp) ? 'var(--slate-500)' : '#2563eb') : '#ffffff', 
+              borderColor: isStudent ? ((!hasSubmittedApp) ? 'var(--slate-300)' : '#bfdbfe') : undefined,
+              backgroundColor: isStudent ? ((!hasSubmittedApp) ? 'var(--slate-100)' : 'transparent') : undefined
             }}
           >
-            {isStudent ? (!hasSubmittedApp ? '🔒 Submit Application to Unlock' : 'Track My Application') : 'Manage Student Records'}
+            {isStudent ? (!hasSubmittedApp ? '🔒 Submit Application to Unlock' : 'Track My Application') : 'Open Approval Desk'}
             {(isStudent && !hasSubmittedApp) ? <Lock size={14} /> : <ArrowRight size={15} />}
           </button>
         </div>

@@ -121,10 +121,16 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp, i
       },
       {
         id: 'student-records',
-        label: userRole === ROLES.FACULTY ? 'Manage Applications' : 'Student Records DB',
-        icon: userRole === ROLES.FACULTY ? UserCheck : Database,
+        label: userRole === ROLES.FACULTY 
+          ? 'Review & Approve Applications' 
+          : userRole === ROLES.HOD 
+          ? 'Department Approval Desk' 
+          : userRole === ROLES.CENTRAL_TP
+          ? 'Applications & Corporate T&P'
+          : 'Manage Applications & DB',
+        icon: UserCheck,
         route: 'student-records',
-        badge: userRole === ROLES.FACULTY ? 'Review Desk' : 'Live DB',
+        badge: userRole === ROLES.FACULTY ? 'Approval Desk' : 'Review & DB',
         badgeColor: '#dcfce7',
         badgeTextColor: '#15803d'
       },

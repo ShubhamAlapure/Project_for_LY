@@ -81,8 +81,8 @@ export const Navbar = ({ currentRoute, onNavigate, authUser, onLogout, hasSubmit
               borderRadius: 'var(--radius-md)'
             }}
           >
-            <Database size={15} />
-            <span>{authUser?.role === ROLES.FACULTY ? 'Manage Applications' : 'Records DB'}</span>
+            <UserCheck size={15} />
+            <span>{authUser?.role === ROLES.FACULTY ? 'Review & Approve Applications' : 'Applications & Records'}</span>
           </button>
         )}
 

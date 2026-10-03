@@ -843,6 +843,61 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
         </div>
       )}
 
+      {/* Action Required Alert Banner for Faculty & Authorities */}
+      {!isStudent && pendingReviewCount > 0 && (
+        <div style={{
+          backgroundColor: '#fefce8',
+          border: '2px solid #eab308',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: '0 4px 14px rgba(234, 179, 8, 0.15)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              backgroundColor: '#ca8a04',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#854d0e' }}>
+                🔔 {pendingReviewCount} Student Internship Application(s) Awaiting Your Review & Approval
+              </div>
+              <p style={{ fontSize: '0.85rem', color: '#a16207', margin: '0.2rem 0 0 0' }}>
+                Inspect student offer letters below and click <strong>"Accept & Approve"</strong> to verify and unlock official Undertaking & NOC generation.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('Submitted');
+                setFacultyTab('assigned');
+              }}
+              className="btn btn-sm"
+              style={{ backgroundColor: '#ca8a04', color: '#ffffff', fontWeight: 800, padding: '0.35rem 0.85rem' }}
+            >
+              Filter Pending ({pendingReviewCount})
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Faculty Application Queue Tabs */}
       {isFaculty && (
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
@@ -1003,20 +1058,25 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                 <th style={{ padding: '0.85rem 1.25rem' }}>Tenure & Duration</th>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Status & Mode</th>
                 <th style={{ padding: '0.85rem 1.25rem' }}>Uploaded Documents</th>
-                <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Actions & Decision</th>
+                {!isStudent && (
+                  <th style={{ padding: '0.85rem 1.25rem', backgroundColor: '#f0fdf4', color: '#166534', fontWeight: 800, textAlign: 'center' }}>
+                    ⚡ Coordinator Decision
+                  </th>
+                )}
+                <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Actions & Letters</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--slate-500)' }}>
+                  <td colSpan={isStudent ? 7 : 8} style={{ padding: '3rem', textAlign: 'center', color: 'var(--slate-500)' }}>
                     <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem auto', color: 'var(--purple-600)' }} />
                     <div>Loading records from Supabase...</div>
                   </td>
                 </tr>
               ) : filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
+                  <td colSpan={isStudent ? 7 : 8} style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
                     <Database size={36} color="var(--slate-300)" style={{ margin: '0 auto 0.75rem auto' }} />
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--slate-700)' }}>
                       {isStudent ? 'No internship application submitted yet' : 'No student records found'}
@@ -1304,62 +1364,165 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                       </div>
                     </td>
 
-                    {/* Instant Document Generation & Approval Actions */}
-                    <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
-                        {/* Faculty / Coordinator Approval Quick Actions */}
-                        {!isStudent && (
-                          <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.25rem' }}>
-                            {r.status !== 'Approved' && r.status !== 'Verified' && (
+                    {/* Dedicated Coordinator Decision Column for Faculty & Authorities */}
+                    {!isStudent && (
+                      <td style={{ 
+                        padding: '1rem 1.25rem', 
+                        backgroundColor: '#fafdfa', 
+                        borderLeft: '1px solid #dcfce7',
+                        borderRight: '1px solid #dcfce7',
+                        textAlign: 'center', 
+                        minWidth: '190px' 
+                      }}>
+                        {(() => {
+                          const rStatus = r.status || 'Submitted';
+                          const isApprovedRow = ['approved', 'verified', 'completed'].includes(rStatus.toLowerCase());
+                          const isRejectedRow = rStatus.toLowerCase() === 'rejected';
+
+                          if (isApprovedRow) {
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  fontSize: '0.775rem',
+                                  fontWeight: 800,
+                                  padding: '0.35rem 0.75rem',
+                                  borderRadius: 'var(--radius-full)',
+                                  backgroundColor: '#dcfce7',
+                                  color: '#15803d',
+                                  border: '1.5px solid #86efac',
+                                  boxShadow: '0 1px 3px rgba(21,128,61,0.1)'
+                                }}>
+                                  <CheckCircle2 size={14} />
+                                  Approved
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusUpdate(r, 'Under Review')}
+                                  style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    color: '#64748b',
+                                    fontSize: '0.7rem',
+                                    textDecoration: 'underline',
+                                    cursor: 'pointer',
+                                    padding: '0.1rem 0.3rem'
+                                  }}
+                                  title="Change status back to Under Review"
+                                >
+                                  Change / Revoke
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          if (isRejectedRow) {
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  fontSize: '0.775rem',
+                                  fontWeight: 800,
+                                  padding: '0.35rem 0.75rem',
+                                  borderRadius: 'var(--radius-full)',
+                                  backgroundColor: '#ffe4e6',
+                                  color: '#be123c',
+                                  border: '1.5px solid #fca5a5'
+                                }}>
+                                  <XCircle size={14} />
+                                  Rejected
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusUpdate(r, 'Approved')}
+                                  style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    color: '#15803d',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    textDecoration: 'underline',
+                                    cursor: 'pointer',
+                                    padding: '0.1rem 0.3rem'
+                                  }}
+                                  title="Re-approve this application"
+                                >
+                                  Re-approve
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          // Pending / Submitted / Under Review -> 1-Click Accept & Approve
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', alignItems: 'center' }}>
                               <button
                                 type="button"
                                 onClick={() => handleStatusUpdate(r, 'Approved')}
                                 className="btn btn-sm"
                                 style={{
-                                  fontSize: '0.725rem',
-                                  padding: '0.2rem 0.55rem',
-                                  backgroundColor: '#dcfce7',
-                                  color: '#15803d',
-                                  borderColor: '#86efac',
+                                  width: '100%',
+                                  fontSize: '0.775rem',
+                                  fontWeight: 800,
+                                  padding: '0.45rem 0.85rem',
+                                  backgroundColor: '#16a34a',
+                                  color: '#ffffff',
+                                  borderColor: '#15803d',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '0.25rem'
+                                  justifyContent: 'center',
+                                  gap: '0.4rem',
+                                  boxShadow: '0 2px 4px rgba(22, 163, 74, 0.25)',
+                                  borderRadius: 'var(--radius-md)',
+                                  cursor: 'pointer'
                                 }}
-                                title="Approve Student Internship Application"
+                                title="Approve and accept this student application"
                               >
-                                <Check size={12} />
-                                Approve
+                                <Check size={14} strokeWidth={3} />
+                                Accept & Approve
                               </button>
-                            )}
 
-                            {r.status !== 'Rejected' && (
                               <button
                                 type="button"
                                 onClick={() => {
-                                  if (window.confirm(`Reject internship application for ${r.full_name}?`)) {
+                                  if (window.confirm(`Are you sure you want to reject the application for ${r.full_name}?`)) {
                                     handleStatusUpdate(r, 'Rejected');
                                   }
                                 }}
                                 className="btn btn-sm"
                                 style={{
-                                  fontSize: '0.725rem',
-                                  padding: '0.2rem 0.55rem',
-                                  backgroundColor: '#ffe4e6',
-                                  color: '#be123c',
+                                  width: '100%',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  padding: '0.25rem 0.5rem',
+                                  backgroundColor: '#ffffff',
+                                  color: '#dc2626',
                                   borderColor: '#fca5a5',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '0.25rem'
+                                  justifyContent: 'center',
+                                  gap: '0.25rem',
+                                  borderRadius: 'var(--radius-md)',
+                                  cursor: 'pointer'
                                 }}
-                                title="Reject Student Internship Application"
+                                title="Reject this application"
                               >
                                 <XCircle size={12} />
-                                Reject
+                                Reject Application
                               </button>
-                            )}
-                          </div>
-                        )}
+                            </div>
+                          );
+                        })()}
+                      </td>
+                    )}
 
+                    {/* Instant Document Generation & Row Actions */}
+                    <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
                         {/* Student Row Approval Lock vs Unlocked Generator */}
                         {(() => {
                           const isRowApproved = ['approved', 'verified', 'completed'].includes((r.status || '').toLowerCase());
