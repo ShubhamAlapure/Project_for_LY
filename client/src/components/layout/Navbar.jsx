@@ -86,19 +86,21 @@ export const Navbar = ({ currentRoute, onNavigate, authUser, onLogout, hasSubmit
           </button>
         )}
 
-        <button
-          onClick={() => onNavigate('student-form')}
-          className="btn btn-sm"
-          style={{
-            backgroundColor: currentRoute === 'student-form' ? 'rgba(255, 255, 255, 0.24)' : 'rgba(255, 255, 255, 0.1)',
-            color: '#ffffff',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: 'var(--radius-md)'
-          }}
-        >
-          <PlusCircle size={15} />
-          <span>{isStudent ? (hasSubmittedApp ? 'My Application' : '1. My Application') : 'Submit Record'}</span>
-        </button>
+        {(isStudent || authUser?.role === ROLES.ADMIN) && (
+          <button
+            onClick={() => onNavigate('student-form')}
+            className="btn btn-sm"
+            style={{
+              backgroundColor: currentRoute === 'student-form' ? 'rgba(255, 255, 255, 0.24)' : 'rgba(255, 255, 255, 0.1)',
+              color: '#ffffff',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: 'var(--radius-md)'
+            }}
+          >
+            <PlusCircle size={15} />
+            <span>{isStudent ? (hasSubmittedApp ? 'My Application' : '1. My Application') : 'Submit Record'}</span>
+          </button>
+        )}
 
         <button
           onClick={handleDocumentsNav}

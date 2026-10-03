@@ -22,7 +22,13 @@ import {
   CheckCircle,
   FileCheck2,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Search,
+  Filter,
+  Users,
+  GraduationCap,
+  ExternalLink,
+  UserCheck
 } from 'lucide-react';
 import { FormInput } from '../components/common/FormInput';
 import { FormSelect } from '../components/common/FormSelect';
@@ -37,7 +43,7 @@ import {
   loadGeneratedDocument, 
   clearGeneratedDocument 
 } from '../utils/storage';
-import { calculateInternshipDuration } from '../utils/supabaseClient';
+import { calculateInternshipDuration, fetchStudentRecords, subscribeToStudentRecords } from '../utils/supabaseClient';
 import { downloadDocumentPDF } from '../utils/pdfGenerator';
 import { UndertakingTemplate } from '../templates/UndertakingTemplate';
 import { Toast } from '../components/common/Toast';
@@ -67,6 +73,32 @@ const INITIAL_STATE = {
   mentorName: ''
 };
 
+export const formatRecordToUndertaking = (r) => {
+  if (!r) return INITIAL_STATE;
+  return {
+    studentName: r.full_name || '',
+    salutation: r.gender === 'Female' ? 'Ms.' : 'Mr.',
+    className: r.class_division || 'LY-BTech',
+    rollNumber: r.roll_no || r.enrolment_no || '',
+    enrollmentNumber: r.enrolment_no || '',
+    department: r.specialization ? `Department of ${r.specialization}` : 'Department of Computer Science & Engineering',
+    universityName: 'MIT Art, Design and Technology University, Pune',
+    schoolName: 'School of Computing',
+    
+    companyName: r.company_name_and_city ? r.company_name_and_city.split(',')[0].trim() : '',
+    internshipRole: r.domain_of_company || 'Software Engineering Intern',
+    duration: r.duration || '6 Months',
+    startDate: r.start_date || '',
+    endDate: r.end_date || '',
+    location: r.company_name_and_city ? (r.company_name_and_city.includes(',') ? r.company_name_and_city.split(',').slice(1).join(',').trim() : 'Pune') : 'Pune',
+    
+    contactNumber: r.contact_no || '',
+    email: r.email || '',
+    documentDate: r.submission_date || new Date().toISOString().split('T')[0],
+    mentorName: r.assigned_coordinator || 'Prof. Vaibhav Sawalkar'
+  };
+};
+
 export const UndertakingFormPage = ({ 
   onGeneratePreview, 
   onBack, 
@@ -78,12 +110,47 @@ export const UndertakingFormPage = ({
   onNavigate 
 }) => {
   const isStudent = authUser?.role === ROLES.STUDENT;
+  const isAdmin = authUser?.role === ROLES.ADMIN;
   const studentKey = getStudentStorageKey(authUser);
+
+  // Authority & Faculty Desk State
+  const [deskRecords, setDeskRecords] = useState([]);
+  const [loadingDesk, setLoadingDesk] = useState(true);
+  const [deskSearch, setDeskSearch] = useState('');
+  const [deskCoordinatorFilter, setDeskCoordinatorFilter] = useState('All');
+  const [deskSpecializationFilter, setDeskSpecializationFilter] = useState('All');
+  const [adminViewMode, setAdminViewMode] = useState('desk'); // 'desk' | 'form'
+  const [downloadingStudentId, setDownloadingStudentId] = useState(null);
+  const [activeDownloadData, setActiveDownloadData] = useState(null);
 
   const [generatedDoc, setGeneratedDoc] = useState(() => (isStudent && !isApproved ? null : loadGeneratedDocument('undertaking', studentKey)));
   const [isEditing, setIsEditing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // Load records for Faculty & Authorities Desk
+  useEffect(() => {
+    if (!isStudent) {
+      const loadDesk = async () => {
+        setLoadingDesk(true);
+        const { data } = await fetchStudentRecords();
+        if (data) {
+          setDeskRecords(data);
+        }
+        setLoadingDesk(false);
+      };
+
+      loadDesk();
+
+      const unsubscribe = subscribeToStudentRecords(() => {
+        loadDesk();
+      });
+
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    }
+  }, [isStudent]);
 
   // If approval is revoked or not active for a student, immediately purge generated doc
   useEffect(() => {
@@ -123,10 +190,12 @@ export const UndertakingFormPage = ({
     }
   }, [formData.startDate, formData.endDate]);
 
-  // Autosave to localStorage on change
+  // Autosave to localStorage on change for student
   useEffect(() => {
-    saveFormData('undertaking', formData);
-  }, [formData]);
+    if (isStudent) {
+      saveFormData('undertaking', formData);
+    }
+  }, [formData, isStudent]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -198,9 +267,435 @@ export const UndertakingFormPage = ({
     }
   };
 
+  const handleDeskDirectDownload = async (studentRecord) => {
+    const formattedData = formatRecordToUndertaking(studentRecord);
+    setActiveDownloadData(formattedData);
+    setDownloadingStudentId(studentRecord.id || studentRecord.enrolment_no);
+
+    // Allow DOM to update hidden template
+    setTimeout(async () => {
+      try {
+        const targetElement = document.getElementById('undertaking-desk-download-element');
+        if (!targetElement) throw new Error("Template element not ready");
+        const studentNameClean = (studentRecord.full_name || 'Student').replace(/\s+/g, '_');
+        const filename = `Internship_Undertaking_${studentNameClean}`;
+        await downloadDocumentPDF(targetElement, filename);
+        setToast({
+          type: 'success',
+          message: `Undertaking PDF for ${studentRecord.full_name} downloaded successfully!`
+        });
+      } catch (err) {
+        console.error("PDF download failed:", err);
+        setToast({
+          type: 'error',
+          message: 'PDF download failed. Please try clicking "Preview" instead.'
+        });
+      } finally {
+        setDownloadingStudentId(null);
+      }
+    }, 150);
+  };
+
+  // =========================================================================
+  // 1. FACULTY & AUTHORITIES DESK VIEW (When user is not a Student)
+  // =========================================================================
+  if (!isStudent && (!isAdmin || adminViewMode === 'desk')) {
+    const isFaculty = authUser?.role === ROLES.FACULTY;
+    const facultyName = (authUser?.full_name || '').toLowerCase();
+
+    // Filter students: All approved / verified students
+    const approvedStudents = deskRecords.filter(r => {
+      const st = (r.status || '').toLowerCase();
+      return ['approved', 'verified', 'completed'].includes(st);
+    });
+
+    const filteredDeskStudents = approvedStudents.filter(r => {
+      const search = deskSearch.toLowerCase().trim();
+      const matchesSearch = !search || 
+        (r.full_name && r.full_name.toLowerCase().includes(search)) ||
+        (r.enrolment_no && r.enrolment_no.toLowerCase().includes(search)) ||
+        (r.company_name_and_city && r.company_name_and_city.toLowerCase().includes(search)) ||
+        (r.specialization && r.specialization.toLowerCase().includes(search));
+
+      const matchesCoord = deskCoordinatorFilter === 'All' || 
+        (r.assigned_coordinator && r.assigned_coordinator.toLowerCase().includes(deskCoordinatorFilter.toLowerCase()));
+
+      const matchesSpec = deskSpecializationFilter === 'All' || 
+        (r.specialization && r.specialization.toLowerCase().includes(deskSpecializationFilter.toLowerCase()));
+
+      return matchesSearch && matchesCoord && matchesSpec;
+    });
+
+    const myAssignedCount = approvedStudents.filter(r => {
+      return r.assigned_coordinator && facultyName && r.assigned_coordinator.toLowerCase().includes(facultyName);
+    }).length;
+
+    return (
+      <div className="animate-fade-in" style={{ padding: '2rem 0 5rem 0' }}>
+        {toast && (
+          <Toast
+            type={toast.type}
+            message={toast.message}
+            onClose={() => setToast(null)}
+          />
+        )}
+
+        {/* Hidden A4 Element for Direct PDF Downloads from Desk */}
+        {activeDownloadData && (
+          <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: '794px' }}>
+            <div id="undertaking-desk-download-element">
+              <UndertakingTemplate data={activeDownloadData} />
+            </div>
+          </div>
+        )}
+
+        <div className="container" style={{ maxWidth: '1360px' }}>
+          {/* Header Banner */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.75rem',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <FileCheck2 size={13} />
+                  DOC-MIT-UT-01 • OFFICIAL UNDERTAKING DESK
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)', fontWeight: 600 }}>
+                  Active Role: {authUser?.role}
+                </span>
+              </div>
+              <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
+                Generated Internship Undertakings Desk
+              </h1>
+              <p style={{ color: 'var(--slate-600)', fontSize: '0.925rem', margin: '0.3rem 0 0 0' }}>
+                Official verification desk for all approved students. Preview individual undertaking documents or download high-resolution single-page A4 PDFs.
+              </p>
+            </div>
+
+            {isAdmin && (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={() => setAdminViewMode('form')}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Edit3 size={14} />
+                  Open Blank Form Generator
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* KPI Metrics Cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1.25rem',
+            marginBottom: '1.75rem'
+          }}>
+            <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #16a34a' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+                <span>TOTAL GENERATED UNDERTAKINGS</span>
+                <FileCheck2 size={20} color="#16a34a" />
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--purple-950)', marginTop: '0.4rem' }}>
+                {approvedStudents.length} Students
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 600, marginTop: '0.2rem' }}>
+                ✓ Approved & 100% Ready for Print/PDF
+              </div>
+            </div>
+
+            {isFaculty && (
+              <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #7e22ce' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <span>MY ASSIGNED STUDENTS</span>
+                  <UserCheck size={20} color="#7e22ce" />
+                </div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--purple-950)', marginTop: '0.4rem' }}>
+                  {myAssignedCount} Students
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#6b21a8', fontWeight: 600, marginTop: '0.2rem' }}>
+                  Assigned to {authUser?.full_name}
+                </div>
+              </div>
+            )}
+
+            <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #2563eb' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--slate-500)', fontSize: '0.8rem', fontWeight: 600 }}>
+                <span>DOCUMENT SPECIFICATION</span>
+                <Award size={20} color="#2563eb" />
+              </div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--purple-950)', marginTop: '0.4rem' }}>
+                Single Page A4 • Clauses I - IX
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', fontWeight: 600, marginTop: '0.2rem' }}>
+                Includes Student, Parent & Mentor Signature Blocks
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Filter Toolbar */}
+          <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', border: '1px solid var(--sidebar-border)' }}>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ position: 'relative', flex: '1 1 300px' }}>
+                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--slate-400)' }} />
+                <input
+                  type="text"
+                  placeholder="Search by student name, enrollment no, company, domain..."
+                  value={deskSearch}
+                  onChange={(e) => setDeskSearch(e.target.value)}
+                  className="form-input"
+                  style={{ paddingLeft: '2.4rem', height: '40px', fontSize: '0.875rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <select
+                  value={deskCoordinatorFilter}
+                  onChange={(e) => setDeskCoordinatorFilter(e.target.value)}
+                  className="form-input"
+                  style={{ height: '40px', fontSize: '0.85rem', minWidth: '180px' }}
+                >
+                  <option value="All">All Faculty Coordinators</option>
+                  <option value="Sawalkar">Prof. Vaibhav Sawalkar</option>
+                  <option value="Verma">Prof. Aniket Verma</option>
+                  <option value="Deshmukh">Dr. Sneha Deshmukh</option>
+                </select>
+
+                <select
+                  value={deskSpecializationFilter}
+                  onChange={(e) => setDeskSpecializationFilter(e.target.value)}
+                  className="form-input"
+                  style={{ height: '40px', fontSize: '0.85rem', minWidth: '160px' }}
+                >
+                  <option value="All">All Specializations</option>
+                  <option value="Information Technology">Information Technology (IT)</option>
+                  <option value="Computer Science">CSE-CORE</option>
+                  <option value="Artificial Intelligence">AI & Data Science</option>
+                  <option value="Cyber">Cyber Security</option>
+                </select>
+
+                {(deskSearch || deskCoordinatorFilter !== 'All' || deskSpecializationFilter !== 'All') && (
+                  <button
+                    onClick={() => {
+                      setDeskSearch('');
+                      setDeskCoordinatorFilter('All');
+                      setDeskSpecializationFilter('All');
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ height: '40px' }}
+                  >
+                    <RotateCcw size={14} /> Clear Filters
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Students Generated Undertakings Table */}
+          <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--sidebar-border)' }}>
+            <div style={{ padding: '1rem 1.5rem', backgroundColor: '#faf5ff', borderBottom: '1px solid var(--purple-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={18} color="var(--purple-700)" />
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
+                  Approved Students with Generated Undertaking ({filteredDeskStudents.length})
+                </h3>
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#15803d', backgroundColor: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)' }}>
+                Live Database Synchronized
+              </span>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--slate-200)', textAlign: 'left', color: 'var(--slate-600)', fontSize: '0.775rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <th style={{ padding: '0.85rem 1rem' }}>#</th>
+                    <th style={{ padding: '0.85rem 1.25rem' }}>Student & Enrolment</th>
+                    <th style={{ padding: '0.85rem 1.25rem' }}>Company & Role</th>
+                    <th style={{ padding: '0.85rem 1.25rem' }}>Tenure & Dates</th>
+                    <th style={{ padding: '0.85rem 1.25rem' }}>Faculty Coordinator</th>
+                    <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>Status</th>
+                    <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Official Undertaking Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingDesk ? (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--slate-500)' }}>
+                        <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem auto', color: 'var(--purple-600)' }} />
+                        <div>Loading generated undertakings...</div>
+                      </td>
+                    </tr>
+                  ) : filteredDeskStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '4rem 1.5rem', textAlign: 'center' }}>
+                        <FileText size={40} color="var(--slate-300)" style={{ margin: '0 auto 0.75rem auto' }} />
+                        <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--slate-700)', margin: 0 }}>
+                          No approved student undertakings found
+                        </h4>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--slate-500)', marginTop: '0.25rem' }}>
+                          Students whose applications are approved by their Faculty Coordinator will automatically appear here with generated undertakings.
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredDeskStudents.map((student, idx) => {
+                      const undertakingData = formatRecordToUndertaking(student);
+                      const isRowDownloading = downloadingStudentId === (student.id || student.enrolment_no);
+
+                      return (
+                        <tr 
+                          key={student.id || student.enrolment_no || idx}
+                          style={{
+                            borderBottom: '1px solid var(--slate-100)',
+                            transition: 'background-color 0.15s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#faf5ff'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <td style={{ padding: '1rem', color: 'var(--slate-400)', fontWeight: 600, fontSize: '0.8rem' }}>
+                            {idx + 1}
+                          </td>
+
+                          <td style={{ padding: '1rem 1.25rem' }}>
+                            <div style={{ fontWeight: 800, color: 'var(--purple-950)', fontSize: '0.925rem' }}>
+                              {student.full_name}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.15rem' }}>
+                              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#4338ca', backgroundColor: '#e0e7ff', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                                {student.enrolment_no}
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>
+                                {student.class_division || 'LY-BTech'}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.725rem', color: 'var(--slate-400)', marginTop: '0.1rem' }}>
+                              {student.email}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '1rem 1.25rem' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--slate-800)' }}>
+                              {student.company_name_and_city || 'Corporate Firm'}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.15rem' }}>
+                              {student.domain_of_company || 'Information Technology'}
+                            </div>
+                            <div style={{ fontSize: '0.725rem', color: 'var(--slate-400)' }}>
+                              Mode: {student.mode_of_internship || 'Offline'}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '1rem 1.25rem' }}>
+                            <div style={{ fontWeight: 700, color: '#1e40af', fontSize: '0.825rem' }}>
+                              ⏱️ {student.duration || '6 Months'}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.15rem' }}>
+                              {student.start_date || '2026-02-01'} → {student.end_date || '2026-08-01'}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '1rem 1.25rem' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--purple-900)', fontSize: '0.825rem' }}>
+                              {student.assigned_coordinator || 'Prof. Vaibhav Sawalkar'}
+                            </div>
+                            <div style={{ fontSize: '0.725rem', color: 'var(--slate-400)' }}>
+                              Coordinator
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '1rem', textAlign: 'center' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              fontSize: '0.725rem',
+                              fontWeight: 800,
+                              padding: '0.25rem 0.65rem',
+                              borderRadius: 'var(--radius-full)',
+                              backgroundColor: '#dcfce7',
+                              color: '#15803d',
+                              border: '1px solid #86efac'
+                            }}>
+                              <CheckCircle2 size={13} />
+                              Undertaking Ready
+                            </span>
+                          </td>
+
+                          <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', alignItems: 'center' }}>
+                              {/* 1-Click Preview Action */}
+                              <button
+                                type="button"
+                                onClick={() => onGeneratePreview('undertaking', undertakingData)}
+                                className="btn btn-sm btn-primary"
+                                style={{
+                                  fontSize: '0.775rem',
+                                  fontWeight: 700,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  padding: '0.35rem 0.75rem'
+                                }}
+                                title="Open full official A4 Undertaking preview"
+                              >
+                                <Eye size={14} />
+                                Preview Undertaking
+                              </button>
+
+                              {/* 1-Click Direct Download PDF */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeskDirectDownload(student)}
+                                disabled={isRowDownloading}
+                                className="btn btn-sm btn-secondary"
+                                style={{
+                                  fontSize: '0.775rem',
+                                  fontWeight: 700,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  padding: '0.35rem 0.65rem',
+                                  backgroundColor: '#f0fdf4',
+                                  color: '#15803d',
+                                  borderColor: '#86efac'
+                                }}
+                                title="Instant single-page A4 PDF download"
+                              >
+                                {isRowDownloading ? (
+                                  <RefreshCw size={14} className="animate-spin" />
+                                ) : (
+                                  <Download size={14} />
+                                )}
+                                PDF
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 2. STUDENT LOCKED STATE VIEW
+  // =========================================================================
   if (isStudent && !isApproved) {
     const isRejected = (studentStatus || '').toLowerCase() === 'rejected';
-    const isUnderReview = hasSubmittedApp;
 
     return (
       <div className="animate-fade-in" style={{ padding: '3rem 0 5rem 0' }}>
@@ -270,7 +765,9 @@ export const UndertakingFormPage = ({
     );
   }
 
-  // 2nd Time Onwards View: If Undertaking is already generated and student is not in edit mode
+  // =========================================================================
+  // 3. STUDENT GENERATED HUB (2nd Time Onwards View)
+  // =========================================================================
   if (generatedDoc && !isEditing) {
     const docData = generatedDoc.data || formData;
     const formattedDate = generatedDoc.generatedAt 
@@ -448,12 +945,12 @@ export const UndertakingFormPage = ({
                 {isDownloading ? (
                   <><RefreshCw size={15} className="animate-spin" /> Generating PDF...</>
                 ) : (
-                  <><Download size={16} /> Download PDF</>
+                  <><Download size={15} /> Download Undertaking PDF</>
                 )}
               </button>
             </div>
 
-            {/* Option 2: Full Document Preview */}
+            {/* Option 2: Full Preview & Print */}
             <div className="card" style={{
               padding: '1.5rem',
               borderTop: '4px solid #2563eb',
@@ -463,18 +960,18 @@ export const UndertakingFormPage = ({
             }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', backgroundColor: '#dbeafe', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Eye size={22} />
                   </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#1d4ed8', backgroundColor: '#eff6ff', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)' }}>
-                    Print & Zoom
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#1d4ed8', backgroundColor: '#dbeafe', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)' }}>
+                    Preview Mode
                   </span>
                 </div>
                 <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--purple-950)', margin: '0 0 0.35rem 0' }}>
                   2. Preview & Print
                 </h4>
                 <p style={{ fontSize: '0.825rem', color: 'var(--slate-600)', margin: '0 0 1.25rem 0', lineHeight: 1.4 }}>
-                  Open the full interactive A4 view with browser print dialog, watermark adjustments, and zoom tools.
+                  Open the high-fidelity A4 document viewer to verify clauses, inspect signature blocks, or print directly.
                 </p>
               </div>
 
@@ -482,35 +979,35 @@ export const UndertakingFormPage = ({
                 type="button"
                 onClick={() => onGeneratePreview('undertaking', docData)}
                 className="btn btn-primary"
-                style={{ width: '100%', justifyContent: 'center', fontWeight: 700 }}
+                style={{ width: '100%', justifyContent: 'center', backgroundColor: '#1d4ed8', borderColor: '#2563eb', fontWeight: 700 }}
               >
-                <Eye size={16} />
-                Preview Document
+                <Eye size={15} />
+                Preview & Print
               </button>
             </div>
 
-            {/* Option 3: Edit Undertaking */}
+            {/* Option 3: Edit Form Fields */}
             <div className="card" style={{
               padding: '1.5rem',
-              borderTop: '4px solid var(--purple-600)',
+              borderTop: '4px solid #7e22ce',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between'
             }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', backgroundColor: 'var(--purple-50)', color: 'var(--purple-700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', backgroundColor: '#f3e8ff', color: '#7e22ce', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Edit3 size={22} />
                   </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--purple-700)', backgroundColor: 'var(--purple-50)', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)' }}>
-                    Modify Fields
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#7e22ce', backgroundColor: '#f3e8ff', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)' }}>
+                    Editable
                   </span>
                 </div>
                 <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--purple-950)', margin: '0 0 0.35rem 0' }}>
                   3. Edit Undertaking
                 </h4>
                 <p style={{ fontSize: '0.825rem', color: 'var(--slate-600)', margin: '0 0 1.25rem 0', lineHeight: 1.4 }}>
-                  Need to modify company name, dates, or contact details? Open the full form to update and re-generate.
+                  Need to update internship tenure, mentor name, or company details? Modify fields and re-generate.
                 </p>
               </div>
 
@@ -518,9 +1015,9 @@ export const UndertakingFormPage = ({
                 type="button"
                 onClick={() => setIsEditing(true)}
                 className="btn btn-secondary"
-                style={{ width: '100%', justifyContent: 'center', fontWeight: 700, borderColor: 'var(--purple-300)', color: 'var(--purple-800)' }}
+                style={{ width: '100%', justifyContent: 'center', fontWeight: 700, borderColor: '#d8b4fe', color: '#6b21a8' }}
               >
-                <Edit3 size={16} />
+                <Edit3 size={15} />
                 Edit Form Details
               </button>
             </div>
@@ -530,8 +1027,11 @@ export const UndertakingFormPage = ({
     );
   }
 
+  // =========================================================================
+  // 4. STUDENT FORM GENERATOR VIEW (1st Time or in Edit Mode / Admin Form Mode)
+  // =========================================================================
   return (
-    <div className="animate-fade-in" style={{ padding: '2rem 0 5rem 0' }}>
+    <div className="animate-fade-in" style={{ padding: '1.5rem 0 4rem 0' }}>
       <div className="container container-narrow">
         {/* Step Indicator */}
         <StepIndicator 
@@ -543,382 +1043,323 @@ export const UndertakingFormPage = ({
           ]}
         />
 
-        {/* Back Button & Header */}
+        {/* Back Link & Admin Toggle */}
         <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <button
-            onClick={onBack}
+            onClick={() => {
+              if (isEditing) {
+                setIsEditing(false);
+              } else if (isAdmin && adminViewMode === 'form') {
+                setAdminViewMode('desk');
+              } else {
+                onBack();
+              }
+            }}
             className="btn btn-secondary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
             <ArrowLeft size={16} />
-            Back to Documents
+            {isEditing ? 'Cancel Edit & Return to Generated Hub' : isAdmin && adminViewMode === 'form' ? 'Back to Generated Desk' : 'Back to Document Selection'}
           </button>
 
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="btn btn-secondary btn-sm"
-              title="Reset all form fields"
-            >
-              <RotateCcw size={15} />
-              Reset
-            </button>
-          </div>
-        </div>
-
-        {/* Editing Banner (If editing previously generated document) */}
-        {generatedDoc && isEditing && (
-          <div style={{
-            backgroundColor: '#eff6ff',
-            border: '1.5px solid #93c5fd',
-            borderRadius: 'var(--radius-lg)',
-            padding: '1rem 1.5rem',
-            marginBottom: '1.5rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <Edit3 size={20} color="#2563eb" />
-              <div>
-                <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '0.95rem' }}>
-                  Editing Previously Generated Undertaking
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#3b82f6' }}>
-                  Modify any field below. Clicking "Update & Re-generate Preview" will update your saved document.
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-            >
-              <ArrowLeft size={14} />
-              Cancel & Return to Generated View
-            </button>
-          </div>
-        )}
-
-        {/* Header Title */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <span className="badge badge-primary">Form Entry</span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--slate-500)' }}>DOC-MIT-UT-01</span>
-          </div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--navy-900)' }}>
-            {generatedDoc && isEditing ? 'Edit Internship Undertaking Form' : 'Internship Undertaking Form'}
-          </h1>
-          <p style={{ color: 'var(--slate-600)', fontSize: '0.925rem' }}>
-            Fill in your personal, academic, company, and internship details to generate the official undertaking letter.
-          </p>
+          {isEditing && (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1d4ed8', backgroundColor: '#dbeafe', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)' }}>
+              ✏️ Modifying Saved Undertaking
+            </span>
+          )}
 
           {saveStatus && (
-            <div style={{
-              marginTop: '0.75rem',
-              padding: '0.5rem 0.85rem',
-              backgroundColor: 'var(--success-50)',
-              color: 'var(--success-700)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}>
-              <CheckCircle2 size={16} />
+            <span className="badge badge-success" style={{ animation: 'fade-in 0.2s ease-out' }}>
+              <CheckCircle2 size={13} />
               {saveStatus}
-            </div>
+            </span>
           )}
         </div>
 
         {/* Form Container */}
-        <form onSubmit={handleSubmit}>
-          {/* Section 1: Student Information */}
-          <div className="form-section-card">
-            <div className="form-section-header">
-              <div className="form-section-icon">
-                <User size={20} />
-              </div>
-              <div>
-                <h3 className="form-section-title">Section 1: Student Information</h3>
-                <p className="form-section-desc">Personal and academic identification credentials</p>
-              </div>
+        <div className="card" style={{ padding: '2.5rem' }}>
+          <div style={{ marginBottom: '2rem', borderBottom: '1px solid var(--sidebar-border)', paddingBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <span className="badge badge-primary">DOC-MIT-UT-01</span>
+              <span style={{ fontSize: '0.775rem', color: 'var(--slate-500)', fontWeight: 600 }}>
+                MIT-ADT University Format
+              </span>
             </div>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--purple-950)', margin: '0.25rem 0' }}>
+              Internship Undertaking
+            </h1>
+            <p style={{ color: 'var(--slate-600)', fontSize: '0.925rem', margin: 0 }}>
+              Mandatory single-page declaration of student responsibilities, clauses I through IX, attendance compliance, and mentor acknowledgement.
+            </p>
+          </div>
 
-            <div className="form-grid-3">
-              <div style={{ gridColumn: 'span 1' }}>
+          <form onSubmit={handleSubmit} noValidate>
+            {/* Section 1: Student Information */}
+            <div className="form-section">
+              <div className="form-section-title">
+                <User size={18} />
+                Student Identification Details
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '1rem' }}>
                 <FormSelect
-                  label="Salutation / Gender"
+                  label="Title"
+                  id="salutation"
                   name="salutation"
                   value={formData.salutation}
                   onChange={handleChange}
-                  required
                   options={[
-                    { value: 'Mr.', label: 'Mr. (Male)' },
-                    { value: 'Ms.', label: 'Ms. (Female)' },
-                    { value: 'Mrs.', label: 'Mrs.' }
+                    { value: 'Mr.', label: 'Mr.' },
+                    { value: 'Ms.', label: 'Ms.' }
                   ]}
+                  required
                 />
-              </div>
-
-              <div style={{ gridColumn: 'span 2' }}>
                 <FormInput
                   label="Student Full Name"
+                  id="studentName"
                   name="studentName"
                   value={formData.studentName}
                   onChange={handleChange}
-                  placeholder="e.g. Shubham Santosh Alapure"
-                  required
+                  placeholder="e.g., Rohit Sharma"
                   error={errors.studentName}
-                  icon={User}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                <FormInput
+                  label="Class / Division"
+                  id="className"
+                  name="className"
+                  value={formData.className}
+                  onChange={handleChange}
+                  placeholder="e.g., LY-BTech-IT-A"
+                  error={errors.className}
+                  required
+                />
+                <FormInput
+                  label="Roll Number"
+                  id="rollNumber"
+                  name="rollNumber"
+                  value={formData.rollNumber}
+                  onChange={handleChange}
+                  placeholder="e.g., 45"
+                  error={errors.rollNumber}
+                  required
+                />
+                <FormInput
+                  label="Enrollment / PRN Number"
+                  id="enrollmentNumber"
+                  name="enrollmentNumber"
+                  value={formData.enrollmentNumber}
+                  onChange={handleChange}
+                  placeholder="e.g., ADT23SOCB0999"
+                  error={errors.enrollmentNumber}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                <FormInput
+                  label="Department"
+                  id="department"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  placeholder="e.g., Department of Computer Science & Engineering"
+                  error={errors.department}
+                  required
+                />
+                <FormInput
+                  label="School Name"
+                  id="schoolName"
+                  name="schoolName"
+                  value={formData.schoolName}
+                  onChange={handleChange}
+                  placeholder="School of Computing"
+                  error={errors.schoolName}
+                  required
                 />
               </div>
             </div>
 
-            <div className="form-grid-2">
-              <FormInput
-                label="Class / Year & Specialization"
-                name="className"
-                value={formData.className}
-                onChange={handleChange}
-                placeholder="e.g. B.Tech Final Year (CSE)"
-                required
-                error={errors.className}
-                icon={School}
-              />
-
-              <FormInput
-                label="Roll Number"
-                name="rollNumber"
-                value={formData.rollNumber}
-                onChange={handleChange}
-                placeholder="e.g. CS2022-084"
-                required
-                error={errors.rollNumber}
-              />
-            </div>
-
-            <div className="form-grid-2">
-              <FormInput
-                label="Enrollment / PRN Number"
-                name="enrollmentNumber"
-                value={formData.enrollmentNumber}
-                onChange={handleChange}
-                placeholder="e.g. MITADT2022CS084"
-                required
-                error={errors.enrollmentNumber}
-              />
-
-              <FormInput
-                label="Department"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                placeholder="e.g. Department of Computer Science & Engineering"
-                required
-                error={errors.department}
-              />
-            </div>
-
-            <FormInput
-              label="University Name"
-              name="universityName"
-              value={formData.universityName}
-              onChange={handleChange}
-              placeholder="e.g. MIT Art, Design and Technology University, Pune"
-              required
-              error={errors.universityName}
-            />
-          </div>
-
-          {/* Section 2: Internship Information */}
-          <div className="form-section-card">
-            <div className="form-section-header">
-              <div className="form-section-icon">
-                <Briefcase size={20} />
+            {/* Section 2: Internship & Company Particulars */}
+            <div className="form-section">
+              <div className="form-section-title">
+                <Briefcase size={18} />
+                Internship & Sponsoring Organization Details
               </div>
-              <div>
-                <h3 className="form-section-title">Section 2: Internship Information</h3>
-                <p className="form-section-desc">Host organization, role, duration, and dates</p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                <FormInput
+                  label="Company / Organization Name"
+                  id="companyName"
+                  name="companyName"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  placeholder="e.g., Google India Pvt. Ltd."
+                  error={errors.companyName}
+                  required
+                />
+                <FormInput
+                  label="Internship Role / Designation"
+                  id="internshipRole"
+                  name="internshipRole"
+                  value={formData.internshipRole}
+                  onChange={handleChange}
+                  placeholder="e.g., Software Engineering Intern"
+                  error={errors.internshipRole}
+                  required
+                />
               </div>
-            </div>
 
-            <div className="form-grid-2">
-              <FormInput
-                label="Company / Organization Name"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                placeholder="e.g. Google India Private Limited"
-                required
-                error={errors.companyName}
-                icon={Building}
-              />
-
-              <FormInput
-                label="Internship Role / Designation"
-                name="internshipRole"
-                value={formData.internshipRole}
-                onChange={handleChange}
-                placeholder="e.g. Software Engineering Intern"
-                required
-                error={errors.internshipRole}
-              />
-            </div>
-
-            <div className="form-grid-3">
-              <FormInput
-                label="Internship Duration"
-                name="duration"
-                value={formData.duration}
-                onChange={handleChange}
-                placeholder="e.g. 6 Months"
-                required
-                error={errors.duration}
-              />
-
-              <FormInput
-                label="Start Date"
-                name="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={handleChange}
-                required
-                error={errors.startDate}
-                icon={Calendar}
-              />
-
-              <FormInput
-                label="End Date"
-                name="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={handleChange}
-                required
-                error={errors.endDate}
-                icon={Calendar}
-              />
-            </div>
-
-            <FormInput
-              label="Internship Location / Mode"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              placeholder="e.g. Bangalore / Hybrid / Remote"
-              required
-              error={errors.location}
-            />
-          </div>
-
-          {/* Section 3: Contact Information */}
-          <div className="form-section-card">
-            <div className="form-section-header">
-              <div className="form-section-icon">
-                <Phone size={20} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                <FormInput
+                  label="Start Date"
+                  id="startDate"
+                  name="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                  error={errors.startDate}
+                  required
+                />
+                <FormInput
+                  label="End Date"
+                  id="endDate"
+                  name="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                  error={errors.endDate}
+                  required
+                />
+                <FormInput
+                  label="Internship Duration (Calculated)"
+                  id="duration"
+                  name="duration"
+                  value={formData.duration}
+                  onChange={handleChange}
+                  placeholder="e.g., 6 Months (182 Days)"
+                  helper="Auto-calculated from Start & End Date"
+                  error={errors.duration}
+                  required
+                />
               </div>
-              <div>
-                <h3 className="form-section-title">Section 3: Contact Information</h3>
-                <p className="form-section-desc">Student contact details for university records</p>
+
+              <div style={{ marginTop: '1rem' }}>
+                <FormInput
+                  label="Internship Location / City"
+                  id="location"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="e.g., Pune, Maharashtra / Remote"
+                  error={errors.location}
+                  required
+                />
               </div>
             </div>
 
-            <div className="form-grid-2">
-              <FormInput
-                label="Student Contact Number"
-                name="contactNumber"
-                value={formData.contactNumber}
-                onChange={handleChange}
-                placeholder="e.g. 9876543210"
-                required
-                error={errors.contactNumber}
-                icon={Phone}
-                helperText="10-digit mobile number"
-              />
-
-              <FormInput
-                label="Student Email Address"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="e.g. shubham.alapure@mitadt.edu.in"
-                required
-                error={errors.email}
-                icon={Mail}
-                helperText="Official university or personal email"
-              />
-            </div>
-          </div>
-
-          {/* Section 4: Document Information */}
-          <div className="form-section-card">
-            <div className="form-section-header">
-              <div className="form-section-icon">
-                <FileText size={20} />
+            {/* Section 3: Contact & Institutional Coordination */}
+            <div className="form-section">
+              <div className="form-section-title">
+                <Phone size={18} />
+                Contact & Faculty Coordinator
               </div>
-              <div>
-                <h3 className="form-section-title">Section 4: Document & Mentor Information</h3>
-                <p className="form-section-desc">Date of undertaking and designated faculty mentor</p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                <FormInput
+                  label="Student Mobile Contact Number"
+                  id="contactNumber"
+                  name="contactNumber"
+                  type="tel"
+                  value={formData.contactNumber}
+                  onChange={handleChange}
+                  placeholder="e.g., 9876543210"
+                  error={errors.contactNumber}
+                  required
+                />
+                <FormInput
+                  label="Student Email Address"
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="e.g., student@mituniversity.edu.in"
+                  error={errors.email}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                <FormInput
+                  label="Assigned Faculty Coordinator / Mentor"
+                  id="mentorName"
+                  name="mentorName"
+                  value={formData.mentorName}
+                  onChange={handleChange}
+                  placeholder="e.g., Prof. Vaibhav Sawalkar"
+                  error={errors.mentorName}
+                  required
+                />
+                <FormInput
+                  label="Undertaking Issuing Date"
+                  id="documentDate"
+                  name="documentDate"
+                  type="date"
+                  value={formData.documentDate}
+                  onChange={handleChange}
+                  error={errors.documentDate}
+                  required
+                />
               </div>
             </div>
 
-            <div className="form-grid-2">
-              <FormInput
-                label="Document Date"
-                name="documentDate"
-                type="date"
-                value={formData.documentDate}
-                onChange={handleChange}
-                required
-                error={errors.documentDate}
-                icon={Calendar}
-              />
+            {/* Form Actions */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginTop: '2.5rem',
+              paddingTop: '1.5rem',
+              borderTop: '1px solid var(--sidebar-border)',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="btn btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <RotateCcw size={16} />
+                Reset Form
+              </button>
 
-              <FormInput
-                label="Academic Mentor Name"
-                name="mentorName"
-                value={formData.mentorName}
-                onChange={handleChange}
-                placeholder="e.g. Dr. Rajesh K. Sharma"
-                required
-                error={errors.mentorName}
-                icon={User}
-              />
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.75rem', fontSize: '1rem' }}
+                >
+                  <Sparkles size={18} />
+                  {isEditing ? 'Update & Re-generate Preview' : 'Generate & Preview Undertaking'}
+                </button>
+              </div>
             </div>
-          </div>
-
-          {/* Form Action Bar */}
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '1rem',
-            marginTop: '2rem'
-          }}>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="btn btn-secondary"
-            >
-              <RotateCcw size={16} />
-              Reset Form
-            </button>
-
-            <button
-              type="submit"
-              className="btn btn-primary btn-lg"
-              style={{ minWidth: '240px', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-            >
-              <Eye size={18} />
-              {generatedDoc ? 'Update & Re-generate Preview' : 'Generate & Preview Undertaking'}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

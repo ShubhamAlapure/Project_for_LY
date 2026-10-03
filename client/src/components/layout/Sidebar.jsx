@@ -130,7 +130,7 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp, i
     }
 
     // Menu for Faculty, HOD, Central T&P, Admin
-    return [
+    const baseItems = [
       {
         id: 'home',
         label: 'Portal Overview',
@@ -151,32 +151,41 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp, i
         badge: userRole === ROLES.FACULTY ? 'Approval Desk' : 'Review & DB',
         badgeColor: '#dcfce7',
         badgeTextColor: '#15803d'
-      },
-      {
+      }
+    ];
+
+    // Only Admin can register/create records on behalf of any student
+    if (userRole === ROLES.ADMIN) {
+      baseItems.push({
         id: 'student-form',
         label: 'Register Record',
         icon: PlusCircle,
         route: 'student-form',
         badge: '18 Fields'
-      },
+      });
+    }
+
+    baseItems.push(
       {
         id: 'documents',
         label: 'Document Hub',
         icon: Layers,
         route: 'documents',
-        badge: 'Templates'
+        badge: userRole === ROLES.ADMIN ? 'Templates' : 'Student Docs'
       },
       {
         id: 'undertaking',
         label: 'Internship Undertaking',
         icon: FileCheck2,
-        route: 'undertaking'
+        route: 'undertaking',
+        badge: userRole === ROLES.ADMIN ? null : 'Generated Docs'
       },
       {
         id: 'noc',
         label: 'No Objection Certificate',
         icon: Award,
-        route: 'noc'
+        route: 'noc',
+        badge: userRole === ROLES.ADMIN ? null : 'Generated Docs'
       },
       {
         id: 'change-password',
@@ -191,7 +200,9 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp, i
         icon: FileText,
         route: 'about'
       }
-    ];
+    );
+
+    return baseItems;
   };
 
   const menuItems = getMenuItems();
