@@ -37,26 +37,14 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!isStudent) {
-      loadRecords();
-      const unsubscribe = subscribeToStudentRecords((updatedRecords) => {
-        if (updatedRecords && Array.isArray(updatedRecords)) {
-          setRecords(updatedRecords);
-        }
-      });
-      return () => {
-        if (typeof unsubscribe === 'function') unsubscribe();
-      };
-    }
-  }, [isStudent]);
-
   const loadRecords = async () => {
     try {
       setLoading(true);
-      const data = await fetchStudentRecords();
-      if (data && Array.isArray(data)) {
-        setRecords(data);
+      const res = await fetchStudentRecords();
+      if (res && res.success && Array.isArray(res.data)) {
+        setRecords(res.data);
+      } else if (Array.isArray(res)) {
+        setRecords(res);
       }
     } catch (err) {
       console.warn('Could not load student records for homepage stats:', err);
@@ -64,6 +52,18 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isStudent) {
+      loadRecords();
+      const unsubscribe = subscribeToStudentRecords(() => {
+        loadRecords();
+      });
+      return () => {
+        if (typeof unsubscribe === 'function') unsubscribe();
+      };
+    }
+  }, [isStudent]);
 
   // Compute live counts
   const totalCount = records.length;
@@ -80,20 +80,33 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
     return s === 'rejected';
   });
 
+  const ppoRecords = records.filter(r => {
+    const ppo = (r.is_ppo_offer || r.ppo_offered || '').toString().toLowerCase();
+    return ppo === 'yes' || ppo === 'true' || ppo === '1';
+  });
+
   // Undertaking & NOC counts
   const undertakingGeneratedRecords = records.filter(r => {
-    const studentKey = r.enrolment_no || r.enrollment_no || r.id;
-    return r.undertaking_generated || (studentKey && localStorage.getItem('mit_undertaking_doc_' + studentKey));
+    const studentKey = (r.enrolment_no || r.enrollment_no || r.id || '').toString().toLowerCase();
+    return r.undertaking_generated || 
+           (studentKey && localStorage.getItem('mit_undertaking_doc_' + studentKey)) ||
+           (r.email && localStorage.getItem('mit_undertaking_doc_' + r.email.toLowerCase())) ||
+           (r.status && (r.status.toLowerCase() === 'approved' || r.status.toLowerCase() === 'completed'));
   });
+
   const nocGeneratedRecords = records.filter(r => {
-    const studentKey = r.enrolment_no || r.enrollment_no || r.id;
-    return r.noc_generated || (studentKey && localStorage.getItem('mit_noc_doc_' + studentKey));
+    const studentKey = (r.enrolment_no || r.enrollment_no || r.id || '').toString().toLowerCase();
+    return r.noc_generated || 
+           (studentKey && localStorage.getItem('mit_noc_doc_' + studentKey)) ||
+           (r.email && localStorage.getItem('mit_noc_doc_' + r.email.toLowerCase())) ||
+           (r.status && (r.status.toLowerCase() === 'approved' || r.status.toLowerCase() === 'completed'));
   });
 
   // Top hiring companies
   const companyCounts = {};
   records.forEach(r => {
-    const comp = r.company_name?.trim();
+    const rawComp = r.company_name_and_city || r.company_name || r.company || '';
+    const comp = rawComp.split(',')[0].trim();
     if (comp) {
       companyCounts[comp] = (companyCounts[comp] || 0) + 1;
     }
@@ -757,8 +770,8 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
                         {rec.enrolment_no || rec.enrollment_no || 'ADT-'}
                       </td>
                       <td style={{ padding: '0.75rem 0.85rem', color: 'var(--slate-700)' }}>
-                        <div style={{ fontWeight: 600 }}>{rec.company_name || 'Industry Partner'}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>{rec.internship_role || 'Intern'}</div>
+                        <div style={{ fontWeight: 600 }}>{rec.company_name_and_city || rec.company_name || 'Industry Partner'}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>{rec.specialization || rec.domain_of_company || 'Intern'}</div>
                       </td>
                       <td style={{ padding: '0.75rem 0.85rem' }}>
                         <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.725rem', fontWeight: 700 }}>
