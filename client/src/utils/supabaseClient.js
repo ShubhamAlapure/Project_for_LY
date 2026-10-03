@@ -344,44 +344,54 @@ export const subscribeToStudentRecords = (onChangeCallback) => {
 };
 
 /**
- * Fetch all student internship records from Supabase with resilient fallback & intelligent cache merge
+ * Normalizes a database row to ensure assigned_coordinator is always accessible
  */
-export const fetchStudentRecords = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('student_internships')
-      .select('*')
-      .order('submission_date', { ascending: false });
-
-    const cached = getCachedRecords();
-
-    if (error || !data) {
-      console.warn('Supabase fetch notice, hydrating with cache & IndexedDB:', error?.message);
-      const hydrated = await hydrateWithIndexedDB(cached);
-      return { success: true, data: hydrated, isFallback: true, error: error?.message };
+export const normalizeRecord = (r) => {
+  if (!r) return r;
+  let coordinator = r.assigned_coordinator;
+  let facultyEmail = r.assigned_faculty_email;
+  if ((!coordinator || !facultyEmail) && r.notes) {
+    try {
+      const parsed = JSON.parse(r.notes);
+      if (parsed.assigned_coordinator) coordinator = parsed.assigned_coordinator;
+      if (parsed.assigned_faculty_email) facultyEmail = parsed.assigned_faculty_email;
+    } catch (e) {
+      if (r.notes.includes('Coordinator:')) {
+        coordinator = r.notes.split('Coordinator:')[1]?.trim();
+      }
     }
-
-    // Merge Supabase records with local documents & IndexedDB
-    const merged = mergeRecords(data, cached);
-    const hydrated = await hydrateWithIndexedDB(merged);
-    saveCachedRecords(hydrated);
-    return { success: true, data: hydrated, isFallback: false };
-  } catch (err) {
-    console.warn('Network notice reaching Supabase, loading from cache:', err);
-    const cached = getCachedRecords();
-    const hydrated = await hydrateWithIndexedDB(cached);
-    return { success: true, data: hydrated, isFallback: true, error: err.message };
   }
+  return {
+    ...r,
+    assigned_coordinator: coordinator || 'Prof. Vaibhav Sawalkar',
+    assigned_faculty_email: facultyEmail || 'vaibhav.sawalkar@mituniversity.edu.in'
+  };
 };
 
 /**
- * Insert or Update a student internship record to Supabase
+ * Prepares a database-compliant payload that never fails on missing unmigrated columns
  */
-export const insertStudentRecord = async (recordData) => {
-  // Ensure duration is computed
-  const duration = recordData.duration || calculateInternshipDuration(recordData.start_date, recordData.end_date);
+const prepareDbPayload = (recordData) => {
+  const coordinator = recordData.assigned_coordinator?.trim() || 'Prof. Vaibhav Sawalkar';
+  const facultyEmail = recordData.assigned_faculty_email?.trim() || 'vaibhav.sawalkar@mituniversity.edu.in';
   
-  const payload = {
+  let notesStr = recordData.notes || '';
+  if (!notesStr) {
+    notesStr = JSON.stringify({ assigned_coordinator: coordinator, assigned_faculty_email: facultyEmail });
+  } else if (!notesStr.includes('assigned_coordinator')) {
+    try {
+      const parsed = typeof notesStr === 'string' ? JSON.parse(notesStr) : notesStr;
+      parsed.assigned_coordinator = coordinator;
+      parsed.assigned_faculty_email = facultyEmail;
+      notesStr = JSON.stringify(parsed);
+    } catch (e) {
+      notesStr = `${notesStr} | Coordinator: ${coordinator}`;
+    }
+  }
+
+  const duration = recordData.duration || calculateInternshipDuration(recordData.start_date, recordData.end_date);
+
+  return {
     submission_date: recordData.submission_date || new Date().toISOString().split('T')[0],
     email: recordData.email?.trim(),
     contact_no: recordData.contact_no?.trim(),
@@ -401,11 +411,52 @@ export const insertStudentRecord = async (recordData) => {
     is_ppo_offer: recordData.is_ppo_offer || 'No',
     offer_letter_url: recordData.offer_letter_url || null,
     completion_letter_url: recordData.completion_letter_url || null,
-    assigned_coordinator: recordData.assigned_coordinator?.trim() || 'Prof. Vaibhav Sawalkar',
-    assigned_faculty_email: recordData.assigned_faculty_email?.trim() || 'vaibhav.sawalkar@mituniversity.edu.in',
     status: recordData.status || (recordData.completion_letter_url ? 'Completed' : 'Submitted'),
-    notes: recordData.notes || ''
+    notes: typeof notesStr === 'string' ? notesStr : JSON.stringify(notesStr)
   };
+};
+
+/**
+ * Fetch all student internship records from Supabase with resilient fallback & intelligent cache merge
+ */
+export const fetchStudentRecords = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('student_internships')
+      .select('*')
+      .order('submission_date', { ascending: false });
+
+    if (error || !data) {
+      console.warn('Supabase fetch notice, hydrating with cache & IndexedDB:', error?.message);
+      const cached = getCachedRecords();
+      const hydrated = await hydrateWithIndexedDB(cached);
+      return { success: true, data: hydrated.map(normalizeRecord), isFallback: true, error: error?.message };
+    }
+
+    // Merge Supabase records with local documents & IndexedDB
+    const normalizedData = data.map(normalizeRecord);
+    const cached = getCachedRecords();
+    const merged = mergeRecords(normalizedData, cached.map(normalizeRecord));
+    const hydrated = await hydrateWithIndexedDB(merged);
+    saveCachedRecords(hydrated);
+    return { success: true, data: hydrated, isFallback: false };
+  } catch (err) {
+    console.warn('Network notice reaching Supabase, loading from cache:', err);
+    const cached = getCachedRecords();
+    const hydrated = await hydrateWithIndexedDB(cached);
+    return { success: true, data: hydrated.map(normalizeRecord), isFallback: true, error: err.message };
+  }
+};
+
+/**
+ * Insert or Update a student internship record to Supabase
+ */
+export const insertStudentRecord = async (recordData) => {
+  const payload = prepareDbPayload(recordData);
+  const fullRecord = normalizeRecord({
+    ...recordData,
+    ...payload
+  });
 
   if (payload.completion_letter_url && payload.enrolment_no) {
     persistDocumentOffline(`completion_${payload.enrolment_no.toLowerCase()}`, payload.completion_letter_url);
@@ -423,7 +474,7 @@ export const insertStudentRecord = async (recordData) => {
   );
 
   if (existingRecord) {
-    return await updateStudentRecord(existingRecord.id, payload);
+    return await updateStudentRecord(existingRecord.id, fullRecord);
   }
 
   try {
@@ -434,21 +485,21 @@ export const insertStudentRecord = async (recordData) => {
 
     if (error) {
       console.warn('Supabase insert notice, saving to local cache:', error.message);
-      const newRecord = { ...payload, id: `local_${Date.now()}`, created_at: new Date().toISOString() };
+      const newRecord = { ...fullRecord, id: `local_${Date.now()}`, created_at: new Date().toISOString() };
       const current = getCachedRecords();
       const updated = [newRecord, ...current];
       saveCachedRecords(updated);
       return { success: true, data: [newRecord], isFallback: true, error: error.message };
     }
 
-    // Refresh cache
+    const savedRecord = normalizeRecord(data[0]);
     const current = getCachedRecords();
-    const refreshed = [data[0], ...current.filter(r => r.id !== data[0].id)];
+    const refreshed = [savedRecord, ...current.filter(r => r.id !== savedRecord.id)];
     saveCachedRecords(refreshed);
-    return { success: true, data, isFallback: false };
+    return { success: true, data: [savedRecord], isFallback: false };
   } catch (err) {
     console.warn('Network exception during insert, saving locally:', err);
-    const newRecord = { ...payload, id: `local_${Date.now()}`, created_at: new Date().toISOString() };
+    const newRecord = { ...fullRecord, id: `local_${Date.now()}`, created_at: new Date().toISOString() };
     const current = getCachedRecords();
     saveCachedRecords([newRecord, ...current]);
     return { success: true, data: [newRecord], isFallback: true, error: err.message };
@@ -470,11 +521,11 @@ export const updateStudentRecord = async (id, updateFields) => {
   const effectiveEmail = updateFields.email || targetRecord.email;
   const effectiveId = targetRecord.id || id;
 
-  const mergedUpdate = {
+  const mergedUpdate = normalizeRecord({
     ...targetRecord,
     ...updateFields,
     updated_at: new Date().toISOString()
-  };
+  });
 
   // If completion letter is attached, ensure status is Completed
   if (mergedUpdate.completion_letter_url) {
@@ -510,29 +561,7 @@ export const updateStudentRecord = async (id, updateFields) => {
   // 2. Persist to Supabase with multi-tier matching & automatic row creation
   try {
     const dbPayload = {
-      submission_date: mergedUpdate.submission_date || new Date().toISOString().split('T')[0],
-      email: effectiveEmail,
-      contact_no: mergedUpdate.contact_no,
-      enrolment_no: effectiveEnrolment,
-      full_name: mergedUpdate.full_name,
-      gender: mergedUpdate.gender || 'Male',
-      specialization: mergedUpdate.specialization,
-      class_division: mergedUpdate.class_division || mergedUpdate.className || '',
-      semester: mergedUpdate.semester,
-      source_of_internship: mergedUpdate.source_of_internship || 'College Placement Cell',
-      start_date: mergedUpdate.start_date,
-      end_date: mergedUpdate.end_date,
-      duration: mergedUpdate.duration,
-      company_name_and_city: mergedUpdate.company_name_and_city,
-      mode_of_internship: mergedUpdate.mode_of_internship || 'Offline',
-      domain_of_company: mergedUpdate.domain_of_company,
-      is_ppo_offer: mergedUpdate.is_ppo_offer || 'No',
-      offer_letter_url: mergedUpdate.offer_letter_url || null,
-      completion_letter_url: mergedUpdate.completion_letter_url || null,
-      assigned_coordinator: mergedUpdate.assigned_coordinator || 'Prof. Vaibhav Sawalkar',
-      assigned_faculty_email: mergedUpdate.assigned_faculty_email || 'vaibhav.sawalkar@mituniversity.edu.in',
-      status: mergedUpdate.status || 'Submitted',
-      notes: mergedUpdate.notes || '',
+      ...prepareDbPayload(mergedUpdate),
       updated_at: new Date().toISOString()
     };
 
@@ -574,7 +603,7 @@ export const updateStudentRecord = async (id, updateFields) => {
         .select();
 
       if (insertRes.data && insertRes.data.length > 0) {
-        const savedDbRecord = insertRes.data[0];
+        const savedDbRecord = normalizeRecord(insertRes.data[0]);
         const refreshed = updatedCache.map(r => 
           (effectiveEnrolment && r.enrolment_no && r.enrolment_no.toLowerCase() === effectiveEnrolment.toLowerCase()) ? savedDbRecord : r
         );
@@ -582,12 +611,12 @@ export const updateStudentRecord = async (id, updateFields) => {
         return { success: true, data: [savedDbRecord], isFallback: false };
       }
     } else if (updateRes.data && updateRes.data.length > 0) {
-      const savedDbRecord = updateRes.data[0];
+      const savedDbRecord = normalizeRecord(updateRes.data[0]);
       const refreshed = updatedCache.map(r => 
         (effectiveEnrolment && r.enrolment_no && r.enrolment_no.toLowerCase() === effectiveEnrolment.toLowerCase()) ? savedDbRecord : r
       );
       saveCachedRecords(refreshed);
-      return { success: true, data: updateRes.data, isFallback: false };
+      return { success: true, data: [savedDbRecord], isFallback: false };
     }
 
     return { success: true, data: [mergedUpdate], isFallback: false };
