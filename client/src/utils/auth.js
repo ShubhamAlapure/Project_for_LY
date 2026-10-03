@@ -606,7 +606,7 @@ export const updateUserPassword = async (email, currentPassword, newPassword) =>
   if (dbUpdated) {
     return {
       success: true,
-      message: 'Password updated immediately in Supabase DB! Your next login will require this new password.',
+      message: 'Password updated successfully! Your next login will require this new password.',
       newPassword: cleanNewPass
     };
   } else {

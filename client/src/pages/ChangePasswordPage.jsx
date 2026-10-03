@@ -83,7 +83,7 @@ export const ChangePasswordPage = ({ authUser, onNavigate }) => {
           Change Password
         </h1>
         <p style={{ color: 'var(--slate-600)', fontSize: '0.925rem', marginTop: '0.25rem' }}>
-          Update your institutional account login password. Changes will be saved <strong>immediately into Supabase DB</strong>.
+          Update your institutional account login password. Changes will be saved <strong>immediately into the Institutional Database</strong>.
         </p>
       </div>
 
@@ -143,7 +143,7 @@ export const ChangePasswordPage = ({ authUser, onNavigate }) => {
           fontWeight: 700
         }}>
           <Database size={14} />
-          Live Supabase Sync
+          Live Cloud Sync
         </div>
       </div>
 
@@ -306,7 +306,7 @@ export const ChangePasswordPage = ({ authUser, onNavigate }) => {
             <div style={{ fontWeight: 700, marginBottom: '0.35rem' }}>Security Guidelines:</div>
             <ul style={{ paddingLeft: '1.2rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
               <li>Password must be at least 6 characters in length.</li>
-              <li>Updates are saved <strong>immediately in Supabase DB (`user_logins`)</strong>.</li>
+              <li>Updates are saved <strong>immediately in Institutional DB</strong>.</li>
               <li>No page refresh or re-login is required; your active session updates instantly.</li>
             </ul>
           </div>
@@ -331,7 +331,7 @@ export const ChangePasswordPage = ({ authUser, onNavigate }) => {
               {loading ? (
                 <>
                   <span className="spinner" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#ffffff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                  Updating Supabase DB...
+                  Updating Password...
                 </>
               ) : (
                 <>

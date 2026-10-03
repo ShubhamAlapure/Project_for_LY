@@ -557,7 +557,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
             <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
               {isStudent ? <GraduationCap size={14} /> : isFaculty ? <UserCheck size={14} /> : <Database size={12} />}
-              {isStudent ? 'Student Application Desk' : isFaculty ? 'Faculty Review & Approval Desk' : 'Supabase Database'}
+              {isStudent ? 'Student Application Desk' : isFaculty ? 'Faculty Review & Approval Desk' : 'Records Database'}
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--slate-400)', fontWeight: 600 }}>
               {isStudent ? 'Personal Application Tracking' : isFaculty ? `Reviewer: ${authUser.full_name}` : 'Live Synchronization'}
@@ -1071,7 +1071,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                 <tr>
                   <td colSpan={isStudent ? 7 : 8} style={{ padding: '3rem', textAlign: 'center', color: 'var(--slate-500)' }}>
                     <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem auto', color: 'var(--purple-600)' }} />
-                    <div>Loading records from Supabase...</div>
+                    <div>Loading records...</div>
                   </td>
                 </tr>
               ) : filteredRecords.length === 0 ? (
@@ -1084,7 +1084,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
                     <p style={{ fontSize: '0.85rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '1.25rem' }}>
                       {isStudent 
                         ? 'Please submit your internship registration (18 Fields) and upload your offer letter to track your status.' 
-                        : 'Submit your first student internship record to store it in Supabase.'}
+                        : 'Submit your first student internship record to store it in the database.'}
                     </p>
                     <button
                       onClick={() => onNavigate('student-form')}
@@ -1720,7 +1720,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <span className="badge badge-primary">Supabase Record</span>
+              <span className="badge badge-primary">Verified Record</span>
               <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)' }}>ID: {selectedRecord.id}</span>
             </div>
             

@@ -275,7 +275,7 @@ export const App = () => {
                   Official Institutional Formats & Database Sync
                 </h2>
                 <p style={{ color: 'var(--slate-700)', lineHeight: 1.6, marginBottom: '1.25rem' }}>
-                  InternDocs generates official university-compliant documents matching the standard formats established by MIT Art, Design and Technology University, School of Computing, Pune. All student submissions and document attachments are synchronized with Supabase.
+                  InternDocs generates official university-compliant documents matching the standard formats established by MIT Art, Design and Technology University, School of Computing, Pune. All student submissions and document attachments are synchronized with the institutional database.
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginTop: '1.5rem' }}>
@@ -292,7 +292,7 @@ export const App = () => {
                   <div style={{ padding: '1.25rem', backgroundColor: 'var(--purple-50)', borderRadius: 'var(--radius-md)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
                       <Shield size={16} color="var(--purple-600)" />
-                      Supabase Cloud Storage
+                      Encrypted Cloud Storage
                     </div>
                     <p style={{ fontSize: '0.825rem', color: 'var(--slate-600)' }}>
                       Student records, offer letters, and completion certificates securely organized.

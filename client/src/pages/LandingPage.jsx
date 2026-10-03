@@ -415,8 +415,8 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
           gap: '1.5rem',
           alignItems: 'center'
         }}>
-          <ProcessStep number="1" label="Student Registration" sub="17 Verified Fields" />
-          <ProcessStep number="2" label="Offer Letter Verification" sub="Supabase Storage Sync" />
+          <ProcessStep number="1" label="Student Registration" sub="18 Verified Fields" />
+          <ProcessStep number="2" label="Offer Letter Verification" sub="Secure Cloud Storage" />
           <ProcessStep number="3" label="Undertaking & NOC" sub="1-Click PDF Generation" />
           <ProcessStep number="4" label="Completion Letter Approval" sub="Evaluation & Credits" />
         </div>

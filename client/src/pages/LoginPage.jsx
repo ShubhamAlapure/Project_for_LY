@@ -335,7 +335,7 @@ export const LoginPage = ({ onLoginSuccess, onGuestExplore }) => {
                 }}
               >
                 {loading ? (
-                  <>Authenticating with Supabase...</>
+                  <>Authenticating Credentials...</>
                 ) : (
                   <>
                     <LogIn size={18} />

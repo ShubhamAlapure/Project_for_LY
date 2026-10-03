@@ -60,7 +60,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
             <div className="portal-stat-pill-label">Database Status</div>
             <div className="portal-stat-pill-value" style={{ color: '#86efac', fontSize: '1.05rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }}></span>
-              SUPABASE CONNECTED
+              LIVE DATABASE CONNECTED
             </div>
           </div>
           <div className="portal-stat-pill">

@@ -404,7 +404,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
             <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
               <Database size={12} />
-              Supabase Connected
+              Portal Database Connected
             </span>
             {isEditingExisting && (
               <span style={{ fontSize: '0.75rem', color: '#15803d', backgroundColor: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
@@ -412,7 +412,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
               </span>
             )}
             <span style={{ fontSize: '0.75rem', color: 'var(--slate-400)', fontWeight: 600 }}>
-              Table: student_internships (17 Fields)
+              Industrial Training (18 Fields)
             </span>
           </div>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
@@ -421,7 +421,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
           <p style={{ color: 'var(--slate-600)', fontSize: '0.9rem', marginTop: '0.35rem' }}>
             {isEditingExisting 
               ? 'Update your industrial training details, attach completion certificate, or replace your offer letter.' 
-              : 'Submit and store complete student industrial training records with offer verification in Supabase.'}
+              : 'Submit and store complete student industrial training records with offer verification in the institutional database.'}
           </p>
         </div>
 
@@ -472,7 +472,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
               </div>
               
               <p style={{ fontSize: '0.9rem', color: '#166534', marginTop: '0.4rem', marginBottom: '1.25rem', lineHeight: 1.5 }}>
-                Your internship details for <strong>{submittedRecord.company_name_and_city}</strong> have been saved to Supabase and forwarded to <strong>{submittedRecord.assigned_coordinator || 'your assigned Faculty Coordinator'}</strong> for review, approval, or rejection. Other portal modules (Submission Status, Undertaking, NOC) are now unlocked for you!
+                Your internship details for <strong>{submittedRecord.company_name_and_city}</strong> have been saved securely and forwarded to <strong>{submittedRecord.assigned_coordinator || 'your assigned Faculty Coordinator'}</strong> for review, approval, or rejection. Other portal modules (Submission Status, Undertaking, NOC) are now unlocked for you!
               </p>
 
               {/* Quick Action Buttons to Generate Documents */}
@@ -925,7 +925,7 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                   {offerFileName ? offerFileName : formData.offer_letter_url ? 'Offer Letter File Attached' : 'Select or drop Offer Letter PDF / Image'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
-                  {formData.offer_letter_url ? 'Click below to preview or select a new file to replace' : 'Supported formats: PDF, PNG, JPG (Stored in Supabase)'}
+                  {formData.offer_letter_url ? 'Click below to preview or select a new file to replace' : 'Supported formats: PDF, PNG, JPG (Encrypted & Stored)'}
                 </div>
 
                 <input
@@ -1210,11 +1210,11 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
               style={{ minWidth: '220px', justifyContent: 'center' }}
             >
               {isSubmitting ? (
-                <>Saving to Supabase...</>
+                <>Saving Application...</>
               ) : (
                 <>
                   <Database size={18} />
-                  Submit Record to Supabase
+                  Submit My Internship Application
                 </>
               )}
             </button>
