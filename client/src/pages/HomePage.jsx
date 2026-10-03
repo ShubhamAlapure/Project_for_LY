@@ -21,7 +21,9 @@ import {
   Users,
   Search,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Zap,
+  Check
 } from 'lucide-react';
 import { ROLES } from '../utils/auth';
 import { fetchStudentRecords, subscribeToStudentRecords } from '../utils/supabaseClient';
@@ -31,7 +33,8 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
   const name = authUser ? authUser.full_name : 'Shubham Alapure';
   const isStudent = role === ROLES.STUDENT;
   const isFaculty = role === ROLES.FACULTY;
-  const isCentralTP = role === ROLES.CENTRAL_TP || role === ROLES.HOD;
+  const isHOD = role === ROLES.HOD;
+  const isCentralTP = role === ROLES.CENTRAL_TP;
   const isAdmin = role === ROLES.ADMIN;
 
   const [records, setRecords] = useState([]);
@@ -81,7 +84,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
   });
 
   const ppoRecords = records.filter(r => {
-    const ppo = (r.is_ppo_offer || r.ppo_offered || '').toString().toLowerCase();
+    const ppo = (r.is_ppo_offer || r.ppo_offered || r.is_ppo || '').toString().toLowerCase();
     return ppo === 'yes' || ppo === 'true' || ppo === '1';
   });
 
@@ -552,15 +555,15 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
             <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '0.25rem' }}>Applications awaiting approval</div>
           </div>
 
-          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981', backgroundColor: '#fafdfb' }}>
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #8b5cf6', backgroundColor: '#faf5ff' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Approved Mentees</span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#d1fae5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CheckCircle2 size={18} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PPO Opportunities</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#ede9fe', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Sparkles size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#065f46' }}>{approvedRecords.length}</div>
-            <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.25rem' }}>Verified & authorized for training</div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#5b21b6' }}>{ppoRecords.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#7c3aed', marginTop: '0.25rem' }}>Pre-Placement Offers secured</div>
           </div>
 
           <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #059669', backgroundColor: '#f9fdfa' }}>
@@ -799,7 +802,308 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
   }
 
   // =========================================================================
-  // 3. CENTRAL T&P / HOD VIEW
+  // 3. HEAD OF DEPARTMENT (HOD) VIEW
+  // =========================================================================
+  if (isHOD) {
+    return (
+      <div className="animate-fade-in">
+        {/* HOD Hero Banner */}
+        <div className="portal-hero-banner" style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)' }}>
+          <div>
+            <span className="portal-hero-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.18)' }}>
+              <span>●</span> HEAD OF DEPARTMENT (HOD) DESK • WELCOME, {name.toUpperCase()}
+            </span>
+            <h1 className="portal-hero-title">
+              Department Internship & Academic Oversight Desk
+            </h1>
+            <p className="portal-hero-subtitle">
+              MIT-ADT University • School of Computing (SOC) • Verified Role: <strong>Head of Department (HOD)</strong>
+            </p>
+          </div>
+
+          {/* Right Stat Pills */}
+          <div className="portal-stat-pill-group">
+            <div className="portal-stat-pill" style={{ background: 'rgba(30, 27, 75, 0.8)' }}>
+              <div className="portal-stat-pill-label">Total Internships</div>
+              <div className="portal-stat-pill-value" style={{ color: '#86efac', fontSize: '1.25rem', marginTop: '4px' }}>
+                {totalCount} Active
+              </div>
+            </div>
+            <div className="portal-stat-pill" style={{ background: 'rgba(30, 27, 75, 0.8)' }}>
+              <div className="portal-stat-pill-label">Portal Access</div>
+              <div className="portal-stat-pill-value" style={{ color: '#ffffff', fontSize: '1.05rem', marginTop: '4px' }}>
+                HOD Overview
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Top KPI Metrics Cards for HOD */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1.25rem',
+          marginBottom: '2rem'
+        }}>
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #7c3aed', backgroundColor: '#faf5ff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Registrations</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#ede9fe', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#4c1d95' }}>{totalCount}</div>
+            <div style={{ fontSize: '0.75rem', color: '#6d28d9', marginTop: '0.25rem' }}>Active 6-month candidates</div>
+          </div>
+
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #f59e0b', backgroundColor: '#fffdfa' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PPO Opportunities</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Sparkles size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#92400e' }}>{ppoRecords.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '0.25rem' }}>Pre-Placement Offers secured</div>
+          </div>
+
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #2563eb', backgroundColor: '#f8faff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Hiring Companies</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Building size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#1e40af' }}>{Object.keys(companyCounts).length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#1d4ed8', marginTop: '0.25rem' }}>Active corporate partners</div>
+          </div>
+
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #059669', backgroundColor: '#f9fdfa' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Corporate NOCs</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Award size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#14532d' }}>{nocGeneratedRecords.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#065f46', marginTop: '0.25rem' }}>Dispatched official NOCs</div>
+          </div>
+        </div>
+
+        {/* 3 Action Cards for HOD */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '1.5rem',
+          marginBottom: '2.5rem'
+        }}>
+          {/* Card 1: Applications & Records */}
+          <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid #7c3aed' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                backgroundColor: '#f5f3ff',
+                color: '#7c3aed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Database size={22} />
+              </div>
+
+              <span style={{
+                backgroundColor: '#ede9fe',
+                color: '#6d28d9',
+                fontSize: '0.725rem',
+                fontWeight: 700,
+                padding: '0.2rem 0.65rem',
+                borderRadius: 'var(--radius-full)'
+              }}>
+                {totalCount} Total Records
+              </span>
+            </div>
+
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
+              Department Internship Records & Database
+            </h3>
+            <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+              Search across all department students, filter by hiring company, inspect offer letters, and export spreadsheet reports.
+            </p>
+
+            <button
+              onClick={() => onNavigate('student-records')}
+              className="btn btn-primary btn-sm"
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              Open Internship Database
+              <ArrowRight size={15} />
+            </button>
+          </div>
+
+          {/* Card 2: Corporate NOC Letters Hub */}
+          <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid #d97706' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                backgroundColor: '#fffbeb',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Award size={22} />
+              </div>
+
+              <span style={{
+                backgroundColor: '#fef3c7',
+                color: '#b45309',
+                fontSize: '0.725rem',
+                fontWeight: 700,
+                padding: '0.2rem 0.65rem',
+                borderRadius: 'var(--radius-full)'
+              }}>
+                {nocGeneratedRecords.length} Dispatched
+              </span>
+            </div>
+
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
+              Department NOC Letters Hub
+            </h3>
+            <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+              Inspect and verify No Objection Certificates issued for recruiting partners with institutional reference tracking.
+            </p>
+
+            <button
+              onClick={() => onSelectDocument('noc')}
+              className="btn btn-secondary btn-sm"
+              style={{ width: '100%', justifyContent: 'center', color: '#d97706', borderColor: '#fde68a' }}
+            >
+              Open NOC Verification Hub
+              <ArrowRight size={15} />
+            </button>
+          </div>
+
+          {/* Card 3: Undertakings Compliance Hub */}
+          <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid #059669' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                backgroundColor: '#ecfdf5',
+                color: '#059669',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <FileCheck2 size={22} />
+              </div>
+
+              <span style={{
+                backgroundColor: '#ecfdf5',
+                color: '#059669',
+                fontSize: '0.725rem',
+                fontWeight: 700,
+                padding: '0.2rem 0.65rem',
+                borderRadius: 'var(--radius-full)'
+              }}>
+                {undertakingGeneratedRecords.length} Signed
+              </span>
+            </div>
+
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
+              Undertakings Compliance Desk
+            </h3>
+            <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+              Monitor student compliance agreements, attendance undertakings, and verify signed official commitments.
+            </p>
+
+            <button
+              onClick={() => onSelectDocument('undertaking')}
+              className="btn btn-secondary btn-sm"
+              style={{ width: '100%', justifyContent: 'center', color: '#059669', borderColor: '#a7f3d0' }}
+            >
+              Open Undertakings Desk
+              <ArrowRight size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* PPO Opportunities & Industry Highlights */}
+        {ppoRecords.length > 0 && (
+          <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--slate-100)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Sparkles size={20} color="#d97706" />
+                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--purple-950)' }}>
+                  Confirmed PPO Opportunities ({ppoRecords.length} Students)
+                </h4>
+              </div>
+              <button 
+                onClick={() => onNavigate('student-records')}
+                className="btn btn-primary btn-sm"
+                style={{ fontSize: '0.785rem' }}
+              >
+                View All in Database
+                <ArrowRight size={13} />
+              </button>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.865rem' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1.5px solid var(--slate-200)', textAlign: 'left' }}>
+                    <th style={{ padding: '0.65rem 0.85rem', color: 'var(--slate-600)', fontWeight: 700 }}>Student Name</th>
+                    <th style={{ padding: '0.65rem 0.85rem', color: 'var(--slate-600)', fontWeight: 700 }}>Enrolment No</th>
+                    <th style={{ padding: '0.65rem 0.85rem', color: 'var(--slate-600)', fontWeight: 700 }}>Company & Domain</th>
+                    <th style={{ padding: '0.65rem 0.85rem', color: 'var(--slate-600)', fontWeight: 700 }}>PPO Status</th>
+                    <th style={{ padding: '0.65rem 0.85rem', color: 'var(--slate-600)', fontWeight: 700, textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ppoRecords.slice(0, 5).map((rec, i) => (
+                    <tr key={rec.id || i} style={{ borderBottom: '1px solid var(--slate-100)', transition: 'background-color 0.15s' }}>
+                      <td style={{ padding: '0.75rem 0.85rem', fontWeight: 700, color: 'var(--purple-950)' }}>
+                        {rec.full_name || rec.student_name || 'Student'}
+                      </td>
+                      <td style={{ padding: '0.75rem 0.85rem', color: 'var(--slate-600)', fontFamily: 'monospace' }}>
+                        {rec.enrolment_no || rec.enrollment_no || 'ADT-'}
+                      </td>
+                      <td style={{ padding: '0.75rem 0.85rem', color: 'var(--slate-700)' }}>
+                        <div style={{ fontWeight: 600 }}>{rec.company_name_and_city || rec.company_name || 'Industry Partner'}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>{rec.domain_of_company || rec.specialization || 'Engineering'}</div>
+                      </td>
+                      <td style={{ padding: '0.75rem 0.85rem' }}>
+                        <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.725rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Sparkles size={12} /> PPO Confirmed
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right' }}>
+                        <button
+                          onClick={() => onNavigate('student-records')}
+                          className="btn btn-sm btn-secondary"
+                          style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 4. CENTRAL T&P VIEW
   // =========================================================================
   if (isCentralTP) {
     return (
@@ -808,20 +1112,20 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
         <div className="portal-hero-banner" style={{ background: 'linear-gradient(135deg, #2b1055 0%, #4c1d95 50%, #6d28d9 100%)' }}>
           <div>
             <span className="portal-hero-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.18)' }}>
-              <span>●</span> CORPORATE RELATIONS & PLACEMENT CELL (CRPC) • WELCOME, {name.toUpperCase()}
+              <span>●</span> CORPORATE RELATIONS & TRAINING CELL (CRPC) • WELCOME, {name.toUpperCase()}
             </span>
             <h1 className="portal-hero-title">
-              Central T&P & Placement Intelligence Hub
+              Central T&P & Corporate Internship Desk
             </h1>
             <p className="portal-hero-subtitle">
-              MIT-ADT University • School of Computing (SOC) • Verified Role: <strong>{role}</strong>
+              MIT-ADT University • School of Computing (SOC) • Verified Role: <strong>Corporate Relations & Placement Cell</strong>
             </p>
           </div>
 
           {/* Right Stat Pills */}
           <div className="portal-stat-pill-group">
             <div className="portal-stat-pill" style={{ background: 'rgba(43, 16, 85, 0.75)' }}>
-              <div className="portal-stat-pill-label">Total Placements</div>
+              <div className="portal-stat-pill-label">Total Internships</div>
               <div className="portal-stat-pill-value" style={{ color: '#86efac', fontSize: '1.25rem', marginTop: '4px' }}>
                 {totalCount} Active
               </div>
@@ -853,15 +1157,15 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
             <div style={{ fontSize: '0.75rem', color: '#6d28d9', marginTop: '0.25rem' }}>Active 6-month candidates</div>
           </div>
 
-          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981', backgroundColor: '#fafdfb' }}>
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #f59e0b', backgroundColor: '#fffdfa' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verified Placements</span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#d1fae5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CheckCircle2 size={18} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PPO Opportunities</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Sparkles size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#065f46' }}>{approvedRecords.length}</div>
-            <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.25rem' }}>Faculty & Cell Approved</div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#92400e' }}>{ppoRecords.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '0.25rem' }}>Pre-Placement Offers secured</div>
           </div>
 
           <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #2563eb', backgroundColor: '#f8faff' }}>
@@ -875,15 +1179,15 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
             <div style={{ fontSize: '0.75rem', color: '#1d4ed8', marginTop: '0.25rem' }}>Active corporate partners</div>
           </div>
 
-          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #d97706', backgroundColor: '#fffdfa' }}>
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #059669', backgroundColor: '#f9fdfa' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Corporate NOCs</span>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Corporate NOCs</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Award size={18} />
               </div>
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#92400e' }}>{nocGeneratedRecords.length}</div>
-            <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '0.25rem' }}>Dispatched official NOCs</div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#14532d' }}>{nocGeneratedRecords.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#065f46', marginTop: '0.25rem' }}>Dispatched official NOCs</div>
           </div>
         </div>
 
@@ -894,7 +1198,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
           gap: '1.5rem',
           marginBottom: '2.5rem'
         }}>
-          {/* Card 1: Applications & Placement Records */}
+          {/* Card 1: Applications & Records */}
           <div className="card" style={{ padding: '1.75rem', position: 'relative', borderTop: '4px solid #7c3aed' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
               <div style={{
@@ -923,7 +1227,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
             </div>
 
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--purple-950)', marginBottom: '0.4rem' }}>
-              Student Placement Records & Database
+              Student Internship Records & Database
             </h3>
             <p style={{ color: 'var(--slate-600)', fontSize: '0.865rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
               Search across all department students, filter by hiring company, inspect offer letters, and export spreadsheet reports.
@@ -934,7 +1238,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
               className="btn btn-primary btn-sm"
               style={{ width: '100%', justifyContent: 'center' }}
             >
-              Open Placement Records Database
+              Open Internship Records Database
               <ArrowRight size={15} />
             </button>
           </div>
@@ -1081,7 +1385,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
   }
 
   // =========================================================================
-  // 4. MASTER ADMIN DASHBOARD VIEW
+  // 5. MASTER ADMIN DASHBOARD VIEW
   // =========================================================================
   return (
     <div className="animate-fade-in">
@@ -1137,13 +1441,13 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
 
         <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #f59e0b', backgroundColor: '#fffdfa' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Reviews</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PPO Opportunities</span>
             <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Clock size={18} />
+              <Sparkles size={18} />
             </div>
           </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#92400e' }}>{pendingRecords.length}</div>
-          <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '0.25rem' }}>Awaiting faculty approval</div>
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#92400e' }}>{ppoRecords.length}</div>
+          <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '0.25rem' }}>Pre-Placement Offers secured</div>
         </div>
 
         <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981', backgroundColor: '#fafdfb' }}>
@@ -1334,7 +1638,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
               fontWeight: 700,
               padding: '0.2rem 0.65rem',
               borderRadius: 'var(--radius-full)'
-            }}>
+              }}>
               {nocGeneratedRecords.length} Dispatched
             </span>
           </div>
