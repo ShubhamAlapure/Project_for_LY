@@ -88,6 +88,7 @@ CREATE TRIGGER set_updated_at
 
 -- Enable Row Level Security (RLS) for student_internships
 ALTER TABLE public.student_internships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_internships REPLICA IDENTITY FULL;
 
 DROP POLICY IF EXISTS "Allow public read access to student records" ON public.student_internships;
 CREATE POLICY "Allow public read access to student records" 
@@ -104,6 +105,16 @@ CREATE POLICY "Allow public update for student records"
 DROP POLICY IF EXISTS "Allow public delete for student records" ON public.student_internships;
 CREATE POLICY "Allow public delete for student records" 
     ON public.student_internships FOR DELETE USING (true);
+
+-- Enable Supabase Realtime WebSocket Replication for student_internships
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.student_internships;
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    -- Ignore if already added
+END $$;
 
 -- ==============================================================================
 -- 3. STORAGE BUCKET FOR STUDENT DOCUMENTS (Offer & Completion Letters)
