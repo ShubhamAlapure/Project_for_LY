@@ -25,7 +25,7 @@ import {
   Zap,
   Check
 } from 'lucide-react';
-import { ROLES } from '../utils/auth';
+import { ROLES, fetchSystemUsers, subscribeToSystemUsers } from '../utils/auth';
 import { fetchStudentRecords, subscribeToStudentRecords } from '../utils/supabaseClient';
 
 export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedApp, isApproved, studentStatus }) => {
@@ -38,6 +38,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
   const isAdmin = role === ROLES.ADMIN;
 
   const [records, setRecords] = useState([]);
+  const [systemUsers, setSystemUsers] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const loadRecords = async () => {
@@ -56,14 +57,33 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const res = await fetchSystemUsers();
+      if (res && res.success && Array.isArray(res.data)) {
+        setSystemUsers(res.data);
+      }
+    } catch (err) {
+      console.warn('Could not load system users for homepage:', err);
+    }
+  };
+
   useEffect(() => {
     if (!isStudent) {
       loadRecords();
-      const unsubscribe = subscribeToStudentRecords(() => {
+      loadUsers();
+
+      const unsubRecords = subscribeToStudentRecords(() => {
         loadRecords();
       });
+
+      const unsubUsers = subscribeToSystemUsers(() => {
+        loadUsers();
+      });
+
       return () => {
-        if (typeof unsubscribe === 'function') unsubscribe();
+        if (typeof unsubRecords === 'function') unsubRecords();
+        if (typeof unsubUsers === 'function') unsubUsers();
       };
     }
   }, [isStudent]);
@@ -132,6 +152,32 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
            (studentKey && localStorage.getItem('mit_noc_doc_' + studentKey)) ||
            (r.email && localStorage.getItem('mit_noc_doc_' + r.email.toLowerCase())) ||
            (r.status && (r.status.toLowerCase() === 'approved' || r.status.toLowerCase() === 'completed'));
+  });
+
+  // Role counts for onboarded stakeholders
+  const facultyUsers = systemUsers.filter(u => {
+    const r = (u.role || '').toLowerCase();
+    return r.includes('faculty') || r.includes('coordinator');
+  });
+
+  const hodUsers = systemUsers.filter(u => {
+    const r = (u.role || '').toLowerCase();
+    return r.includes('hod') || r.includes('head of department');
+  });
+
+  const tpUsers = systemUsers.filter(u => {
+    const r = (u.role || '').toLowerCase();
+    return r.includes('tp') || r.includes('placement') || r.includes('corporate');
+  });
+
+  const studentUsers = systemUsers.filter(u => {
+    const r = (u.role || '').toLowerCase();
+    return r.includes('student');
+  });
+
+  const adminUsers = systemUsers.filter(u => {
+    const r = (u.role || '').toLowerCase();
+    return r.includes('admin');
   });
 
   // Top hiring companies
@@ -1447,10 +1493,108 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
               {totalCount}
             </div>
           </div>
+          <div className="portal-stat-pill" style={{ background: 'rgba(30, 14, 56, 0.85)' }}>
+            <div className="portal-stat-pill-label">Total Stakeholders</div>
+            <div className="portal-stat-pill-value" style={{ color: '#fef08a', fontSize: '1.25rem', marginTop: '4px' }}>
+              {systemUsers.length}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Top KPI Metrics Cards */}
+      {/* Institutional Onboarded Stakeholders / Roles Matrix */}
+      <div style={{ marginBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Users size={20} color="var(--purple-700)" />
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--purple-950)', margin: 0 }}>
+              Institutional Onboarded Stakeholders & Roles
+            </h3>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#16a34a', backgroundColor: '#dcfce7', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a', display: 'inline-block' }}></span>
+            Realtime Stakeholder Sync
+          </div>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '1.15rem'
+        }}>
+          {/* Faculty Coordinators */}
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #2563eb', backgroundColor: '#f8faff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Faculties Onboard
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <UserCheck size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#1e40af' }}>{facultyUsers.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#1d4ed8', marginTop: '0.2rem' }}>Active Faculty Coordinators</div>
+          </div>
+
+          {/* Department Heads (HODs) */}
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #7c3aed', backgroundColor: '#faf5ff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Department Heads
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#ede9fe', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Award size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#4c1d95' }}>{hodUsers.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#6d28d9', marginTop: '0.2rem' }}>Academic HOD Leadership</div>
+          </div>
+
+          {/* Central T&P Officers */}
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #d97706', backgroundColor: '#fffdfa' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Central T&P Cell
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Building size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#92400e' }}>{tpUsers.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#b45309', marginTop: '0.2rem' }}>Corporate Relations Cell</div>
+          </div>
+
+          {/* Enrolled Students */}
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #059669', backgroundColor: '#f9fdfa' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Students Registered
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <GraduationCap size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#14532d' }}>{studentUsers.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#065f46', marginTop: '0.2rem' }}>Student Candidate Accounts</div>
+          </div>
+
+          {/* Master Administrators */}
+          <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #4f46e5', backgroundColor: '#f5f3ff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#4338ca', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                System Admins
+              </span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldCheck size={18} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#3730a3' }}>{adminUsers.length}</div>
+            <div style={{ fontSize: '0.75rem', color: '#4338ca', marginTop: '0.2rem' }}>Institutional System Admins</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Internship Database Status KPI Metrics Cards */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
@@ -1667,7 +1811,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
               fontWeight: 700,
               padding: '0.2rem 0.65rem',
               borderRadius: 'var(--radius-full)'
-              }}>
+            }}>
               {nocGeneratedRecords.length} Dispatched
             </span>
           </div>
@@ -1689,6 +1833,79 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
           </button>
         </div>
       </div>
+
+      {/* Realtime Onboarded Faculty & Academic Mentors Directory Widget */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--slate-100)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <UserCheck size={20} color="#2563eb" />
+            <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--purple-950)' }}>
+              Onboarded Faculty Coordinators & Academic Leadership ({facultyUsers.length + hodUsers.length + tpUsers.length})
+            </h4>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }}></span>
+            Realtime DB Connected
+          </div>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.865rem' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1.5px solid var(--slate-200)', textAlign: 'left' }}>
+                <th style={{ padding: '0.65rem 0.85rem', color: 'var(--slate-600)', fontWeight: 700 }}>Name & Designation</th>
+                <th style={{ padding: '0.65rem 0.85rem', color: 'var(--slate-600)', fontWeight: 700 }}>Assigned Role</th>
+                <th style={{ padding: '0.65rem 0.85rem', color: 'var(--slate-600)', fontWeight: 700 }}>Department</th>
+                <th style={{ padding: '0.65rem 0.85rem', color: 'var(--slate-600)', fontWeight: 700 }}>Email Address</th>
+                <th style={{ padding: '0.65rem 0.85rem', color: 'var(--slate-600)', fontWeight: 700, textAlign: 'right' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...facultyUsers, ...hodUsers, ...tpUsers].map((usr, i) => (
+                <tr key={usr.id || i} style={{ borderBottom: '1px solid var(--slate-100)', transition: 'background-color 0.15s' }}>
+                  <td style={{ padding: '0.75rem 0.85rem' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--purple-950)' }}>{usr.full_name || 'Academic Mentor'}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>{usr.designation || 'Faculty Member'}</div>
+                  </td>
+                  <td style={{ padding: '0.75rem 0.85rem' }}>
+                    <span style={{
+                      backgroundColor: usr.role?.toLowerCase().includes('hod') 
+                        ? '#ede9fe' 
+                        : usr.role?.toLowerCase().includes('tp') || usr.role?.toLowerCase().includes('placement') 
+                        ? '#fef3c7' 
+                        : '#dbeafe',
+                      color: usr.role?.toLowerCase().includes('hod') 
+                        ? '#6d28d9' 
+                        : usr.role?.toLowerCase().includes('tp') || usr.role?.toLowerCase().includes('placement') 
+                        ? '#b45309' 
+                        : '#1e40af',
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '12px',
+                      fontSize: '0.725rem',
+                      fontWeight: 700
+                    }}>
+                      {usr.role || 'Faculty/Coordinator'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '0.75rem 0.85rem', color: 'var(--slate-700)', fontSize: '0.825rem' }}>
+                    {usr.department || 'School of Computing'}
+                  </td>
+                  <td style={{ padding: '0.75rem 0.85rem', color: 'var(--slate-600)', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                    {usr.email || '—'}
+                  </td>
+                  <td style={{ padding: '0.75rem 0.85rem', textAlign: 'right' }}>
+                    <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
+                      ● Active
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
+
+export default HomePage;

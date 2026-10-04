@@ -259,6 +259,54 @@ export const getFacultyCoordinators = async () => {
   return unique;
 };
 
+export const fetchSystemUsers = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('user_logins')
+      .select('*')
+      .order('full_name', { ascending: true });
+
+    const localUsers = getCachedUsers();
+
+    if (!error && data && data.length > 0) {
+      const merged = [...data];
+      localUsers.forEach(lu => {
+        if (lu.email && !merged.some(u => u.email?.toLowerCase() === lu.email.toLowerCase())) {
+          merged.push(lu);
+        }
+      });
+      return { success: true, data: merged };
+    }
+
+    return { success: true, data: localUsers };
+  } catch (err) {
+    console.warn('Could not fetch users from Supabase, using local cache:', err);
+    return { success: true, data: getCachedUsers() };
+  }
+};
+
+export const subscribeToSystemUsers = (onChangeCallback) => {
+  try {
+    const channel = supabase
+      .channel('realtime_user_logins_live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_logins' },
+        (payload) => {
+          if (onChangeCallback) onChangeCallback(payload);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('Realtime users subscription error:', err);
+    return () => {};
+  }
+};
+
 const AUTH_STORAGE_KEY = 'mit_interndocs_auth_user';
 const USERS_CACHE_KEY = 'mit_interndocs_users_cache';
 
