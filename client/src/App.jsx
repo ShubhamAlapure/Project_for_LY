@@ -23,6 +23,7 @@ export const App = () => {
     const user = getCurrentUser();
     return user ? 'home' : 'login';
   });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDocType, setActiveDocType] = useState('undertaking');
   const [previewData, setPreviewData] = useState(null);
   const [undertakingPrefill, setUndertakingPrefill] = useState(null);
@@ -109,12 +110,14 @@ export const App = () => {
   }, [authUser]);
 
   const handleNavigate = (route) => {
+    setIsMobileMenuOpen(false);
     setCurrentRoute(route);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLoginSuccess = (user) => {
     setAuthUser(user);
+    setIsMobileMenuOpen(false);
     setCurrentRoute('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -122,11 +125,13 @@ export const App = () => {
   const handleLogout = () => {
     logoutUser();
     setAuthUser(null);
+    setIsMobileMenuOpen(false);
     setCurrentRoute('login');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSelectDocument = (docId) => {
+    setIsMobileMenuOpen(false);
     if (docId === 'undertaking') {
       setActiveDocType('undertaking');
       setCurrentRoute('undertaking');
@@ -140,6 +145,7 @@ export const App = () => {
   };
 
   const handlePrefillDocument = (docType, prefillData) => {
+    setIsMobileMenuOpen(false);
     if (docType === 'undertaking') {
       setUndertakingPrefill(prefillData);
       setActiveDocType('undertaking');
@@ -153,6 +159,7 @@ export const App = () => {
   };
 
   const handleGeneratePreview = (docType, data) => {
+    setIsMobileMenuOpen(false);
     setActiveDocType(docType);
     setPreviewData(data);
     setCurrentRoute('preview');
@@ -160,11 +167,13 @@ export const App = () => {
   };
 
   const handleEditDetails = () => {
+    setIsMobileMenuOpen(false);
     setCurrentRoute(activeDocType);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleStartNew = () => {
+    setIsMobileMenuOpen(false);
     setPreviewData(null);
     setCurrentRoute('documents');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -191,10 +200,21 @@ export const App = () => {
         hasSubmittedApp={hasSubmittedApp}
         isApproved={isApproved}
         studentStatus={studentStatus}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onToggleMobileMenu={() => setIsMobileMenuOpen(prev => !prev)}
       />
 
       {/* Main Body: Sidebar + Main Content Area */}
       <div className="portal-body-wrapper">
+        {/* Backdrop for Mobile Sidebar Drawer */}
+        {isMobileMenuOpen && (
+          <div 
+            className="portal-sidebar-overlay" 
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-label="Close menu backdrop"
+          />
+        )}
+
         {/* Left Sidebar with Role Filtering */}
         <Sidebar 
           currentRoute={currentRoute} 
@@ -203,6 +223,8 @@ export const App = () => {
           hasSubmittedApp={hasSubmittedApp}
           isApproved={isApproved}
           studentStatus={studentStatus}
+          isMobileMenuOpen={isMobileMenuOpen}
+          onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
         />
 
         {/* Content Area */}

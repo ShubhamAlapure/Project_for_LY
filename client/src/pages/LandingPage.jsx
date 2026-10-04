@@ -19,7 +19,9 @@ import {
   ChevronRight,
   Users,
   Sparkles,
-  Globe
+  Globe,
+  Menu,
+  X
 } from 'lucide-react';
 import { ROLES, ROLE_CONFIG, loginUser, DEFAULT_USERS } from '../utils/auth';
 import campusDomeImg from '../assets/campus_dome.jpg';
@@ -67,6 +69,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const leadershipRef = useRef(null);
 
@@ -100,6 +103,7 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
     setError('');
     setIdentifier('');
     setPassword('');
+    setIsMobileNavOpen(false);
     setIsLoginModalOpen(true);
   };
 
@@ -134,10 +138,10 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 2.5rem',
+        padding: '0 clamp(1rem, 3.5vw, 2.5rem)',
         position: 'sticky',
         top: 0,
-        zIndex: 50,
+        zIndex: 100,
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
       }}>
         {/* Left: MIT-ADT University Logo Badge */}
@@ -145,29 +149,29 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
           <div style={{
             backgroundColor: '#260e4a',
             borderRadius: '8px',
-            padding: '4px 12px',
+            padding: '4px 10px',
             display: 'flex',
             alignItems: 'center',
-            height: '46px'
+            height: '44px'
           }}>
             <img 
               src="/mit_adt_logo.png" 
               alt="MIT-ADT University Pune Logo" 
-              style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+              style={{ height: '34px', width: 'auto', objectFit: 'contain' }}
             />
           </div>
         </div>
 
-        {/* Center: Navigation Links */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem', fontSize: '0.925rem', fontWeight: 600, color: '#334155' }}>
+        {/* Center: Navigation Links (PC Only) */}
+        <nav className="landing-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '2rem', fontSize: '0.925rem', fontWeight: 600, color: '#334155' }}>
           <a href="#hero" style={{ color: '#6b21a8', textDecoration: 'none', fontWeight: 700 }}>Home</a>
           <a href="#about" style={{ color: '#475569', textDecoration: 'none' }}>About SOC</a>
           <a href="#process" style={{ color: '#475569', textDecoration: 'none' }}>Process Flow</a>
           <a href="#documents" style={{ color: '#475569', textDecoration: 'none' }}>Downloads & Templates</a>
         </nav>
 
-        {/* Right: Login Buttons (Student/Faculty & Master Admin) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* Right: Login Buttons (PC Only) */}
+        <div className="landing-desktop-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button
             onClick={() => handleOpenLoginForRole(ROLES.STUDENT)}
             style={{
@@ -211,6 +215,144 @@ export const LandingPage = ({ onLoginSuccess, onExplore }) => {
             Master Admin Login
           </button>
         </div>
+
+        {/* Mobile Nav Toggle & Quick Login (Mobile Only) */}
+        <div className="landing-mobile-menu-btn" style={{ display: 'none', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            onClick={() => handleOpenLoginForRole(ROLES.STUDENT)}
+            style={{
+              padding: '0.4rem 0.85rem',
+              borderRadius: '9999px',
+              backgroundColor: '#7e22ce',
+              color: '#ffffff',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            Sign In
+          </button>
+          <button
+            onClick={() => setIsMobileNavOpen(prev => !prev)}
+            aria-label="Toggle navigation menu"
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#f8fafc',
+              color: '#334155',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+          >
+            {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+
+        {/* Mobile Slide-Down Menu Drawer */}
+        {isMobileNavOpen && (
+          <div className="landing-mobile-drawer" style={{
+            position: 'absolute',
+            top: '74px',
+            left: 0,
+            right: 0,
+            backgroundColor: '#ffffff',
+            borderBottom: '2px solid #7e22ce',
+            boxShadow: '0 15px 30px rgba(0,0,0,0.15)',
+            padding: '1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            zIndex: 99
+          }}>
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <a 
+                href="#hero" 
+                onClick={() => setIsMobileNavOpen(false)}
+                style={{ color: '#6b21a8', textDecoration: 'none', fontWeight: 700, padding: '0.4rem 0.5rem', borderRadius: '6px', backgroundColor: '#faf5ff' }}
+              >
+                🏠 Home Overview
+              </a>
+              <a 
+                href="#about" 
+                onClick={() => setIsMobileNavOpen(false)}
+                style={{ color: '#334155', textDecoration: 'none', fontWeight: 600, padding: '0.4rem 0.5rem' }}
+              >
+                🏛️ About School of Computing
+              </a>
+              <a 
+                href="#process" 
+                onClick={() => setIsMobileNavOpen(false)}
+                style={{ color: '#334155', textDecoration: 'none', fontWeight: 600, padding: '0.4rem 0.5rem' }}
+              >
+                🔄 5-Step Process Flow
+              </a>
+              <a 
+                href="#documents" 
+                onClick={() => setIsMobileNavOpen(false)}
+                style={{ color: '#334155', textDecoration: 'none', fontWeight: 600, padding: '0.4rem 0.5rem' }}
+              >
+                📄 Downloads & Templates
+              </a>
+            </nav>
+
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Institutional Role Access
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+                <button
+                  onClick={() => handleOpenLoginForRole(ROLES.STUDENT)}
+                  style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#059669', fontWeight: 700, fontSize: '0.8rem', textAlign: 'left' }}
+                >
+                  🎓 Student Login
+                </button>
+                <button
+                  onClick={() => handleOpenLoginForRole(ROLES.FACULTY)}
+                  style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#2563eb', fontWeight: 700, fontSize: '0.8rem', textAlign: 'left' }}
+                >
+                  👨‍🏫 Faculty Login
+                </button>
+                <button
+                  onClick={() => handleOpenLoginForRole(ROLES.HOD)}
+                  style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#7c3aed', fontWeight: 700, fontSize: '0.8rem', textAlign: 'left' }}
+                >
+                  🎖️ HOD Login
+                </button>
+                <button
+                  onClick={() => handleOpenLoginForRole(ROLES.CENTRAL_TP)}
+                  style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#d97706', fontWeight: 700, fontSize: '0.8rem', textAlign: 'left' }}
+                >
+                  🏢 Central T&P
+                </button>
+              </div>
+              <button
+                onClick={() => handleOpenLoginForRole(ROLES.ADMIN)}
+                style={{
+                  width: '100%',
+                  padding: '0.65rem',
+                  borderRadius: '8px',
+                  backgroundColor: '#7e22ce',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <Shield size={15} />
+                Master Admin Portal
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ==================================================================== */}

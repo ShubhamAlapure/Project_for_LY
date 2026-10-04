@@ -1858,7 +1858,7 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        <div className="table-scrollable-mobile" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.865rem' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1.5px solid var(--slate-200)', textAlign: 'left' }}>

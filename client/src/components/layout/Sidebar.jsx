@@ -14,11 +14,21 @@ import {
   Users, 
   KeyRound,
   Lock,
-  CheckCircle2
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { ROLES, ROLE_CONFIG } from '../../utils/auth';
 
-export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp, isApproved, studentStatus }) => {
+export const Sidebar = ({ 
+  currentRoute, 
+  onNavigate, 
+  authUser, 
+  hasSubmittedApp, 
+  isApproved, 
+  studentStatus,
+  isMobileMenuOpen,
+  onCloseMobileMenu 
+}) => {
   const userRole = authUser ? authUser.role : ROLES.ADMIN;
   const isStudent = userRole === ROLES.STUDENT;
 
@@ -211,14 +221,30 @@ export const Sidebar = ({ currentRoute, onNavigate, authUser, hasSubmittedApp, i
     if (item.isLocked) {
       alert(item.lockReason || 'Please complete Step 1: Submit My Internship Application first.');
       onNavigate('student-form');
+      if (onCloseMobileMenu) onCloseMobileMenu();
       return;
     }
+    if (onCloseMobileMenu) onCloseMobileMenu();
     onNavigate(item.route);
   };
 
   return (
-    <aside className="portal-sidebar non-printable">
+    <aside className={`portal-sidebar non-printable ${isMobileMenuOpen ? 'is-open' : ''}`}>
       <div>
+        {/* Mobile Header in Drawer */}
+        <div style={{ display: 'none', justifyContent: 'space-between', alignItems: 'center', margin: '0 0.75rem 0.5rem 0.75rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--slate-100)' }} className="sidebar-mobile-header">
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--purple-950)' }}>Menu Navigation</span>
+          {onCloseMobileMenu && (
+            <button 
+              onClick={onCloseMobileMenu}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--slate-500)', padding: '0.25rem' }}
+              aria-label="Close menu drawer"
+            >
+              <X size={20} />
+            </button>
+          )}
+        </div>
+
         {/* Role Badge Indicator Card */}
         {authUser && (
           <div style={{

@@ -1779,7 +1779,7 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
           justifyContent: 'center',
           padding: '1rem'
         }}>
-          <div className="card animate-fade-in" style={{
+          <div className="card animate-fade-in modal-mobile-fit" style={{
             width: '100%',
             maxWidth: '750px',
             maxHeight: '90vh',
