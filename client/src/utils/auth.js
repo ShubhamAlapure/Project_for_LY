@@ -244,19 +244,12 @@ export const fetchSystemUsers = async () => {
       .select('*')
       .order('full_name', { ascending: true });
 
-    const localUsers = getCachedUsers();
-
-    if (!error && data && data.length > 0) {
-      const merged = [...data];
-      localUsers.forEach(lu => {
-        if (lu.email && !merged.some(u => u.email?.toLowerCase() === lu.email.toLowerCase())) {
-          merged.push(lu);
-        }
-      });
-      return { success: true, data: merged };
+    if (!error && data) {
+      saveCachedUsers(data);
+      return { success: true, data };
     }
 
-    return { success: true, data: localUsers };
+    return { success: true, data: getCachedUsers() };
   } catch (err) {
     console.warn('Could not fetch users from Supabase, using local cache:', err);
     return { success: true, data: getCachedUsers() };
