@@ -155,29 +155,38 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
   });
 
   // Role counts for onboarded stakeholders
-  const facultyUsers = systemUsers.filter(u => {
+  const tpUsers = systemUsers.filter(u => {
     const r = (u.role || '').toLowerCase();
-    return r.includes('faculty') || r.includes('coordinator');
+    const d = (u.department || '').toLowerCase();
+    const des = (u.designation || '').toLowerCase();
+    return r.includes('t&p') || r.includes('t & p') || r.includes('tp') || r.includes('placement') || r.includes('corporate') ||
+           d.includes('placement') || d.includes('corporate') || d.includes('training & placement') ||
+           des.includes('placement') || des.includes('central t&p') || des.includes('director, central');
   });
 
   const hodUsers = systemUsers.filter(u => {
     const r = (u.role || '').toLowerCase();
-    return r.includes('hod') || r.includes('head of department');
+    const des = (u.designation || '').toLowerCase();
+    return r.includes('hod') || r.includes('head of department') || des.includes('head of department') || des.includes('hod');
   });
 
-  const tpUsers = systemUsers.filter(u => {
+  const facultyUsers = systemUsers.filter(u => {
     const r = (u.role || '').toLowerCase();
-    return r.includes('tp') || r.includes('placement') || r.includes('corporate');
+    const des = (u.designation || '').toLowerCase();
+    const isNotHOD = !hodUsers.includes(u);
+    const isNotTP = !tpUsers.includes(u);
+    return isNotHOD && isNotTP && (r.includes('faculty') || r.includes('coordinator') || des.includes('coordinator') || des.includes('professor') || des.includes('faculty'));
   });
 
   const studentUsers = systemUsers.filter(u => {
     const r = (u.role || '').toLowerCase();
-    return r.includes('student');
+    return r.includes('student') || !!u.enrolment_no || !!u.enrollment_no;
   });
 
   const adminUsers = systemUsers.filter(u => {
     const r = (u.role || '').toLowerCase();
-    return r.includes('admin');
+    const des = (u.designation || '').toLowerCase();
+    return r.includes('admin') || des.includes('administrator');
   });
 
   // Top hiring companies
@@ -1871,12 +1880,12 @@ export const HomePage = ({ onNavigate, onSelectDocument, authUser, hasSubmittedA
                     <span style={{
                       backgroundColor: usr.role?.toLowerCase().includes('hod') 
                         ? '#ede9fe' 
-                        : usr.role?.toLowerCase().includes('tp') || usr.role?.toLowerCase().includes('placement') 
+                        : usr.role?.toLowerCase().includes('t&p') || usr.role?.toLowerCase().includes('t & p') || usr.role?.toLowerCase().includes('tp') || usr.role?.toLowerCase().includes('placement') 
                         ? '#fef3c7' 
                         : '#dbeafe',
                       color: usr.role?.toLowerCase().includes('hod') 
                         ? '#6d28d9' 
-                        : usr.role?.toLowerCase().includes('tp') || usr.role?.toLowerCase().includes('placement') 
+                        : usr.role?.toLowerCase().includes('t&p') || usr.role?.toLowerCase().includes('t & p') || usr.role?.toLowerCase().includes('tp') || usr.role?.toLowerCase().includes('placement') 
                         ? '#b45309' 
                         : '#1e40af',
                       padding: '0.2rem 0.6rem',
