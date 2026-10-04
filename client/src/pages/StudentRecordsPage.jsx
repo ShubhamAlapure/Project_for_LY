@@ -1826,9 +1826,9 @@ export const StudentRecordsPage = ({ onNavigate, onPrefillDocument, authUser }) 
               <DetailItem label="5. Full Name" value={selectedRecord.full_name} />
               <DetailItem label="6. Gender" value={selectedRecord.gender} />
               <DetailItem label="7. Specialization" value={selectedRecord.specialization} />
-              <DetailItem label="8. Class / Division" value={selectedRecord.class_division || 'N/A'} highlight />
-              <DetailItem label="9. Semester" value={selectedRecord.semester} />
-              <DetailItem label="9. Source of Internship" value={selectedRecord.source_of_internship} />
+              <DetailItem label="8. Year / Semester" value={selectedRecord.semester} />
+              <DetailItem label="9. Class / Division" value={selectedRecord.class_division || 'N/A'} highlight />
+              <DetailItem label="10. Source of Internship" value={selectedRecord.source_of_internship} />
               <DetailItem label="10. Start Date" value={selectedRecord.start_date} />
               <DetailItem label="11. End Date" value={selectedRecord.end_date} />
               <DetailItem label="Automatic Duration" value={selectedRecord.duration} highlight />

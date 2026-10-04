@@ -29,6 +29,31 @@ import { calculateInternshipDuration, insertStudentRecord, uploadStudentDocument
 import { DocumentPreviewModal } from '../components/common/DocumentPreviewModal';
 import { getFacultyCoordinators } from '../utils/auth';
 
+export const getClassDivisionOptions = (specialization) => {
+  const spec = (specialization || 'CSE-AIA').toUpperCase();
+  let prefix = 'AIA';
+  if (spec.includes('AIA')) prefix = 'AIA';
+  else if (spec.includes('CORE')) prefix = 'CORE';
+  else if (spec.includes('BLOCKCHAIN') || spec.includes('BC')) prefix = 'BLOCKCHAIN';
+  else if (spec.includes('AIEC')) prefix = 'AIEC';
+  else if (spec.includes('CC')) prefix = 'CC';
+  else if (spec.includes('BDCE')) prefix = 'BDCE';
+  else if (spec.includes('CSF') || spec.includes('CYBER')) prefix = 'CSF';
+  else if (spec.includes('DATA ANALYTICS') || spec.includes('DA')) prefix = 'DA';
+  else if (spec.includes('SOFTWARE') || spec.includes('SMA')) prefix = 'SMA';
+  else if (spec.includes('IT')) prefix = 'IT';
+  else {
+    const parts = spec.replace(/[^A-Z0-9-]/g, '').split('-');
+    prefix = parts[parts.length - 1] || 'SEC';
+  }
+
+  const list = [];
+  for (let i = 1; i <= 10; i++) {
+    list.push(`${prefix}-${i}`);
+  }
+  return list;
+};
+
 const INITIAL_FORM = {
   // 1. Date of entry/submission
   submission_date: new Date().toISOString().split('T')[0],
@@ -43,12 +68,12 @@ const INITIAL_FORM = {
   // 6. Gender
   gender: 'Male',
   // 7. Specialization
-  specialization: 'CSE-CORE',
-  // 8. Class / Division
-  class_division: '',
-  // 9. Semester
-  semester: 'Semester VIII (Final Year)',
-  // 9. Source of Internship
+  specialization: 'CSE-AIA',
+  // 8. Year / Semester (4 options: TY - Sem V, TY - Sem VI, LY - Sem VII, LY - Sem VIII)
+  semester: 'LY - Sem VIII',
+  // 9. Class / Division (Dynamic list e.g. AIA-1 to AIA-10)
+  class_division: 'AIA-1',
+  // 10. Source of Internship
   source_of_internship: 'College Placement Cell / Central T&P',
   // 10. Start Date
   start_date: '',
@@ -195,7 +220,17 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'specialization') {
+      const opts = getClassDivisionOptions(value);
+      setFormData(prev => ({
+        ...prev,
+        specialization: value,
+        class_division: opts[0] || `${value}-1`
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
 
     if (errors[name]) {
       setErrors(prev => {
@@ -837,9 +872,9 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 className="form-select"
                 required
               >
+                <option value="CSE-AIA">CSE-AIA</option>
                 <option value="CSE-CORE">CSE-CORE</option>
                 <option value="CSE-BLOCKCHAIN">CSE-BLOCKCHAIN</option>
-                <option value="CSE-AIA">CSE-AIA</option>
                 <option value="CSE-AIEC">CSE-AIEC</option>
                 <option value="CSE-CC">CSE-CC</option>
                 <option value="CSE-BDCE">CSE-BDCE</option>
@@ -848,32 +883,13 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 <option value="IT-DATA ANALYTICS">IT-DATA ANALYTICS</option>
                 <option value="IT-SOFTWARE & MOBILE APP">IT-SOFTWARE & MOBILE APP</option>
               </select>
+              {errors.specialization && <span className="form-error">{errors.specialization}</span>}
             </div>
 
-            {/* Field 8: Class / Division */}
-            <div>
-              <label className="form-label" htmlFor="class_division">
-                8. Class / Division <span className="text-danger">*</span>
-              </label>
-              <input
-                type="text"
-                id="class_division"
-                name="class_division"
-                placeholder="e.g. LY-AIA-1, TY-CSE-2"
-                value={formData.class_division || ''}
-                onChange={handleChange}
-                disabled={isApplicationApproved}
-                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
-                className={`form-input ${errors.class_division ? 'is-invalid' : ''}`}
-                required
-              />
-              {errors.class_division && <span className="form-error">{errors.class_division}</span>}
-            </div>
-
-            {/* Field 9: Current Semester */}
+            {/* Field 8: Choose Year / Semester */}
             <div>
               <label className="form-label" htmlFor="semester">
-                9. Current Semester <span className="text-danger">*</span>
+                8. Choose Year / Semester <span className="text-danger">*</span>
               </label>
               <select
                 id="semester"
@@ -885,11 +901,44 @@ export const StudentSubmissionPage = ({ onNavigate, onPrefillDocument, authUser,
                 className="form-select"
                 required
               >
-                <option value="Semester VIII (Final Year)">Semester VIII (Final Year)</option>
-                <option value="Semester VII (Final Year)">Semester VII (Final Year)</option>
-                <option value="Semester VI (Third Year)">Semester VI (Third Year)</option>
-                <option value="Semester V (Third Year)">Semester V (Third Year)</option>
+                <option value="TY - Sem V">TY - Sem V</option>
+                <option value="TY - Sem VI">TY - Sem VI</option>
+                <option value="LY - Sem VII">LY - Sem VII</option>
+                <option value="LY - Sem VIII">LY - Sem VIII</option>
               </select>
+              {errors.semester && <span className="form-error">{errors.semester}</span>}
+            </div>
+
+            {/* Field 9: Choose Class / Division (Dynamic based on Specialization) */}
+            <div>
+              <label className="form-label" htmlFor="class_division">
+                9. Choose Class / Division <span className="text-danger">*</span>
+              </label>
+              <select
+                id="class_division"
+                name="class_division"
+                value={formData.class_division || ''}
+                onChange={handleChange}
+                disabled={isApplicationApproved}
+                style={isApplicationApproved ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
+                className={`form-select ${errors.class_division ? 'is-invalid' : ''}`}
+                required
+              >
+                {(() => {
+                  const opts = getClassDivisionOptions(formData.specialization);
+                  const currentVal = formData.class_division;
+                  const allOptions = [...opts];
+                  if (currentVal && !allOptions.includes(currentVal)) {
+                    allOptions.unshift(currentVal);
+                  }
+                  return allOptions.map(opt => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ));
+                })()}
+              </select>
+              {errors.class_division && <span className="form-error">{errors.class_division}</span>}
             </div>
           </div>
         </div>
