@@ -115,8 +115,7 @@ export const App = () => {
 
   const handleLoginSuccess = (user) => {
     setAuthUser(user);
-    const defaultRoute = ROLE_CONFIG[user.role]?.defaultRoute || 'home';
-    setCurrentRoute(defaultRoute);
+    setCurrentRoute('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

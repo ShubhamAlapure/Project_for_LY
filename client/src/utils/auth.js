@@ -15,35 +15,35 @@ export const ROLE_CONFIG = {
     description: 'Submit internship details, track application verification status, and generate Undertaking & NOC.',
     badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     icon: 'GraduationCap',
-    defaultRoute: 'student-form'
+    defaultRoute: 'home'
   },
   [ROLES.FACULTY]: {
     label: 'Faculty / Internship Coordinator',
     description: 'Review student applications, verify offer letters, and endorse academic documents.',
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
     icon: 'UserCheck',
-    defaultRoute: 'student-records'
+    defaultRoute: 'home'
   },
   [ROLES.CENTRAL_TP]: {
     label: 'Central Training & Placement (T&P)',
     description: 'Corporate relations, placement cell oversight, PPO confirmation, and campus drives.',
     badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
     icon: 'Building2',
-    defaultRoute: 'student-records'
+    defaultRoute: 'home'
   },
   [ROLES.HOD]: {
     label: 'Head of Department (HOD)',
     description: 'Departmental approval, compliance with academic rules, and NOC authorization.',
     badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300',
     icon: 'Award',
-    defaultRoute: 'student-records'
+    defaultRoute: 'home'
   },
   [ROLES.ADMIN]: {
     label: 'Institutional Admin',
     description: 'Complete system access, database administration, document issuing, and user management.',
     badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
     icon: 'Shield',
-    defaultRoute: 'student-records'
+    defaultRoute: 'home'
   }
 };
 
