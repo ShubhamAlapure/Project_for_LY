@@ -112,17 +112,9 @@ export const DocumentPreviewPage = ({
         </div>
 
         {/* Split Layout: Left Preview, Right Control Panel */}
-        <div 
-          className="preview-split-layout"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) 340px',
-            gap: '2rem',
-            alignItems: 'flex-start'
-          }}
-        >
+        <div className="preview-split-layout">
           {/* Left Column: A4 Document Container */}
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, width: '100%' }}>
             <A4Container documentRef={documentRef}>
               {docType === 'undertaking' ? (
                 <UndertakingTemplate data={formData} />
@@ -133,7 +125,7 @@ export const DocumentPreviewPage = ({
           </div>
 
           {/* Right Column: Controls Panel */}
-          <div className="non-printable">
+          <div className="non-printable" style={{ width: '100%' }}>
             <PreviewControls
               docName={docTitle}
               onEdit={onEdit}

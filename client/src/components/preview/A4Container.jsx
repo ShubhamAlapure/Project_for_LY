@@ -2,14 +2,19 @@ import React, { useRef, useState } from 'react';
 import { ZoomIn, ZoomOut, Maximize2, RotateCcw } from 'lucide-react';
 
 export const A4Container = ({ children, documentRef }) => {
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomLevel, setZoomLevel] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 0.55;
+    }
+    return 1;
+  });
 
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.1, 1.4));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.1, 0.6));
+    setZoomLevel(prev => Math.max(prev - 0.1, 0.4));
   };
 
   const handleResetZoom = () => {
@@ -17,7 +22,11 @@ export const A4Container = ({ children, documentRef }) => {
   };
 
   const handleFitWidth = () => {
-    setZoomLevel(0.85);
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setZoomLevel(0.48);
+    } else {
+      setZoomLevel(0.85);
+    }
   };
 
   return (

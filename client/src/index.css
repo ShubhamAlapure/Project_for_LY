@@ -622,6 +622,13 @@ button, input, select, textarea {
    A4 DOCUMENT EXACT REPLICA CONTAINER (Matching Images 1 & 2)
    ========================================================================== */
 
+.preview-split-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
 .preview-stage-wrapper {
   background-color: #1e1338;
   background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
@@ -678,6 +685,13 @@ button, input, select, textarea {
   display: none;
 }
 
+.preview-split-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
 @media (max-width: 900px) {
   .portal-sidebar-overlay {
     display: block;
@@ -712,6 +726,73 @@ button, input, select, textarea {
 
   .logout-text-desktop {
     display: none;
+  }
+
+  /* Responsive Portal Hero Banner (Fixes Image 1) */
+  .portal-hero-banner {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1.25rem !important;
+    padding: 1.35rem 1rem !important;
+  }
+
+  .portal-hero-tag {
+    display: inline-flex !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    border-radius: 9999px !important;
+    padding: 0.35rem 0.85rem !important;
+    line-height: 1.35 !important;
+    margin-bottom: 0.65rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  .portal-hero-title {
+    font-size: clamp(1.3rem, 5.5vw, 1.85rem) !important;
+    line-height: 1.22 !important;
+    margin-bottom: 0.4rem !important;
+  }
+
+  .portal-hero-subtitle {
+    font-size: 0.825rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .portal-stat-pill-group {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+    width: 100% !important;
+    gap: 0.65rem !important;
+  }
+
+  .portal-stat-pill {
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 0.65rem 0.75rem !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Responsive Document Preview Split Layout (Fixes Image 2) */
+  .preview-split-layout {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    gap: 1.5rem !important;
+    width: 100% !important;
+  }
+
+  .preview-control-panel {
+    position: static !important;
+    top: auto !important;
+    width: 100% !important;
+  }
+
+  .preview-stage-wrapper {
+    padding: 1rem 0.5rem !important;
+    min-height: auto !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   .btn {
