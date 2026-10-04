@@ -146,17 +146,6 @@ export const DEFAULT_USERS = [
     status: 'Active'
   },
   {
-    id: 'usr_faculty_02',
-    email: 'faculty@mitadt.edu.in',
-    password: 'faculty123',
-    full_name: 'Prof. Vaibhav Sawalkar',
-    role: ROLES.FACULTY,
-    department: 'Department of Computer Science & Engineering',
-    designation: 'Internship Coordinator & Assistant Professor',
-    phone: '9665368452',
-    status: 'Active'
-  },
-  {
     id: 'usr_faculty_03',
     email: 'aniket.verma@mituniversity.edu.in',
     password: 'faculty123',
@@ -207,17 +196,6 @@ export const DEFAULT_USERS = [
   {
     id: 'usr_hod_01',
     email: 'jayashree.prasad@mituniversity.edu.in',
-    password: 'hod123',
-    full_name: 'Prof. Dr. Jayashree Prasad',
-    role: ROLES.HOD,
-    department: 'Department of CSE-AIA',
-    designation: 'Head of Department (CSE)',
-    phone: '02067652560',
-    status: 'Active'
-  },
-  {
-    id: 'usr_hod_02',
-    email: 'hod@mitadt.edu.in',
     password: 'hod123',
     full_name: 'Prof. Dr. Jayashree Prasad',
     role: ROLES.HOD,
